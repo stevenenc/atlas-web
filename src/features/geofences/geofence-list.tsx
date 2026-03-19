@@ -1,4 +1,4 @@
-import { GeoFenceCard } from "@/components/geofence-card";
+import { GeoFenceCard } from "@/shared/components/geofence-card";
 import type { GeoFenceDto } from "@/lib/api";
 
 type GeoFenceListProps = {
