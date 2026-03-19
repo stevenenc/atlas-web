@@ -23,6 +23,16 @@ body {
   font-family: var(--font-sans);
 }
 
+@keyframes atlascope-grid-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(-120px, 120px, 0);
+  }
+}
+
 @keyframes atlascope-primary-marker-breathe {
   0% {
     transform: scale(1);
@@ -121,4 +131,9 @@ body {
 .atlascope-primary-marker-core {
   animation: atlascope-primary-marker-core 1.9s ease-in-out infinite;
   will-change: transform, box-shadow;
+}
+
+.atlascope-grid-drift {
+  animation: atlascope-grid-drift 18s linear infinite;
+  will-change: transform;
 }

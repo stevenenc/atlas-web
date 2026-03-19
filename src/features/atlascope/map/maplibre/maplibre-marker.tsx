@@ -34,12 +34,14 @@ const markerStyles = {
 
 type MapLibreMarkerProps = {
   marker: MapMarkerData;
+  isVisible: boolean;
   onClick: (marker: MapMarkerData) => void;
   theme: ThemeMode;
 };
 
 export function MapLibreMarkerView({
   marker,
+  isVisible,
   onClick,
   theme,
 }: MapLibreMarkerProps) {
@@ -55,7 +57,11 @@ export function MapLibreMarkerView({
         type="button"
         aria-label={`${style.label} alert at ${marker.title}`}
         onClick={() => onClick(marker)}
-        className="group relative z-10 flex items-center justify-center transition-transform duration-200 hover:z-20 focus-visible:z-20 focus-visible:outline-none"
+        className={`group relative z-10 flex items-center justify-center transition-[opacity,transform,filter] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] hover:z-20 focus-visible:z-20 focus-visible:outline-none ${
+          isVisible
+            ? "opacity-100 blur-0 scale-100"
+            : "pointer-events-none opacity-0 blur-[1px] scale-75"
+        }`}
       >
         <span className="relative flex size-20 items-center justify-center atlascope-primary-marker-breathe">
           <span

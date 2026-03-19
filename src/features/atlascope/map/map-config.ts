@@ -86,6 +86,9 @@ type MapPalette = {
   halo: string;
 };
 
+const graticulePattern =
+  /(graticule|equator|tropic|arctic circle|antarctic circle|latitude|longitude)/i;
+
 const darkPalette: MapPalette = {
   background: "#171C20",
   land: "#20282D",
@@ -130,7 +133,9 @@ function buildOperationalMapStyle(
           "background-color": palette.background,
         },
       },
-      ...(baseStyle.layers ?? []).map((layer) => {
+      ...(baseStyle.layers ?? [])
+        .filter((layer) => !graticulePattern.test(JSON.stringify(layer)))
+        .map((layer) => {
         const layerId = layer.id.toLowerCase();
 
         if (layer.type === "background") {

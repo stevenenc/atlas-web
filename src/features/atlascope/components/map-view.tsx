@@ -73,9 +73,9 @@ export function MapView({
         <div
           className={themeClasses(theme, {
             dark:
-              "absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:120px_120px] opacity-35",
+              "atlascope-grid-drift absolute -inset-[120px] bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:120px_120px] opacity-35",
             light:
-              "absolute inset-0 bg-[linear-gradient(rgba(44,53,59,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(44,53,59,0.055)_1px,transparent_1px)] bg-[size:120px_120px] opacity-32",
+              "atlascope-grid-drift absolute -inset-[120px] bg-[linear-gradient(rgba(44,53,59,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(44,53,59,0.055)_1px,transparent_1px)] bg-[size:120px_120px] opacity-32",
           })}
         />
         <div

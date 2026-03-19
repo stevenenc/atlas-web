@@ -26,13 +26,16 @@ const layerRows: Array<{
   { id: "air_quality", label: "Air Quality", color: "#D8B11E" },
 ];
 
+type OverlayPanelId = "system" | "layers" | null;
+
 export function AtlascopeShell() {
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [activeLayers, setActiveLayers] = useState(initialLayers);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [isPanelLoading, setIsPanelLoading] = useState(false);
-  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
+  const [activeOverlayPanel, setActiveOverlayPanel] = useState<OverlayPanelId>(null);
   const loadingTimerRef = useRef<number | null>(null);
+  const overlayControlsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -41,6 +44,36 @@ export function AtlascopeShell() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!activeOverlayPanel) {
+      return;
+    }
+
+    const activeOverlayElement = overlayControlsRef.current;
+
+    if (!activeOverlayElement) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (!activeOverlayElement.contains(target)) {
+        setActiveOverlayPanel(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [activeOverlayPanel]);
 
   function handleToggleLayer(layer: IncidentType) {
     setActiveLayers((current) => {
@@ -100,155 +133,195 @@ export function AtlascopeShell() {
 
       <div className="pointer-events-none absolute inset-0">
         <div className="fixed right-6 top-6 z-30 flex items-start justify-end">
-          <div className="pointer-events-auto relative h-[72px] w-[72px]">
-            <div
-              className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] duration-250 ease-out ${
-                isControlPanelOpen
-                  ? "scale-100 opacity-100"
-                  : "pointer-events-none scale-95 opacity-0"
-              }`}
-            >
-              <aside
-                className={themeClasses(theme, {
-                  dark:
-                    "w-[320px] rounded-3xl border border-white/10 bg-[rgba(11,16,19,0.84)] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.3)] backdrop-blur-md",
-                  light:
-                    "w-[320px] rounded-3xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] p-4 shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md",
-                })}
+          <div
+            ref={overlayControlsRef}
+            className="pointer-events-auto flex items-start gap-3"
+          >
+            <div className="relative min-h-[72px] w-[320px]">
+              <div
+                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] duration-250 ease-out ${
+                  activeOverlayPanel === "system"
+                    ? "scale-100 opacity-100"
+                    : "pointer-events-none scale-95 opacity-0"
+                }`}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p
-                      className={themeClasses(theme, {
-                        dark: "text-[30px] font-semibold tracking-[-0.02em] text-white/88",
-                        light: "text-[30px] font-semibold tracking-[-0.02em] text-[#36424A]",
-                      })}
-                    >
-                      AtlaScope
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsControlPanelOpen(false)}
-                    className={themeClasses(theme, {
-                      dark:
-                        "flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/58 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
-                      light:
-                        "flex size-12 items-center justify-center rounded-2xl border border-[#3D464C]/10 bg-white/72 text-[#607078] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
-                    })}
-                    aria-label="Collapse control panel"
-                  >
-                    <MenuIcon />
-                  </button>
-                </div>
-
-                <Section title="System" theme={theme} className="mt-4">
-                  <SearchRow theme={theme} />
-
-                  <ControlRow
-                    theme={theme}
-                    label="Steven"
-                    detail="Premium account"
-                    control={
-                      <span
+                <aside
+                  className={themeClasses(theme, {
+                    dark:
+                      "w-[320px] rounded-3xl border border-white/10 bg-[rgba(11,16,19,0.84)] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.3)] backdrop-blur-md",
+                    light:
+                      "w-[320px] rounded-3xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] p-4 shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md",
+                  })}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p
                         className={themeClasses(theme, {
-                          dark:
-                            "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2F3C47] to-[#121A20] text-sm font-semibold text-white",
-                          light:
-                            "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#36454F] to-[#11181D] text-sm font-semibold text-white",
+                          dark: "text-[30px] font-semibold tracking-[-0.02em] text-white/88",
+                          light: "text-[30px] font-semibold tracking-[-0.02em] text-[#36424A]",
                         })}
                       >
-                        SE
-                      </span>
-                    }
-                  />
-                </Section>
+                        AtlaScope
+                      </p>
+                    </div>
+                  </div>
 
-                <Section title="Hazard Layers" theme={theme} className="mt-5">
-                  {layerRows.map((layer) => (
-                    <LayerRow
-                      key={layer.id}
+                  <Section title="System" theme={theme} className="mt-4">
+                    <SearchRow theme={theme} />
+
+                    <ControlRow
                       theme={theme}
-                      label={layer.label}
-                      color={layer.color}
-                      active={activeLayers[layer.id]}
-                      onClick={() => handleToggleLayer(layer.id)}
+                      label="Steven Encarnacion"
+                      detail="Premium account"
+                      control={
+                        <span
+                          className={themeClasses(theme, {
+                            dark:
+                              "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2F3C47] to-[#121A20] text-sm font-semibold text-white",
+                            light:
+                              "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#36454F] to-[#11181D] text-sm font-semibold text-white",
+                          })}
+                        >
+                          SE
+                        </span>
+                      }
                     />
-                  ))}
-                </Section>
+                  </Section>
 
-                <Section title="Utilities" theme={theme} className="mt-5">
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      className={themeClasses(theme, {
-                        dark:
-                          "flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
-                        light:
-                          "flex items-center justify-center gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-3 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
-                      })}
-                    >
-                      <span
+                  <Section title="Utilities" theme={theme} className="mt-5">
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
                         className={themeClasses(theme, {
                           dark:
-                            "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
+                            "flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
                           light:
-                            "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
+                            "flex items-center justify-center gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-3 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
                         })}
                       >
-                        <ToolIcon />
-                      </span>
-                      <span className="text-xs font-semibold uppercase tracking-[0.14em]">
-                        Settings
-                      </span>
-                    </button>
+                        <span
+                          className={themeClasses(theme, {
+                            dark:
+                              "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
+                            light:
+                              "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
+                          })}
+                        >
+                          <ToolIcon />
+                        </span>
+                        <span className="text-xs font-semibold uppercase tracking-[0.14em]">
+                          Settings
+                        </span>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-                      className={themeClasses(theme, {
-                        dark:
-                          "flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
-                        light:
-                          "flex items-center justify-center gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-3 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
-                      })}
-                    >
-                      <span
+                      <button
+                        type="button"
+                        onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
                         className={themeClasses(theme, {
                           dark:
-                            "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
+                            "flex items-center justify-start gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
                           light:
-                            "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
+                            "flex items-center justify-start gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-5 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
                         })}
                       >
-                        {theme === "dark" ? <MoonIcon /> : <SunIcon />}
-                      </span>
-                      <span className="text-xs font-semibold uppercase tracking-[0.14em]">
-                        {theme}
-                      </span>
-                    </button>
+                        <span
+                          className={themeClasses(theme, {
+                            dark:
+                              "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
+                            light:
+                              "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
+                          })}
+                        >
+                          {theme === "dark" ? <MoonIcon /> : <SunIcon />}
+                        </span>
+                        <span className="text-xs font-semibold uppercase tracking-[0.14em]">
+                          {theme}
+                        </span>
+                      </button>
+                    </div>
+                  </Section>
+                </aside>
+              </div>
+
+              <div
+                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] duration-250 ease-out ${
+                  activeOverlayPanel === "layers"
+                    ? "scale-100 opacity-100"
+                    : "pointer-events-none scale-95 opacity-0"
+                }`}
+              >
+                <aside
+                  className={themeClasses(theme, {
+                    dark:
+                      "w-[320px] rounded-3xl border border-white/10 bg-[rgba(11,16,19,0.84)] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.3)] backdrop-blur-md",
+                    light:
+                      "w-[320px] rounded-3xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] p-4 shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md",
+                  })}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p
+                        className={themeClasses(theme, {
+                          dark: "text-[10px] font-semibold tracking-[0.24em] text-white/30 uppercase",
+                          light: "text-[10px] font-semibold tracking-[0.24em] text-[#607078] uppercase",
+                        })}
+                      >
+                        Hazard Layers
+                      </p>
+                      <p
+                        className={themeClasses(theme, {
+                          dark: "mt-2 text-lg font-semibold text-white/86",
+                          light: "mt-2 text-lg font-semibold text-[#1F2A30]",
+                        })}
+                      >
+                        Visibility Controls
+                      </p>
+                    </div>
                   </div>
-                </Section>
-              </aside>
+
+                  <div className="mt-4 space-y-2">
+                    {layerRows.map((layer) => (
+                      <LayerRow
+                        key={layer.id}
+                        theme={theme}
+                        label={layer.label}
+                        color={layer.color}
+                        active={activeLayers[layer.id]}
+                        onClick={() => handleToggleLayer(layer.id)}
+                      />
+                    ))}
+                  </div>
+                </aside>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsControlPanelOpen((current) => !current)}
-              className={`${themeClasses(theme, {
-                dark:
-                  "flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-[rgba(11,16,19,0.82)] text-white/78 shadow-[0_20px_50px_rgba(0,0,0,0.24)] backdrop-blur-md transition-colors duration-200 hover:bg-white/[0.08] hover:text-white",
-                light:
-                  "flex size-12 items-center justify-center rounded-2xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] text-[#536068] shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md transition-colors duration-200 hover:bg-white hover:text-[#1F2A30]",
-              })} ${
-                isControlPanelOpen
-                  ? "pointer-events-none absolute right-4 top-4 opacity-0"
-                  : "absolute right-0 top-0 opacity-100"
-              }`}
-              aria-label="Open control panel"
-            >
-              <MenuIcon />
-            </button>
+            <div className="flex flex-col items-end gap-3">
+              <OverlayRailButton
+                theme={theme}
+                isPressed={activeOverlayPanel === "system"}
+                onClick={() =>
+                  setActiveOverlayPanel((current) =>
+                    current === "system" ? null : "system",
+                  )
+                }
+                ariaLabel="Open control panel"
+              >
+                <MenuIcon />
+              </OverlayRailButton>
+
+              <OverlayRailButton
+                theme={theme}
+                isPressed={activeOverlayPanel === "layers"}
+                onClick={() =>
+                  setActiveOverlayPanel((current) =>
+                    current === "layers" ? null : "layers",
+                  )
+                }
+                ariaLabel="Open hazard layers"
+              >
+                <LayersIcon />
+              </OverlayRailButton>
+            </div>
           </div>
         </div>
 
@@ -391,9 +464,9 @@ function LayerRow({
       onClick={onClick}
       className={themeClasses(theme, {
         dark:
-          "grid w-full grid-cols-[minmax(0,1fr)_76px] items-center gap-4 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-2.5 text-left transition-colors duration-300 hover:bg-white/[0.05]",
+          "grid w-full grid-cols-[minmax(0,1fr)_76px] items-center gap-4 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-2.5 text-left outline-none transition-[background-color,border-color,transform,box-shadow] duration-300 ease-out hover:bg-white/[0.05] active:scale-[0.995]",
         light:
-          "grid w-full grid-cols-[minmax(0,1fr)_76px] items-center gap-4 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-2.5 text-left transition-colors duration-300 hover:bg-white/72",
+          "grid w-full grid-cols-[minmax(0,1fr)_76px] items-center gap-4 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-2.5 text-left outline-none transition-[background-color,border-color,transform,box-shadow] duration-300 ease-out hover:bg-white/72 active:scale-[0.995]",
       })}
     >
       <div className="flex min-w-0 items-center gap-3">
@@ -416,7 +489,7 @@ function LayerRow({
       </div>
       <div className="flex h-full min-h-[52px] w-[76px] items-center justify-center">
         <span
-          className="relative inline-flex h-7 w-12 items-center rounded-full border px-0.5 transition-[background-color,border-color] duration-300"
+          className="relative inline-flex h-7 w-12 items-center rounded-full border px-0.5 transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]"
           style={{
             borderColor: active
               ? `${color}88`
@@ -431,16 +504,52 @@ function LayerRow({
           }}
         >
           <span
-            className={`absolute left-0.5 top-0.5 size-5 rounded-full transition-[transform,background-color,box-shadow] duration-300 ease-out ${
-              active ? "translate-x-5" : "translate-x-0"
-            }`}
+            className="absolute left-0.5 top-0.5 size-5 rounded-full transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] transform-gpu"
             style={{
+              transform: `translateX(${active ? "20px" : "0px"})`,
               backgroundColor: active ? color : theme === "dark" ? "#8F9AA1" : "#75818A",
               boxShadow: active ? `0 0 12px ${color}44` : "none",
             }}
           />
         </span>
       </div>
+    </button>
+  );
+}
+
+function OverlayRailButton({
+  theme,
+  isPressed,
+  onClick,
+  ariaLabel,
+  children,
+}: {
+  theme: ThemeMode;
+  isPressed: boolean;
+  onClick: () => void;
+  ariaLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${themeClasses(theme, {
+        dark:
+          "flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-[rgba(11,16,19,0.82)] text-white/78 shadow-[0_20px_50px_rgba(0,0,0,0.24)] backdrop-blur-md transition-colors duration-200 hover:bg-white/[0.08] hover:text-white",
+        light:
+          "flex size-12 items-center justify-center rounded-2xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] text-[#536068] shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md transition-colors duration-200 hover:bg-white hover:text-[#1F2A30]",
+      })} ${
+        isPressed
+          ? theme === "dark"
+            ? "border-white/18 bg-white/[0.12] text-white shadow-[0_16px_36px_rgba(0,0,0,0.28)]"
+            : "border-[#3D464C]/18 bg-white text-[#1F2A30] shadow-[0_14px_28px_rgba(68,79,88,0.18)]"
+          : ""
+      }`}
+      aria-label={ariaLabel}
+      aria-pressed={isPressed}
+    >
+      {children}
     </button>
   );
 }
@@ -458,6 +567,19 @@ function MenuIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-5 fill-none stroke-current">
       <path d="M5 7h14M5 12h14M5 17h14" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LayersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5 fill-none stroke-current">
+      <path
+        d="m12 5 7 3.5-7 3.5-7-3.5L12 5Zm7 7-7 3.5L5 12m14 4-7 3.5L5 16"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

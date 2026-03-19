@@ -29,14 +29,29 @@ function toViewportState(event: ViewStateChangeEvent): MapViewportState {
   };
 }
 
-function getHorizontalWorldMinZoom(containerWidth: number) {
-  if (!Number.isFinite(containerWidth) || containerWidth <= 0) {
+const NORWAY_TO_AUSTRALIA_BOUNDS = {
+  northLatitude: 71.2,
+  southLatitude: -43.7,
+};
+
+function mercatorY(latitude: number) {
+  const latitudeInRadians = (Math.max(Math.min(latitude, 85.05112878), -85.05112878) * Math.PI) / 180;
+
+  return (1 - Math.log(Math.tan(latitudeInRadians) + 1 / Math.cos(latitudeInRadians)) / Math.PI) / 2;
+}
+
+function getVerticalBoundsMinZoom(containerHeight: number) {
+  if (!Number.isFinite(containerHeight) || containerHeight <= 0) {
     return atlascopeMapConfig.minZoom;
   }
 
+  const verticalSpan =
+    mercatorY(NORWAY_TO_AUSTRALIA_BOUNDS.southLatitude) -
+    mercatorY(NORWAY_TO_AUSTRALIA_BOUNDS.northLatitude);
+
   return Math.max(
     atlascopeMapConfig.minZoom,
-    Math.log2(containerWidth / 512),
+    Math.log2(containerHeight / (512 * verticalSpan)),
   );
 }
 
@@ -51,10 +66,9 @@ export function MapLibreMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [baseMapStyle, setBaseMapStyle] = useState<StyleSpecification | null>(null);
   const [hasMapStyleError, setHasMapStyleError] = useState(false);
-  const [horizontalWorldMinZoom, setHorizontalWorldMinZoom] = useState(
+  const [verticalBoundsMinZoom, setVerticalBoundsMinZoom] = useState(
     atlascopeMapConfig.minZoom,
   );
-  const visibleMarkers = markers.filter((marker) => activeLayers[marker.layerType]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -96,8 +110,8 @@ export function MapLibreMap({
     }
 
     const updateMinZoom = () => {
-      setHorizontalWorldMinZoom(
-        getHorizontalWorldMinZoom(container.clientWidth),
+      setVerticalBoundsMinZoom(
+        getVerticalBoundsMinZoom(container.clientHeight),
       );
     };
 
@@ -120,7 +134,7 @@ export function MapLibreMap({
     }
 
     if (!baseMapStyle) {
-      return DEMO_TILE_STYLE_URL as StyleSpecification | string;
+      return getFallbackMapStyle(theme) as StyleSpecification | string;
     }
 
     return (theme === "dark"
@@ -135,7 +149,7 @@ export function MapLibreMap({
         reuseMaps
         mapLib={maplibregl}
         mapStyle={mapStyle}
-        minZoom={horizontalWorldMinZoom}
+        minZoom={verticalBoundsMinZoom}
         maxZoom={atlascopeMapConfig.maxZoom}
         dragRotate={false}
         touchPitch={false}
@@ -146,10 +160,11 @@ export function MapLibreMap({
           setHasMapStyleError(true);
         }}
       >
-        {visibleMarkers.map((marker) => (
+        {markers.map((marker) => (
           <MapLibreMarkerView
             key={marker.id}
             marker={marker}
+            isVisible={activeLayers[marker.layerType]}
             onClick={onMarkerClick}
             theme={theme}
           />
