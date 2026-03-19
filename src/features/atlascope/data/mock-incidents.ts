@@ -7,10 +7,8 @@ export const incidents: Incident[] = [
     locationName: "Manila Trench",
     severity: "High",
     timestamp: "12 minutes ago",
-    coordinates: {
-      longitude: 120.42,
-      latitude: 14.09,
-    },
+    x: 32,
+    y: 38,
     whyThisAlert:
       "Seismic activity exceeded the regional baseline and was detected near a high-population coastal corridor.",
   },
@@ -20,10 +18,8 @@ export const incidents: Incident[] = [
     locationName: "Palawan Range",
     severity: "Critical",
     timestamp: "4 minutes ago",
-    coordinates: {
-      longitude: 118.54,
-      latitude: 9.78,
-    },
+    x: 61,
+    y: 46,
     whyThisAlert:
       "Heat signatures intensified over the last hour with wind conditions favoring rapid spread toward nearby communities.",
   },
@@ -33,10 +29,8 @@ export const incidents: Incident[] = [
     locationName: "Metro Cebu",
     severity: "Moderate",
     timestamp: "27 minutes ago",
-    coordinates: {
-      longitude: 123.89,
-      latitude: 10.32,
-    },
+    x: 73,
+    y: 29,
     whyThisAlert:
       "Particulate concentrations moved above healthy thresholds and are trending upward based on recent forecast conditions.",
   },
@@ -46,10 +40,8 @@ export const incidents: Incident[] = [
     locationName: "Davao Gulf",
     severity: "Moderate",
     timestamp: "41 minutes ago",
-    coordinates: {
-      longitude: 125.65,
-      latitude: 6.71,
-    },
+    x: 69,
+    y: 68,
     whyThisAlert:
       "A localized tremor cluster was detected in an active fault zone with moderate exposure to surrounding infrastructure.",
   },
@@ -59,10 +51,8 @@ export const incidents: Incident[] = [
     locationName: "Sierra Madre",
     severity: "High",
     timestamp: "9 minutes ago",
-    coordinates: {
-      longitude: 121.52,
-      latitude: 16.42,
-    },
+    x: 48,
+    y: 24,
     whyThisAlert:
       "Dry vegetation and elevated thermal readings indicate an expanding burn area along the ridge line.",
   },

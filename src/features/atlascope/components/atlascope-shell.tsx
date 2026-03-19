@@ -113,7 +113,7 @@ export function AtlascopeShell() {
                   light: "text-[11px] tracking-[0.32em] text-[#8B7A5E] uppercase",
                 })}
               >
-                AtlaScope
+                AtlasScope
               </p>
               <input
                 readOnly
