@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import Map, {
   Layer,
+  type MapLayerMouseEvent,
   Source,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
@@ -22,6 +23,9 @@ import type {
   MapViewportState,
 } from "@/features/atlascope/map/map-types";
 import {
+  createDraftGeofenceLayers,
+  createDraftGeofenceLineSourceData,
+  createDraftGeofencePointSourceData,
   createGeofenceLayers,
   createGeofenceSourceData,
 } from "@/features/atlascope/map/maplibre/maplibre-layers";
@@ -66,11 +70,14 @@ function getVerticalBoundsMinZoom(containerHeight: number) {
 export function MapLibreMap({
   markers,
   geofences,
+  drawingCoordinates,
+  isDrawingGeofence,
   activeLayers,
   viewport,
   theme,
   onViewportChange,
   onMarkerClick,
+  onMapClick,
 }: MapContainerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [baseMapStyle, setBaseMapStyle] = useState<StyleSpecification | null>(null);
@@ -155,9 +162,35 @@ export function MapLibreMap({
     [geofences],
   );
   const geofenceLayers = useMemo(() => createGeofenceLayers(theme), [theme]);
+  const draftGeofenceLineSourceData = useMemo(
+    () => createDraftGeofenceLineSourceData(drawingCoordinates),
+    [drawingCoordinates],
+  );
+  const draftGeofencePointSourceData = useMemo(
+    () => createDraftGeofencePointSourceData(drawingCoordinates),
+    [drawingCoordinates],
+  );
+  const draftGeofenceLayers = useMemo(
+    () => createDraftGeofenceLayers(theme),
+    [theme],
+  );
+
+  function handleMapClick(event: MapLayerMouseEvent) {
+    if (!isDrawingGeofence) {
+      return;
+    }
+
+    onMapClick({
+      longitude: event.lngLat.lng,
+      latitude: event.lngLat.lat,
+    });
+  }
 
   return (
-    <div ref={containerRef} className="h-full w-full">
+    <div
+      ref={containerRef}
+      className={`h-full w-full ${isDrawingGeofence ? "atlascope-geofence-drawing" : ""}`}
+    >
       <Map
         {...viewport}
         reuseMaps
@@ -169,7 +202,9 @@ export function MapLibreMap({
         touchPitch={false}
         renderWorldCopies
         attributionControl={false}
+        doubleClickZoom={!isDrawingGeofence}
         onMove={(event) => onViewportChange(toViewportState(event))}
+        onClick={handleMapClick}
         onError={() => {
           setHasMapStyleError(true);
         }}
@@ -181,11 +216,30 @@ export function MapLibreMap({
             ))}
           </Source>
         ) : null}
+        {isDrawingGeofence && drawingCoordinates.length >= 2 ? (
+          <Source
+            id="atlascope-draft-geofence-line"
+            type="geojson"
+            data={draftGeofenceLineSourceData}
+          >
+            <Layer {...draftGeofenceLayers[0]} />
+          </Source>
+        ) : null}
+        {isDrawingGeofence && drawingCoordinates.length ? (
+          <Source
+            id="atlascope-draft-geofence-points"
+            type="geojson"
+            data={draftGeofencePointSourceData}
+          >
+            <Layer {...draftGeofenceLayers[1]} />
+          </Source>
+        ) : null}
         {markers.map((marker) => (
           <MapLibreMarkerView
             key={marker.id}
             marker={marker}
             isVisible={activeLayers[marker.layerType]}
+            isInteractive={!isDrawingGeofence}
             onClick={onMarkerClick}
             theme={theme}
           />

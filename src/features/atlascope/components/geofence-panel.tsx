@@ -8,11 +8,15 @@ export type Geofence = AtlascopeGeofence;
 type GeofencePanelProps = {
   theme: ThemeMode;
   geofences: Geofence[];
+  isDrawingGeofence: boolean;
+  drawingPointCount: number;
   editingGeofenceId: number | null;
   draftName: string;
   enteringGeofenceId: number | null;
   showRowActions: boolean;
   onAddGeofence: () => void;
+  onCancelDrawing: () => void;
+  onFinishDrawing: () => void;
   onDraftNameChange: (value: string) => void;
   onStartEditing: (geofence: Geofence) => void;
   onSaveEditing: (geofence: Geofence) => void;
@@ -26,11 +30,15 @@ type GeofencePanelProps = {
 export function GeofencePanel({
   theme,
   geofences,
+  isDrawingGeofence,
+  drawingPointCount,
   editingGeofenceId,
   draftName,
   enteringGeofenceId,
   showRowActions,
   onAddGeofence,
+  onCancelDrawing,
+  onFinishDrawing,
   onDraftNameChange,
   onStartEditing,
   onSaveEditing,
@@ -128,15 +136,15 @@ export function GeofencePanel({
             className={`mt-7 ${themeClasses(theme, {
               dark:
                 showRowActions
-                  ? "flex size-7 items-center justify-center rounded-xl bg-white/[0.08] text-white"
-                  : "flex size-7 items-center justify-center text-white/58 transition-colors duration-300 hover:text-white",
+                  ? "rounded-lg bg-white/[0.08] px-2 py-1 text-[11px] font-semibold tracking-[0.14em] text-white uppercase"
+                  : "px-2 py-1 text-[11px] font-semibold tracking-[0.14em] text-white/58 uppercase transition-colors duration-300 hover:text-white",
               light:
                 showRowActions
-                  ? "flex size-7 items-center justify-center rounded-xl bg-[#1F2A30]/[0.08] text-[#1F2A30]"
-                  : "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
+                  ? "rounded-lg bg-[#1F2A30]/[0.08] px-2 py-1 text-[11px] font-semibold tracking-[0.14em] text-[#1F2A30] uppercase"
+                  : "px-2 py-1 text-[11px] font-semibold tracking-[0.14em] text-[#536068] uppercase transition-colors duration-300 hover:text-[#1F2A30]",
             })}`}
           >
-            <HeaderPenIcon />
+            Edit
           </button>
         ) : null}
       </div>
@@ -175,26 +183,85 @@ export function GeofencePanel({
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={onAddGeofence}
-            className={themeClasses(theme, {
-              dark:
-                "mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/84 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
-              light:
-                "mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/55 px-4 py-3 text-sm font-semibold text-[#1F2A30] transition-colors duration-300 hover:bg-white/90",
-            })}
-          >
-            <span
+          {isDrawingGeofence ? (
+            <div
               className={themeClasses(theme, {
-                dark: "text-base leading-none text-white/64",
-                light: "text-base leading-none text-[#536068]",
+                dark:
+                  "mt-3 flex min-h-[88px] w-full items-center justify-between rounded-2xl border border-[#5BD3F5]/34 bg-[linear-gradient(180deg,rgba(91,211,245,0.22),rgba(91,211,245,0.14))] px-4 py-3 text-sm text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+                light:
+                  "mt-3 flex min-h-[88px] w-full items-center justify-between rounded-2xl border border-[#1E63D5]/24 bg-[linear-gradient(180deg,rgba(30,99,213,0.16),rgba(30,99,213,0.09))] px-4 py-3 text-sm text-[#1F2A30] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
               })}
             >
-              +
-            </span>
-            <span>Add Geofence</span>
-          </button>
+              <div className="min-w-0 text-left">
+                <p
+                  className={themeClasses(theme, {
+                    dark: "text-[11px] font-semibold tracking-[0.22em] text-[#9BEAFF] uppercase",
+                    light: "text-[11px] font-semibold tracking-[0.22em] text-[#1E63D5] uppercase",
+                  })}
+                >
+                  Geofence Drawing
+                </p>
+                <p
+                  className={themeClasses(theme, {
+                    dark: "mt-1 text-xs font-semibold text-white/56",
+                    light: "mt-1 text-xs font-semibold text-[#5A6972]",
+                  })}
+                >
+                  {drawingPointCount} point{drawingPointCount === 1 ? "" : "s"} placed
+                </p>
+              </div>
+              <div className="ml-3 flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={onCancelDrawing}
+                  aria-label="Cancel geofence drawing"
+                  className={themeClasses(theme, {
+                    dark:
+                      "flex size-7 items-center justify-center text-white/52 transition-colors duration-300 hover:text-white",
+                    light:
+                      "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
+                  })}
+                >
+                  <CloseIcon />
+                </button>
+                <button
+                  type="button"
+                  onClick={onFinishDrawing}
+                  disabled={drawingPointCount < 3}
+                  aria-label="Finish geofence drawing"
+                  className={themeClasses(theme, {
+                    dark:
+                      "flex size-7 items-center justify-center text-white/82 transition-colors duration-300 hover:text-white disabled:cursor-not-allowed disabled:text-white/24",
+                    light:
+                      "flex size-7 items-center justify-center text-[#1F2A30] transition-colors duration-300 hover:text-[#11191E] disabled:cursor-not-allowed disabled:text-[#7A8790]",
+                  })}
+                >
+                  <CheckIcon />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onAddGeofence}
+              className={themeClasses(theme, {
+                dark:
+                  "mt-3 flex min-h-[88px] w-full items-center justify-center gap-2 rounded-2xl border border-[#5BD3F5]/14 bg-[linear-gradient(180deg,rgba(91,211,245,0.08),rgba(91,211,245,0.03))] px-4 py-3 text-sm font-semibold text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-300 hover:border-[#5BD3F5]/22 hover:bg-[linear-gradient(180deg,rgba(91,211,245,0.12),rgba(91,211,245,0.06))] hover:text-white",
+                light:
+                  "mt-3 flex min-h-[88px] w-full items-center justify-center gap-2 rounded-2xl border border-[#1E63D5]/12 bg-[linear-gradient(180deg,rgba(30,99,213,0.06),rgba(30,99,213,0.025))] px-4 py-3 text-sm font-semibold text-[#1F2A30] shadow-[inset_0_1px_0_rgba(255,255,255,0.38)] transition-all duration-300 hover:border-[#1E63D5]/18 hover:bg-[linear-gradient(180deg,rgba(30,99,213,0.08),rgba(30,99,213,0.04))]",
+              })}
+            >
+              <span
+                className={themeClasses(theme, {
+                  dark: "text-base leading-none text-white/64",
+                  light: "text-base leading-none text-[#536068]",
+                })}
+              >
+                +
+              </span>
+              <span>Add Geofence</span>
+            </button>
+          )}
         </>
       ) : (
         <div
@@ -222,7 +289,7 @@ export function GeofencePanel({
             })}
           >
             <span className="text-base leading-none">+</span>
-            <span>Create Geofence</span>
+            <span>{isDrawingGeofence ? "Drawing Geofence" : "Create Geofence"}</span>
           </button>
         </div>
       )}
@@ -304,9 +371,9 @@ function GeofenceItem({
     <div
       className={`${themeClasses(theme, {
         dark:
-          "rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out",
+          "overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out",
         light:
-          "rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out",
+          "overflow-hidden rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out",
       })} ${
         isEntering ? "atlascope-panel-item-enter" : ""
       } ${isExiting ? "atlascope-panel-item-exit pointer-events-none" : ""}`}
@@ -352,17 +419,22 @@ function GeofenceItem({
           )}
         </div>
 
-        {isEditing || isConfirmingDelete || showActions ? (
-          <div className="flex shrink-0 items-center gap-1.5">
-            {isEditing || isConfirmingDelete ? (
-              <>
-                <button
-                  type="button"
-                  onClick={isConfirmingDelete ? onConfirmDelete : onSaveEditing}
-                  aria-label={
-                    isConfirmingDelete
-                      ? `Confirm delete ${geofence.name}`
-                      : `Save ${geofence.name}`
+        <div
+          className={`origin-right overflow-hidden flex shrink-0 items-center gap-0.5 transition-[opacity,transform,max-width] duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            isEditing || isConfirmingDelete || showActions
+              ? "max-w-[112px] translate-x-0 scale-100 opacity-100"
+              : "pointer-events-none max-w-0 translate-x-0 scale-90 opacity-0"
+          }`}
+        >
+          {isEditing || isConfirmingDelete ? (
+            <>
+              <button
+                type="button"
+                onClick={isConfirmingDelete ? onConfirmDelete : onSaveEditing}
+                aria-label={
+                  isConfirmingDelete
+                    ? `Confirm delete ${geofence.name}`
+                    : `Save ${geofence.name}`
                 }
                 className={themeClasses(theme, {
                   dark:
@@ -373,13 +445,13 @@ function GeofenceItem({
               >
                 <CheckIcon />
               </button>
-                <button
-                  type="button"
-                  onClick={isConfirmingDelete ? onCancelDelete : onCancelEditing}
-                  aria-label={
-                    isConfirmingDelete
-                      ? `Cancel delete ${geofence.name}`
-                      : `Cancel editing ${geofence.name}`
+              <button
+                type="button"
+                onClick={isConfirmingDelete ? onCancelDelete : onCancelEditing}
+                aria-label={
+                  isConfirmingDelete
+                    ? `Cancel delete ${geofence.name}`
+                    : `Cancel editing ${geofence.name}`
                 }
                 className={themeClasses(theme, {
                   dark:
@@ -390,58 +462,57 @@ function GeofenceItem({
               >
                 <CloseIcon />
               </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={onToggleEnabled}
-                  aria-label={
-                    geofence.isEnabled
-                      ? `Disable geofencing for ${geofence.name}`
-                      : `Enable geofencing for ${geofence.name}`
-                  }
-                  className={themeClasses(theme, {
-                    dark: geofence.isEnabled
-                      ? "flex size-7 items-center justify-center text-[#5BD3F5] transition-colors duration-300 hover:text-[#83E0FA]"
-                      : "flex size-7 items-center justify-center text-white/52 transition-colors duration-300 hover:text-white",
-                    light: geofence.isEnabled
-                      ? "flex size-7 items-center justify-center text-[#1E63D5] transition-colors duration-300 hover:text-[#2E75EB]"
-                      : "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
-                  })}
-                >
-                  <LocationIcon />
-                </button>
-                <button
-                  type="button"
-                  onClick={onStartEditing}
-                  aria-label={`Rename ${geofence.name}`}
-                  className={themeClasses(theme, {
-                    dark:
-                      "flex size-7 items-center justify-center text-white/52 transition-colors duration-300 hover:text-white",
-                    light:
-                      "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
-                  })}
-                >
-                  <HighlightLetterIcon />
-                </button>
-                <button
-                  type="button"
-                  onClick={onToggleDeleteConfirm}
-                  aria-label={`Delete ${geofence.name}`}
-                  className={themeClasses(theme, {
-                    dark:
-                      "flex size-7 items-center justify-center text-white/52 transition-colors duration-300 hover:text-white",
-                    light:
-                      "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
-                  })}
-                >
-                  <TrashIcon />
-                </button>
-              </>
-            )}
-          </div>
-        ) : null}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onToggleEnabled}
+                aria-label={
+                  geofence.isEnabled
+                    ? `Disable geofencing for ${geofence.name}`
+                    : `Enable geofencing for ${geofence.name}`
+                }
+                className={themeClasses(theme, {
+                  dark: geofence.isEnabled
+                    ? "flex size-7 items-center justify-center text-[#5BD3F5] transition-colors duration-300 hover:text-[#83E0FA]"
+                    : "flex size-7 items-center justify-center text-white/52 transition-colors duration-300 hover:text-white",
+                  light: geofence.isEnabled
+                    ? "flex size-7 items-center justify-center text-[#1E63D5] transition-colors duration-300 hover:text-[#2E75EB]"
+                    : "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
+                })}
+              >
+                <LocationIcon />
+              </button>
+              <button
+                type="button"
+                onClick={onStartEditing}
+                aria-label={`Rename ${geofence.name}`}
+                className={themeClasses(theme, {
+                  dark:
+                    "flex size-7 items-center justify-center text-white/52 transition-colors duration-300 hover:text-white",
+                  light:
+                    "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
+                })}
+              >
+                <RenamePenIcon />
+              </button>
+              <button
+                type="button"
+                onClick={onToggleDeleteConfirm}
+                aria-label={`Delete ${geofence.name}`}
+                className={themeClasses(theme, {
+                  dark:
+                    "flex size-7 items-center justify-center text-white/52 transition-colors duration-300 hover:text-white",
+                  light:
+                    "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
+                })}
+              >
+                <TrashIcon />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -480,9 +551,9 @@ function CloseIcon() {
   );
 }
 
-function HeaderPenIcon() {
+function RenamePenIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-5">
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-4">
       <path
         d="M10.899 2.601a1.5 1.5 0 0 1 2.122 0l.378.378a1.5 1.5 0 0 1 0 2.122l-6.53 6.53-2.873.352.351-2.873 6.552-6.509Z"
         stroke="currentColor"
@@ -496,52 +567,6 @@ function HeaderPenIcon() {
         strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function HighlightLetterIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-4">
-      <path
-        d="M4.9 3.4H4.1A1.6 1.6 0 0 0 2.5 5v6a1.6 1.6 0 0 0 1.6 1.6h.8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10.3 3.4h.8A1.6 1.6 0 0 1 12.7 5v6a1.6 1.6 0 0 1-1.6 1.6h-.8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10.85 2.4v11.2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9.35 2.4h3M9.35 13.6h3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M5.35 10.7 6.9 5.3h.2l1.55 5.4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5.9 8.9h2.2"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
       />
     </svg>
   );

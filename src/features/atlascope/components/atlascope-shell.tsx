@@ -8,6 +8,7 @@ import { mockGeofences } from "@/features/atlascope/data/mock-geofences";
 import { incidents } from "@/features/atlascope/data/mock-incidents";
 import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 import type { Incident, IncidentType } from "@/features/atlascope/types/atlascope";
+import type { MapCoordinates } from "@/features/atlascope/map/map-types";
 
 import { GeofencePanel, type Geofence } from "./geofence-panel";
 import { IncidentPanel } from "./incident-panel";
@@ -35,6 +36,10 @@ export function AtlascopeShell() {
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [activeLayers, setActiveLayers] = useState(initialLayers);
   const [geofences, setGeofences] = useState<AtlascopeGeofence[]>(mockGeofences);
+  const [drawingGeofenceCoordinates, setDrawingGeofenceCoordinates] = useState<
+    MapCoordinates[]
+  >([]);
+  const [isDrawingGeofence, setIsDrawingGeofence] = useState(false);
   const [editingGeofenceId, setEditingGeofenceId] = useState<number | null>(null);
   const [geofenceDraftName, setGeofenceDraftName] = useState("");
   const [enteringGeofenceId, setEnteringGeofenceId] = useState<number | null>(null);
@@ -58,11 +63,22 @@ export function AtlascopeShell() {
     };
   }, []);
 
-  useEffect(() => {
-    if (activeOverlayPanel !== "geofences") {
-      setShowGeofenceRowActions(false);
+  function handleToggleOverlayPanel(panel: Exclude<OverlayPanelId, null>) {
+    if (panel !== "geofences" && isDrawingGeofence) {
+      return;
     }
 
+    if (panel === "geofences" && activeOverlayPanel === "geofences" && isDrawingGeofence) {
+      return;
+    }
+
+    setShowGeofenceRowActions(
+      panel === "geofences" && activeOverlayPanel === "geofences" ? (current) => current : false,
+    );
+    setActiveOverlayPanel((current) => (current === panel ? null : panel));
+  }
+
+  useEffect(() => {
     if (!activeOverlayPanel) {
       return;
     }
@@ -81,6 +97,10 @@ export function AtlascopeShell() {
       }
 
       if (!activeOverlayElement.contains(target)) {
+        if (isDrawingGeofence) {
+          return;
+        }
+
         setShowGeofenceRowActions(false);
         setActiveOverlayPanel(null);
       }
@@ -91,7 +111,7 @@ export function AtlascopeShell() {
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [activeOverlayPanel]);
+  }, [activeOverlayPanel, isDrawingGeofence]);
 
   function handleToggleLayer(layer: IncidentType) {
     setActiveLayers((current) => {
@@ -133,26 +153,48 @@ export function AtlascopeShell() {
   }
 
   function handleAddGeofence() {
+    setShowGeofenceRowActions(false);
+    setEditingGeofenceId(null);
+    setGeofenceDraftName("New Geofence");
+    setDrawingGeofenceCoordinates([]);
+    setIsDrawingGeofence(true);
+    setActiveOverlayPanel("geofences");
+  }
+
+  function handleAddGeofencePoint(coordinates: MapCoordinates) {
+    if (!isDrawingGeofence) {
+      return;
+    }
+
+    setDrawingGeofenceCoordinates((current) => [...current, coordinates]);
+  }
+
+  function handleCancelDrawingGeofence() {
+    setIsDrawingGeofence(false);
+    setDrawingGeofenceCoordinates([]);
+  }
+
+  function handleFinishDrawingGeofence() {
+    if (drawingGeofenceCoordinates.length < 3) {
+      return;
+    }
+
     const id = Date.now();
 
-    setShowGeofenceRowActions(false);
     setGeofences((current) => [
       ...current,
       {
         id,
         name: "New Geofence",
-        isEnabled: false,
-        coordinates: [
-          { longitude: 120.94, latitude: 13.98 },
-          { longitude: 121.18, latitude: 13.98 },
-          { longitude: 121.18, latitude: 14.21 },
-          { longitude: 120.94, latitude: 14.21 },
-        ],
+        isEnabled: true,
+        coordinates: drawingGeofenceCoordinates,
       },
     ]);
     setEditingGeofenceId(id);
     setGeofenceDraftName("New Geofence");
     setEnteringGeofenceId(id);
+    setIsDrawingGeofence(false);
+    setDrawingGeofenceCoordinates([]);
 
     if (geofenceEnterTimerRef.current) {
       window.clearTimeout(geofenceEnterTimerRef.current);
@@ -212,9 +254,12 @@ export function AtlascopeShell() {
       <MapView
         incidents={incidents}
         geofences={geofences}
+        drawingCoordinates={drawingGeofenceCoordinates}
+        isDrawingGeofence={isDrawingGeofence}
         activeLayers={activeLayers}
         selectedIncidentId={selectedIncident?.id ?? null}
         onSelectIncident={handleSelectIncident}
+        onMapClick={handleAddGeofencePoint}
         theme={theme}
       />
 
@@ -391,11 +436,15 @@ export function AtlascopeShell() {
                 <GeofencePanel
                   theme={theme}
                   geofences={geofences}
+                  isDrawingGeofence={isDrawingGeofence}
+                  drawingPointCount={drawingGeofenceCoordinates.length}
                   editingGeofenceId={editingGeofenceId}
                   draftName={geofenceDraftName}
                   enteringGeofenceId={enteringGeofenceId}
                   showRowActions={showGeofenceRowActions}
                   onAddGeofence={handleAddGeofence}
+                  onCancelDrawing={handleCancelDrawingGeofence}
+                  onFinishDrawing={handleFinishDrawingGeofence}
                   onDraftNameChange={setGeofenceDraftName}
                   onStartEditing={handleStartEditingGeofence}
                   onSaveEditing={handleSaveEditingGeofence}
@@ -414,11 +463,7 @@ export function AtlascopeShell() {
               <OverlayRailButton
                 theme={theme}
                 isPressed={activeOverlayPanel === "system"}
-                onClick={() =>
-                  setActiveOverlayPanel((current) =>
-                    current === "system" ? null : "system",
-                  )
-                }
+                onClick={() => handleToggleOverlayPanel("system")}
                 ariaLabel="Open control panel"
               >
                 <MenuIcon />
@@ -427,11 +472,7 @@ export function AtlascopeShell() {
               <OverlayRailButton
                 theme={theme}
                 isPressed={activeOverlayPanel === "layers"}
-                onClick={() =>
-                  setActiveOverlayPanel((current) =>
-                    current === "layers" ? null : "layers",
-                  )
-                }
+                onClick={() => handleToggleOverlayPanel("layers")}
                 ariaLabel="Open hazard layers"
               >
                 <LayersIcon />
@@ -440,11 +481,7 @@ export function AtlascopeShell() {
               <GeofenceButton
                 theme={theme}
                 isPressed={activeOverlayPanel === "geofences"}
-                onClick={() =>
-                  setActiveOverlayPanel((current) =>
-                    current === "geofences" ? null : "geofences",
-                  )
-                }
+                onClick={() => handleToggleOverlayPanel("geofences")}
               />
             </div>
           </div>

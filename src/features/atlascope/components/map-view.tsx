@@ -13,9 +13,12 @@ import type { Incident, IncidentType } from "@/features/atlascope/types/atlascop
 type MapViewProps = {
   incidents: Incident[];
   geofences: AtlascopeGeofence[];
+  drawingCoordinates: MapGeofenceData["coordinates"];
+  isDrawingGeofence: boolean;
   activeLayers: Record<IncidentType, boolean>;
   selectedIncidentId: string | null;
   onSelectIncident: (incident: Incident) => void;
+  onMapClick: (coordinates: MapGeofenceData["coordinates"][number]) => void;
   theme: ThemeMode;
 };
 
@@ -24,9 +27,12 @@ const ActiveMapAdapter = resolveMapAdapter();
 export function MapView({
   incidents,
   geofences,
+  drawingCoordinates,
+  isDrawingGeofence,
   activeLayers,
   selectedIncidentId,
   onSelectIncident,
+  onMapClick,
   theme,
 }: MapViewProps) {
   const [viewport, setViewport] = useState(atlascopeMapConfig.defaultViewport);
@@ -45,6 +51,16 @@ export function MapView({
       title: geofence.name,
       coordinates: geofence.coordinates,
     }));
+  const geofenceLayers = isDrawingGeofence && drawingCoordinates.length >= 3
+    ? [
+        ...enabledGeofences,
+        {
+          id: "draft-geofence",
+          title: "Draft geofence",
+          coordinates: drawingCoordinates,
+        },
+      ]
+    : enabledGeofences;
 
   return (
     <div
@@ -56,13 +72,20 @@ export function MapView({
       <div className="absolute inset-0">
         <ActiveMapAdapter
           markers={markers}
-          geofences={enabledGeofences}
+          geofences={geofenceLayers}
+          drawingCoordinates={drawingCoordinates}
+          isDrawingGeofence={isDrawingGeofence}
           activeLayers={activeLayers}
           selectedMarkerId={selectedIncidentId}
           viewport={viewport}
           theme={theme}
           onViewportChange={setViewport}
+          onMapClick={onMapClick}
           onMarkerClick={(marker: MapMarkerData) => {
+            if (isDrawingGeofence) {
+              return;
+            }
+
             const incident = incidents.find((item) => item.id === marker.id);
 
             if (incident) {

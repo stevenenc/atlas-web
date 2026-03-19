@@ -1,4 +1,4 @@
-import type { FeatureCollection, Point, Polygon } from "geojson";
+import type { FeatureCollection, LineString, Point, Polygon } from "geojson";
 import type { LayerProps } from "react-map-gl/maplibre";
 
 import type { ThemeMode } from "@/features/atlascope/config/theme";
@@ -155,6 +155,75 @@ export function createGeofenceLayers(theme: ThemeMode): LayerProps[] {
         "line-color": strokeColor,
         "line-width": 2,
         "line-opacity": 0.95,
+      },
+    },
+  ];
+}
+
+export function createDraftGeofenceLineSourceData(
+  coordinates: MapGeofenceData["coordinates"],
+): FeatureCollection<LineString> {
+  return {
+    type: "FeatureCollection",
+    features: coordinates.length >= 2
+      ? [
+          {
+            type: "Feature",
+            geometry: {
+              type: "LineString",
+              coordinates: coordinates.map((coordinate) => [
+                coordinate.longitude,
+                coordinate.latitude,
+              ]),
+            },
+            properties: {},
+          },
+        ]
+      : [],
+  };
+}
+
+export function createDraftGeofencePointSourceData(
+  coordinates: MapGeofenceData["coordinates"],
+): FeatureCollection<Point, { index: number }> {
+  return {
+    type: "FeatureCollection",
+    features: coordinates.map((coordinate, index) => ({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: [coordinate.longitude, coordinate.latitude],
+      },
+      properties: {
+        index,
+      },
+    })),
+  };
+}
+
+export function createDraftGeofenceLayers(theme: ThemeMode): LayerProps[] {
+  const strokeColor = theme === "dark" ? "#8AE5FF" : "#1354BF";
+  const pointFill = theme === "dark" ? "#D9F8FF" : "#F8FBFF";
+
+  return [
+    {
+      id: "draft-geofence-line",
+      type: "line",
+      paint: {
+        "line-color": strokeColor,
+        "line-width": 2.5,
+        "line-dasharray": [1.2, 1.1],
+        "line-opacity": 0.96,
+      },
+    },
+    {
+      id: "draft-geofence-points",
+      type: "circle",
+      paint: {
+        "circle-radius": 5.5,
+        "circle-color": pointFill,
+        "circle-stroke-color": strokeColor,
+        "circle-stroke-width": 2,
       },
     },
   ];

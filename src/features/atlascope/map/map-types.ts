@@ -41,10 +41,13 @@ export type MapStyleConfig = string | MapStyleDefinition;
 export type MapContainerProps = {
   markers: MapMarkerData[];
   geofences: MapGeofenceData[];
+  drawingCoordinates: MapCoordinates[];
+  isDrawingGeofence: boolean;
   activeLayers: HazardLayerVisibility;
   selectedMarkerId: string | null;
   viewport: MapViewportState;
   theme: ThemeMode;
   onViewportChange: (viewport: MapViewportState) => void;
   onMarkerClick: (marker: MapMarkerData) => void;
+  onMapClick: (coordinates: MapCoordinates) => void;
 };

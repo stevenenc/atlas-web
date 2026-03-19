@@ -35,6 +35,7 @@ const markerStyles = {
 type MapLibreMarkerProps = {
   marker: MapMarkerData;
   isVisible: boolean;
+  isInteractive: boolean;
   onClick: (marker: MapMarkerData) => void;
   theme: ThemeMode;
 };
@@ -42,6 +43,7 @@ type MapLibreMarkerProps = {
 export function MapLibreMarkerView({
   marker,
   isVisible,
+  isInteractive,
   onClick,
   theme,
 }: MapLibreMarkerProps) {
@@ -59,7 +61,9 @@ export function MapLibreMarkerView({
         onClick={() => onClick(marker)}
         className={`group relative z-10 flex items-center justify-center transition-[opacity,transform,filter] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] hover:z-20 focus-visible:z-20 focus-visible:outline-none ${
           isVisible
-            ? "opacity-100 blur-0 scale-100"
+            ? isInteractive
+              ? "opacity-100 blur-0 scale-100"
+              : "pointer-events-none opacity-100 blur-0 scale-100"
             : "pointer-events-none opacity-0 blur-[1px] scale-75"
         }`}
       >
