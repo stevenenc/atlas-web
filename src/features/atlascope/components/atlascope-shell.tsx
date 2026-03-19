@@ -169,6 +169,18 @@ export function AtlascopeShell() {
     setDrawingGeofenceCoordinates((current) => [...current, coordinates]);
   }
 
+  function handleUpdateDrawingGeofencePoint(index: number, coordinates: MapCoordinates) {
+    if (!isDrawingGeofence) {
+      return;
+    }
+
+    setDrawingGeofenceCoordinates((current) =>
+      current.map((point, pointIndex) =>
+        pointIndex === index ? coordinates : point,
+      ),
+    );
+  }
+
   function handleCancelDrawingGeofence() {
     setIsDrawingGeofence(false);
     setDrawingGeofenceCoordinates([]);
@@ -260,6 +272,7 @@ export function AtlascopeShell() {
         selectedIncidentId={selectedIncident?.id ?? null}
         onSelectIncident={handleSelectIncident}
         onMapClick={handleAddGeofencePoint}
+        onDrawingCoordinateUpdate={handleUpdateDrawingGeofencePoint}
         theme={theme}
       />
 

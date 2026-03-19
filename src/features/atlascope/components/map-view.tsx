@@ -19,6 +19,10 @@ type MapViewProps = {
   selectedIncidentId: string | null;
   onSelectIncident: (incident: Incident) => void;
   onMapClick: (coordinates: MapGeofenceData["coordinates"][number]) => void;
+  onDrawingCoordinateUpdate: (
+    index: number,
+    coordinates: MapGeofenceData["coordinates"][number],
+  ) => void;
   theme: ThemeMode;
 };
 
@@ -33,6 +37,7 @@ export function MapView({
   selectedIncidentId,
   onSelectIncident,
   onMapClick,
+  onDrawingCoordinateUpdate,
   theme,
 }: MapViewProps) {
   const [viewport, setViewport] = useState(atlascopeMapConfig.defaultViewport);
@@ -81,6 +86,7 @@ export function MapView({
           theme={theme}
           onViewportChange={setViewport}
           onMapClick={onMapClick}
+          onDrawingCoordinateUpdate={onDrawingCoordinateUpdate}
           onMarkerClick={(marker: MapMarkerData) => {
             if (isDrawingGeofence) {
               return;

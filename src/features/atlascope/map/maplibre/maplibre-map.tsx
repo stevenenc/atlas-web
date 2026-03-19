@@ -6,6 +6,7 @@ import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import Map, {
   Layer,
   type MapLayerMouseEvent,
+  type MapRef,
   Source,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
@@ -46,6 +47,9 @@ const NORWAY_TO_AUSTRALIA_BOUNDS = {
   southLatitude: -43.7,
 };
 
+const DRAWING_CURSOR =
+  'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 28 28\' fill=\'none\'%3E%3Cpath d=\'M18.69 4.2a2.4 2.4 0 0 1 3.4 0l1.7 1.7a2.4 2.4 0 0 1 0 3.4l-11.2 11.2-4.94.72.72-4.94L18.69 4.2Z\' fill=\'%23111A1F\'/%3E%3Cpath d=\'M19.61 5.11a1.1 1.1 0 0 1 1.55 0l1.73 1.73a1.1 1.1 0 0 1 0 1.55L11.92 19.36l-2.86.42.42-2.86L19.61 5.11Z\' fill=\'%235BD3F5\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\'/%3E%3Cpath d=\'M18.65 7.61l2.74 2.74\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\' stroke-linecap=\'round\'/%3E%3C/svg%3E") 4 24, crosshair';
+
 function mercatorY(latitude: number) {
   const latitudeInRadians = (Math.max(Math.min(latitude, 85.05112878), -85.05112878) * Math.PI) / 180;
 
@@ -78,12 +82,19 @@ export function MapLibreMap({
   onViewportChange,
   onMarkerClick,
   onMapClick,
+  onDrawingCoordinateUpdate,
 }: MapContainerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<MapRef | null>(null);
+  const draggedPointIndexRef = useRef<number | null>(null);
+  const suppressMapClickRef = useRef(false);
   const [baseMapStyle, setBaseMapStyle] = useState<StyleSpecification | null>(null);
   const [hasMapStyleError, setHasMapStyleError] = useState(false);
   const [verticalBoundsMinZoom, setVerticalBoundsMinZoom] = useState(
     atlascopeMapConfig.minZoom,
+  );
+  const [mapCursor, setMapCursor] = useState(
+    isDrawingGeofence ? DRAWING_CURSOR : "default",
   );
 
   useEffect(() => {
@@ -175,8 +186,52 @@ export function MapLibreMap({
     [theme],
   );
 
+  useEffect(() => {
+    if (!isDrawingGeofence) {
+      draggedPointIndexRef.current = null;
+      suppressMapClickRef.current = false;
+      setMapCursor("default");
+      mapRef.current?.getCanvas().style.removeProperty("cursor");
+      return;
+    }
+
+    setMapCursor(DRAWING_CURSOR);
+  }, [isDrawingGeofence]);
+
+  useEffect(() => {
+    mapRef.current?.getCanvas().style.setProperty("cursor", mapCursor);
+  }, [mapCursor]);
+
+  function getDraftPointIndex(event: MapLayerMouseEvent) {
+    const matchingFeature = event.features?.find(
+      (feature) => feature.layer.id === "draft-geofence-points",
+    );
+    const rawIndex = matchingFeature?.properties?.index;
+
+    if (typeof rawIndex === "number") {
+      return rawIndex;
+    }
+
+    if (typeof rawIndex === "string") {
+      const parsedIndex = Number.parseInt(rawIndex, 10);
+
+      return Number.isNaN(parsedIndex) ? null : parsedIndex;
+    }
+
+    return null;
+  }
+
   function handleMapClick(event: MapLayerMouseEvent) {
     if (!isDrawingGeofence) {
+      return;
+    }
+
+    if (suppressMapClickRef.current) {
+      suppressMapClickRef.current = false;
+      return;
+    }
+
+    if (getDraftPointIndex(event) !== null) {
       return;
     }
 
@@ -186,18 +241,68 @@ export function MapLibreMap({
     });
   }
 
+  function handleMapMouseMove(event: MapLayerMouseEvent) {
+    if (!isDrawingGeofence) {
+      return;
+    }
+
+    const draggedPointIndex = draggedPointIndexRef.current;
+
+    if (draggedPointIndex !== null) {
+      suppressMapClickRef.current = true;
+      setMapCursor("grabbing");
+      onDrawingCoordinateUpdate(draggedPointIndex, {
+        longitude: event.lngLat.lng,
+        latitude: event.lngLat.lat,
+      });
+      return;
+    }
+
+    setMapCursor(getDraftPointIndex(event) !== null ? "grab" : DRAWING_CURSOR);
+  }
+
+  function handleMapMouseDown(event: MapLayerMouseEvent) {
+    if (!isDrawingGeofence) {
+      return;
+    }
+
+    const pointIndex = getDraftPointIndex(event);
+
+    if (pointIndex === null) {
+      return;
+    }
+
+    draggedPointIndexRef.current = pointIndex;
+    suppressMapClickRef.current = false;
+    setMapCursor("grabbing");
+    mapRef.current?.dragPan.disable();
+  }
+
+  function handleMapMouseUp() {
+    if (draggedPointIndexRef.current === null) {
+      return;
+    }
+
+    draggedPointIndexRef.current = null;
+    mapRef.current?.dragPan.enable();
+    setMapCursor(DRAWING_CURSOR);
+  }
+
   return (
     <div
       ref={containerRef}
       className={`h-full w-full ${isDrawingGeofence ? "atlascope-geofence-drawing" : ""}`}
     >
       <Map
+        ref={mapRef}
         {...viewport}
         reuseMaps
         mapLib={maplibregl}
         mapStyle={mapStyle}
         minZoom={verticalBoundsMinZoom}
         maxZoom={atlascopeMapConfig.maxZoom}
+        interactiveLayerIds={isDrawingGeofence ? ["draft-geofence-points"] : undefined}
+        cursor={mapCursor}
         dragRotate={false}
         touchPitch={false}
         renderWorldCopies
@@ -205,6 +310,9 @@ export function MapLibreMap({
         doubleClickZoom={!isDrawingGeofence}
         onMove={(event) => onViewportChange(toViewportState(event))}
         onClick={handleMapClick}
+        onMouseMove={handleMapMouseMove}
+        onMouseDown={handleMapMouseDown}
+        onMouseUp={handleMapMouseUp}
         onError={() => {
           setHasMapStyleError(true);
         }}

@@ -50,4 +50,5 @@ export type MapContainerProps = {
   onViewportChange: (viewport: MapViewportState) => void;
   onMarkerClick: (marker: MapMarkerData) => void;
   onMapClick: (coordinates: MapCoordinates) => void;
+  onDrawingCoordinateUpdate: (index: number, coordinates: MapCoordinates) => void;
 };
