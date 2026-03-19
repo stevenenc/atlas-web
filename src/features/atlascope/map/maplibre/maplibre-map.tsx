@@ -15,10 +15,16 @@ import {
   atlascopeMapConfig,
   getFallbackMapStyle,
   getMapStyle,
-} from "../map-config";
-import type { MapContainerProps, MapViewportState } from "../map-types";
-import { createHazardLayers, createHazardSourceData } from "./maplibre-layers";
-import { MapLibreMarkerView } from "./maplibre-marker";
+} from "@/features/atlascope/map/map-config";
+import type {
+  MapContainerProps,
+  MapViewportState,
+} from "@/features/atlascope/map/map-types";
+import {
+  createHazardLayers,
+  createHazardSourceData,
+} from "@/features/atlascope/map/maplibre/maplibre-layers";
+import { MapLibreMarkerView } from "@/features/atlascope/map/maplibre/maplibre-marker";
 
 function toViewportState(event: ViewStateChangeEvent): MapViewportState {
   return {

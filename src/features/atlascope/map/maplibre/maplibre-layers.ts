@@ -2,8 +2,10 @@ import type { FeatureCollection, Point } from "geojson";
 import type { LayerProps } from "react-map-gl/maplibre";
 
 import type { ThemeMode } from "@/features/atlascope/config/theme";
-
-import type { HazardLayerType, MapMarkerData } from "../map-types";
+import type {
+  HazardLayerType,
+  MapMarkerData,
+} from "@/features/atlascope/map/map-types";
 
 type HazardFeatureProperties = {
   id: string;

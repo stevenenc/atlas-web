@@ -1,11 +1,14 @@
 import type { ThemeMode } from "@/features/atlascope/config/theme";
 
-import { MAP_PROVIDER, type MapProviderId } from "./provider";
+import {
+  MAP_PROVIDER,
+  type MapProviderId,
+} from "@/features/atlascope/map/provider";
 import type {
   MapStyleConfig,
   MapStyleDefinition,
   MapViewportState,
-} from "./map-types";
+} from "@/features/atlascope/map/map-types";
 
 const darkMapStyle: MapStyleDefinition = {
   version: 8,

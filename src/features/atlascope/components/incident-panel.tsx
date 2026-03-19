@@ -156,7 +156,7 @@ export function IncidentPanel({
                 light: "mt-3 text-sm leading-6 text-[#5E503B]",
               })}
             >
-              AtlasScope scored this event using hazard intensity, local
+              AtlaScope scored this event using hazard intensity, local
               exposure, and short-term escalation risk from nearby conditions.
             </p>
           </div>

@@ -1,4 +1,9 @@
-export type IncidentType = "earthquake" | "wildfire" | "air_quality";
+import type {
+  HazardLayerType,
+  MapCoordinates,
+} from "@/features/atlascope/map/map-types";
+
+export type IncidentType = HazardLayerType;
 
 export type IncidentSeverity = "Critical" | "High" | "Moderate";
 
@@ -8,7 +13,6 @@ export type Incident = {
   locationName: string;
   severity: IncidentSeverity;
   timestamp: string;
-  x: number;
-  y: number;
+  coordinates: MapCoordinates;
   whyThisAlert: string;
 };
