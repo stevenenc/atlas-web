@@ -3,16 +3,13 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
-import Map, {
-  Layer,
-  NavigationControl,
-  Source,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre";
-import { useState } from "react";
+import Map, { NavigationControl, type ViewStateChangeEvent } from "react-map-gl/maplibre";
+import { useEffect, useState } from "react";
 
 import {
   atlascopeMapConfig,
+  buildDarkMapStyle,
+  DEMO_TILE_STYLE_URL,
   getFallbackMapStyle,
   getMapStyle,
 } from "@/features/atlascope/map/map-config";
@@ -20,10 +17,6 @@ import type {
   MapContainerProps,
   MapViewportState,
 } from "@/features/atlascope/map/map-types";
-import {
-  createHazardLayers,
-  createHazardSourceData,
-} from "@/features/atlascope/map/maplibre/maplibre-layers";
 import { MapLibreMarkerView } from "@/features/atlascope/map/maplibre/maplibre-marker";
 
 function toViewportState(event: ViewStateChangeEvent): MapViewportState {
@@ -45,12 +38,50 @@ export function MapLibreMap({
   onViewportChange,
   onMarkerClick,
 }: MapContainerProps) {
-  const [hasStyleError, setHasStyleError] = useState(false);
+  const [darkThemeMapStyle, setDarkThemeMapStyle] = useState<StyleSpecification | null>(
+    null,
+  );
+  const [hasDarkThemeStyleError, setHasDarkThemeStyleError] = useState(false);
   const visibleMarkers = markers.filter((marker) => activeLayers[marker.layerType]);
-  const hazardSource = createHazardSourceData(visibleMarkers);
-  const hazardLayers = createHazardLayers(theme);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (theme !== "dark" || darkThemeMapStyle || hasDarkThemeStyleError) {
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    void fetch(DEMO_TILE_STYLE_URL)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load style: ${response.status}`);
+        }
+
+        const style = (await response.json()) as StyleSpecification;
+
+        if (!isCancelled) {
+          setDarkThemeMapStyle(buildDarkMapStyle(style));
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setHasDarkThemeStyleError(true);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [darkThemeMapStyle, hasDarkThemeStyleError, theme]);
+
   const mapStyle = (
-    hasStyleError ? getFallbackMapStyle(theme) : getMapStyle(theme)
+    theme === "dark"
+      ? hasDarkThemeStyleError
+        ? getFallbackMapStyle(theme)
+        : darkThemeMapStyle ?? DEMO_TILE_STYLE_URL
+      : getMapStyle(theme)
   ) as StyleSpecification | string;
 
   return (
@@ -67,14 +98,12 @@ export function MapLibreMap({
         renderWorldCopies={false}
         attributionControl={false}
         onMove={(event) => onViewportChange(toViewportState(event))}
-        onError={() => setHasStyleError(true)}
+        onError={() => {
+          if (theme === "dark") {
+            setHasDarkThemeStyleError(true);
+          }
+        }}
       >
-        <Source id="atlascope-hazards" type="geojson" data={hazardSource}>
-          {hazardLayers.map((layer) => (
-            <Layer key={layer.id} {...layer} />
-          ))}
-        </Source>
-
         {visibleMarkers.map((marker) => (
           <MapLibreMarkerView
             key={marker.id}

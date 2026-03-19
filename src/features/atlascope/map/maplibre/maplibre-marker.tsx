@@ -51,7 +51,7 @@ export function MapLibreMarkerView({
         type="button"
         aria-label={`${style.label} alert at ${marker.title}`}
         onClick={() => onClick(marker)}
-        className="group relative -translate-x-1/2 -translate-y-1/2 transition-transform duration-200 hover:z-20 hover:scale-110 focus-visible:z-20 focus-visible:scale-110 focus-visible:outline-none"
+        className="group relative transition-transform duration-200 hover:z-20 hover:scale-110 focus-visible:z-20 focus-visible:scale-110 focus-visible:outline-none"
       >
         <span
           className={`absolute inset-0 rounded-full border ${style.ring} animate-ping ${isSelected ? "opacity-100" : "opacity-70"}`}

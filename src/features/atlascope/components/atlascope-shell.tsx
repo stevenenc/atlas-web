@@ -73,8 +73,9 @@ export function AtlascopeShell() {
   return (
     <main
       className={themeClasses(theme, {
-        dark: "relative min-h-screen overflow-hidden bg-[#2B2928] text-white",
-        light: "relative min-h-screen overflow-hidden bg-[#F5E9CC] text-[#2B251C]",
+        dark: "relative min-h-screen overflow-hidden bg-[#262624] text-white transition-colors duration-500 ease-out",
+        light:
+          "relative min-h-screen overflow-hidden bg-[#F5E9CC] text-[#2B251C] transition-colors duration-500 ease-out",
       })}
     >
       <MapView
@@ -90,17 +91,17 @@ export function AtlascopeShell() {
           <div
             className={themeClasses(theme, {
               dark:
-                "pointer-events-auto flex w-full max-w-[640px] items-center gap-4 rounded-[28px] border border-white/8 bg-[rgba(51,48,46,0.72)] px-5 py-4 shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-xl",
+                "pointer-events-auto flex w-full max-w-[780px] items-center gap-4 rounded-[32px] border border-white/10 bg-[rgba(63,63,59,0.92)] px-5 py-4 shadow-[0_28px_80px_rgba(0,0,0,0.36)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
               light:
-                "pointer-events-auto flex w-full max-w-[640px] items-center gap-4 rounded-[28px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.8)] px-5 py-4 shadow-[0_20px_70px_rgba(120,97,59,0.12)] backdrop-blur-xl",
+                "pointer-events-auto flex w-full max-w-[780px] items-center gap-4 rounded-[32px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.8)] px-5 py-4 shadow-[0_20px_70px_rgba(120,97,59,0.12)] backdrop-blur-xl transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
             })}
           >
             <div
               className={themeClasses(theme, {
                 dark:
-                  "flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/8 text-white/70",
+                  "flex size-11 items-center justify-center rounded-full border border-white/12 bg-[rgba(255,255,255,0.05)] text-white/72 transition-[background-color,border-color,color] duration-500 ease-out",
                 light:
-                  "flex size-10 items-center justify-center rounded-full border border-[#8B7A5E]/14 bg-white/65 text-[#7A6951]",
+                  "flex size-11 items-center justify-center rounded-full border border-[#8B7A5E]/14 bg-white/65 text-[#7A6951] transition-[background-color,border-color,color] duration-500 ease-out",
               })}
             >
               <SearchIcon />
@@ -108,9 +109,11 @@ export function AtlascopeShell() {
             <div className="min-w-0 flex-1">
               <p
                 className={themeClasses(theme, {
-                  dark: "text-[11px] tracking-[0.32em] text-white/42 uppercase",
+                  dark:
+                    "text-[11px] tracking-[0.32em] text-white/36 uppercase transition-colors duration-500 ease-out",
                   
-                  light: "text-[11px] tracking-[0.32em] text-[#8B7A5E] uppercase",
+                  light:
+                    "text-[11px] tracking-[0.32em] text-[#8B7A5E] uppercase transition-colors duration-500 ease-out",
                 })}
               >
                 AtlaScope
@@ -120,9 +123,9 @@ export function AtlascopeShell() {
                 value="Search hazards, regions, or alerts"
                 className={themeClasses(theme, {
                   dark:
-                    "mt-1 w-full bg-transparent text-sm text-white/88 outline-none placeholder:text-white/34",
+                    "mt-1 w-full bg-transparent text-sm text-white/84 outline-none placeholder:text-white/30 transition-colors duration-500 ease-out",
                   light:
-                    "mt-1 w-full bg-transparent text-sm text-[#2B251C] outline-none placeholder:text-[#8B7A5E]",
+                    "mt-1 w-full bg-transparent text-sm text-[#2B251C] outline-none placeholder:text-[#8B7A5E] transition-colors duration-500 ease-out",
                 })}
               />
             </div>
@@ -131,9 +134,9 @@ export function AtlascopeShell() {
           <div
             className={themeClasses(theme, {
               dark:
-                "pointer-events-auto flex items-center gap-3 rounded-[28px] border border-white/8 bg-[rgba(51,48,46,0.72)] p-2 shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-xl",
+                "pointer-events-auto flex items-center gap-3 rounded-[30px] border border-white/10 bg-[rgba(63,63,59,0.92)] p-2 shadow-[0_28px_80px_rgba(0,0,0,0.36)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
               light:
-                "pointer-events-auto flex items-center gap-3 rounded-[28px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.8)] p-2 shadow-[0_20px_70px_rgba(120,97,59,0.12)] backdrop-blur-xl",
+                "pointer-events-auto flex items-center gap-3 rounded-[30px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.8)] p-2 shadow-[0_20px_70px_rgba(120,97,59,0.12)] backdrop-blur-xl transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
             })}
           >
             <button
@@ -141,18 +144,18 @@ export function AtlascopeShell() {
               onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
               className={themeClasses(theme, {
                 dark:
-                  "flex h-11 items-center gap-1 rounded-full border border-white/10 bg-white/7 p-1 text-white/78 transition hover:bg-white/12 hover:text-white",
+                  "flex h-12 items-center gap-1 rounded-full border border-white/12 bg-[rgba(255,255,255,0.04)] p-1 text-white/76 transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-[rgba(255,255,255,0.08)] hover:text-white",
                 light:
-                  "flex h-11 items-center gap-1 rounded-full border border-[#8B7A5E]/14 bg-white/65 p-1 text-[#7A6951] transition hover:bg-white/90 hover:text-[#2B251C]",
+                  "flex h-12 items-center gap-1 rounded-full border border-[#8B7A5E]/14 bg-white/65 p-1 text-[#7A6951] transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-white/90 hover:text-[#2B251C]",
               })}
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
               <span
                 className={themeClasses(theme, {
                   dark:
-                    "flex size-9 items-center justify-center rounded-full bg-white text-[#2B2928]",
+                    "flex size-10 items-center justify-center rounded-full bg-[#F2F2EE] text-[#262624] transition-[background-color,color] duration-500 ease-out",
                   light:
-                    "flex size-9 items-center justify-center rounded-full bg-[#2B251C] text-[#FFF7E7]",
+                    "flex size-10 items-center justify-center rounded-full bg-[#2B251C] text-[#FFF7E7] transition-[background-color,color] duration-500 ease-out",
                 })}
               >
                 {theme === "dark" ? <MoonIcon /> : <SunIcon />}
@@ -165,9 +168,9 @@ export function AtlascopeShell() {
               type="button"
               className={themeClasses(theme, {
                 dark:
-                  "flex size-11 items-center justify-center rounded-full border border-white/10 bg-white/7 text-white/76 transition hover:bg-white/12 hover:text-white",
+                  "flex size-12 items-center justify-center rounded-full border border-white/12 bg-[rgba(255,255,255,0.04)] text-white/70 transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-[rgba(255,255,255,0.08)] hover:text-white",
                 light:
-                  "flex size-11 items-center justify-center rounded-full border border-[#8B7A5E]/14 bg-white/65 text-[#7A6951] transition hover:bg-white/90 hover:text-[#2B251C]",
+                  "flex size-12 items-center justify-center rounded-full border border-[#8B7A5E]/14 bg-white/65 text-[#7A6951] transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-white/90 hover:text-[#2B251C]",
               })}
               aria-label="Settings"
             >
@@ -177,25 +180,25 @@ export function AtlascopeShell() {
               type="button"
               className={themeClasses(theme, {
                 dark:
-                  "flex items-center gap-3 rounded-full border border-white/10 bg-white/7 px-3 py-2 transition hover:bg-white/12",
+                  "flex items-center gap-3 rounded-full border border-white/12 bg-[rgba(255,255,255,0.04)] px-4 py-2.5 transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-[rgba(255,255,255,0.08)]",
                 light:
-                  "flex items-center gap-3 rounded-full border border-[#8B7A5E]/14 bg-white/65 px-3 py-2 transition hover:bg-white/90",
+                  "flex items-center gap-3 rounded-full border border-[#8B7A5E]/14 bg-white/65 px-4 py-2.5 transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-white/90",
               })}
             >
               <span
                 className={themeClasses(theme, {
                   dark:
-                    "flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-[#7AA6C0] to-[#5B87A2] text-xs font-semibold text-white",
+                    "flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-[#7DAED2] to-[#5A89AF] text-xs font-semibold text-white transition-[background-image,color] duration-500 ease-out",
                   light:
-                    "flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-[#F5C54B] to-[#F97316] text-xs font-semibold text-[#2B251C]",
+                    "flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-[#F5C54B] to-[#F97316] text-xs font-semibold text-[#2B251C] transition-[background-image,color] duration-500 ease-out",
                 })}
               >
                 AS
               </span>
               <span
                 className={themeClasses(theme, {
-                  dark: "pr-1 text-sm font-medium text-white/82",
-                  light: "pr-1 text-sm font-medium text-[#2B251C]",
+                  dark: "pr-1 text-sm font-medium text-white/82 transition-colors duration-500 ease-out",
+                  light: "pr-1 text-sm font-medium text-[#2B251C] transition-colors duration-500 ease-out",
                 })}
               >
                 Ops Desk

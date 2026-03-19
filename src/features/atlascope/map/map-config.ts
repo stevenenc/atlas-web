@@ -1,3 +1,5 @@
+import type { StyleSpecification } from "maplibre-gl";
+
 import type { ThemeMode } from "@/features/atlascope/config/theme";
 
 import {
@@ -18,11 +20,13 @@ const darkMapStyle: MapStyleDefinition = {
       id: "atlascope-background",
       type: "background",
       paint: {
-        "background-color": "#2B2928",
+        "background-color": "#262624",
       },
     },
   ],
 };
+
+export const DEMO_TILE_STYLE_URL = "https://demotiles.maplibre.org/style.json";
 
 const lightMapStyle: MapStyleDefinition = {
   version: 8,
@@ -50,8 +54,8 @@ export const atlascopeMapConfig = {
   minZoom: 3.6,
   maxZoom: 10.5,
   styleByTheme: {
-    dark: "https://demotiles.maplibre.org/style.json",
-    light: "https://demotiles.maplibre.org/style.json",
+    dark: DEMO_TILE_STYLE_URL,
+    light: DEMO_TILE_STYLE_URL,
   } satisfies Record<ThemeMode, MapStyleConfig>,
   fallbackStyleByTheme: {
     dark: darkMapStyle,
@@ -69,4 +73,49 @@ export function getMapStyle(theme: ThemeMode) {
 
 export function getFallbackMapStyle(theme: ThemeMode) {
   return atlascopeMapConfig.fallbackStyleByTheme[theme];
+}
+
+export function buildDarkMapStyle(baseStyle: StyleSpecification): StyleSpecification {
+  return {
+    ...baseStyle,
+    layers: (baseStyle.layers ?? []).map((layer) => {
+      if (
+        layer.type === "fill" &&
+        (layer.id === "countries-fill" || layer.id === "crimea-fill")
+      ) {
+        return {
+          ...layer,
+          paint: {
+            ...layer.paint,
+            "fill-color": "#2F302D",
+          },
+        };
+      }
+
+      if (layer.type === "line" && layer.id === "countries-boundary") {
+        return {
+          ...layer,
+          paint: {
+            ...layer.paint,
+            "line-color": "rgba(168, 197, 224, 0.65)",
+            "line-opacity": 0.75,
+          },
+        };
+      }
+
+      if (layer.type === "symbol" && layer.id === "countries-label") {
+        return {
+          ...layer,
+          paint: {
+            ...layer.paint,
+            "text-color": "rgba(245, 247, 250, 0.94)",
+            "text-halo-color": "rgba(47, 48, 45, 0.92)",
+            "text-halo-width": 0.8,
+          },
+        };
+      }
+
+      return layer;
+    }),
+  };
 }

@@ -27,9 +27,9 @@ export function IncidentPanel({
     <aside
       className={`${themeClasses(theme, {
         dark:
-          "w-[340px] rounded-[30px] border border-white/8 bg-[rgba(51,48,46,0.74)] p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-300",
+          "w-[360px] rounded-[30px] border border-white/10 bg-[rgba(60,60,56,0.92)] p-6 text-white shadow-[0_28px_80px_rgba(0,0,0,0.36)] backdrop-blur-md transition-[transform,opacity,background-color,border-color,color,box-shadow] duration-500 ease-out",
         light:
-          "w-[340px] rounded-[30px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] p-5 text-[#2B251C] shadow-[0_24px_80px_rgba(120,97,59,0.14)] backdrop-blur-xl transition-all duration-300",
+          "w-[360px] rounded-[30px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] p-6 text-[#2B251C] shadow-[0_24px_80px_rgba(120,97,59,0.14)] backdrop-blur-xl transition-[transform,opacity,background-color,border-color,color,box-shadow] duration-500 ease-out",
       })} ${
         isOpen
           ? "pointer-events-auto translate-x-0 opacity-100"
@@ -41,17 +41,17 @@ export function IncidentPanel({
           <div className="size-10 animate-spin rounded-full border-2 border-white/10 border-t-white/80" />
           <div>
             <p
-              className={themeClasses(theme, {
-                dark: "text-sm font-medium text-white/85",
-                light: "text-sm font-medium text-[#2B251C]",
+                className={themeClasses(theme, {
+                dark: "text-sm font-medium text-white/85 transition-colors duration-500 ease-out",
+                light: "text-sm font-medium text-[#2B251C] transition-colors duration-500 ease-out",
               })}
             >
               Loading incident details
             </p>
             <p
               className={themeClasses(theme, {
-                dark: "mt-1 text-xs text-white/45",
-                light: "mt-1 text-xs text-[#8B7A5E]",
+                dark: "mt-1 text-xs text-white/45 transition-colors duration-500 ease-out",
+                light: "mt-1 text-xs text-[#8B7A5E] transition-colors duration-500 ease-out",
               })}
             >
               Syncing mock event context
@@ -63,17 +63,19 @@ export function IncidentPanel({
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <p
-                className={themeClasses(theme, {
-                  dark: "text-xs font-medium tracking-[0.32em] text-white/45 uppercase",
-                  light: "text-xs font-medium tracking-[0.32em] text-[#8B7A5E] uppercase",
+              className={themeClasses(theme, {
+                  dark: "text-xs font-medium tracking-[0.32em] text-white/42 uppercase transition-colors duration-500 ease-out",
+                  light:
+                    "text-xs font-medium tracking-[0.32em] text-[#8B7A5E] uppercase transition-colors duration-500 ease-out",
                 })}
               >
                 Incident Details
               </p>
               <h2
                 className={themeClasses(theme, {
-                  dark: "mt-2 text-2xl font-semibold leading-tight text-white",
-                  light: "mt-2 text-2xl font-semibold leading-tight text-[#2B251C]",
+                  dark: "mt-2 text-2xl font-semibold leading-tight text-white transition-colors duration-500 ease-out",
+                  light:
+                    "mt-2 text-2xl font-semibold leading-tight text-[#2B251C] transition-colors duration-500 ease-out",
                 })}
               >
                 {getIncidentHeading(incident)}
@@ -84,9 +86,9 @@ export function IncidentPanel({
               onClick={onClose}
               className={themeClasses(theme, {
                 dark:
-                  "rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/62 transition hover:bg-white/10 hover:text-white",
+                  "rounded-full border border-white/12 bg-[rgba(255,255,255,0.03)] px-3 py-1.5 text-xs text-white/60 transition-[background-color,border-color,color] duration-500 ease-out hover:bg-[rgba(255,255,255,0.08)] hover:text-white",
                 light:
-                  "rounded-full border border-[#8B7A5E]/14 bg-white/60 px-3 py-1.5 text-xs text-[#7A6951] transition hover:bg-white/90 hover:text-[#2B251C]",
+                  "rounded-full border border-[#8B7A5E]/14 bg-white/60 px-3 py-1.5 text-xs text-[#7A6951] transition-[background-color,border-color,color] duration-500 ease-out hover:bg-white/90 hover:text-[#2B251C]",
               })}
             >
               Close
@@ -101,9 +103,9 @@ export function IncidentPanel({
             </span>
             <span
               className={themeClasses(theme, {
-              dark: "text-sm text-white/45",
+              dark: "text-sm text-white/46 transition-colors duration-500 ease-out",
               
-              light: "text-sm text-[#8B7A5E]",
+              light: "text-sm text-[#8B7A5E] transition-colors duration-500 ease-out",
             })}
             >
               {incident.timestamp}
@@ -111,24 +113,25 @@ export function IncidentPanel({
           </div>
 
           <div
-            className={themeClasses(theme, {
-              dark: "mt-6 rounded-3xl border border-white/8 bg-white/6 p-4",
+          className={themeClasses(theme, {
+              dark: "mt-6 rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.04)] p-4 transition-[background-color,border-color,color] duration-500 ease-out",
               light:
-                "mt-6 rounded-3xl border border-[#8B7A5E]/10 bg-white/56 p-4",
+                "mt-6 rounded-3xl border border-[#8B7A5E]/10 bg-white/56 p-4 transition-[background-color,border-color,color] duration-500 ease-out",
             })}
           >
             <p
               className={themeClasses(theme, {
-                dark: "text-xs font-medium tracking-[0.28em] text-white/45 uppercase",
-                light: "text-xs font-medium tracking-[0.28em] text-[#8B7A5E] uppercase",
+                dark: "text-xs font-medium tracking-[0.28em] text-white/42 uppercase transition-colors duration-500 ease-out",
+                light:
+                  "text-xs font-medium tracking-[0.28em] text-[#8B7A5E] uppercase transition-colors duration-500 ease-out",
               })}
             >
               Why this alert
             </p>
             <p
               className={themeClasses(theme, {
-                dark: "mt-3 text-sm leading-6 text-white/78",
-                light: "mt-3 text-sm leading-6 text-[#43392B]",
+                dark: "mt-3 text-sm leading-6 text-white/76 transition-colors duration-500 ease-out",
+                light: "mt-3 text-sm leading-6 text-[#43392B] transition-colors duration-500 ease-out",
               })}
             >
               {incident.whyThisAlert}
@@ -136,24 +139,25 @@ export function IncidentPanel({
           </div>
 
           <div
-            className={themeClasses(theme, {
-              dark: "mt-4 rounded-3xl border border-white/8 bg-black/10 p-4",
+          className={themeClasses(theme, {
+              dark: "mt-4 rounded-3xl border border-white/10 bg-[rgba(0,0,0,0.12)] p-4 transition-[background-color,border-color,color] duration-500 ease-out",
               light:
-                "mt-4 rounded-3xl border border-[#8B7A5E]/10 bg-[#F1E4C7]/66 p-4",
+                "mt-4 rounded-3xl border border-[#8B7A5E]/10 bg-[#F1E4C7]/66 p-4 transition-[background-color,border-color,color] duration-500 ease-out",
             })}
           >
             <p
               className={themeClasses(theme, {
-                dark: "text-xs font-medium tracking-[0.28em] text-white/45 uppercase",
-                light: "text-xs font-medium tracking-[0.28em] text-[#8B7A5E] uppercase",
+                dark: "text-xs font-medium tracking-[0.28em] text-white/42 uppercase transition-colors duration-500 ease-out",
+                light:
+                  "text-xs font-medium tracking-[0.28em] text-[#8B7A5E] uppercase transition-colors duration-500 ease-out",
               })}
             >
               Detection Notes
             </p>
             <p
               className={themeClasses(theme, {
-                dark: "mt-3 text-sm leading-6 text-white/62",
-                light: "mt-3 text-sm leading-6 text-[#5E503B]",
+                dark: "mt-3 text-sm leading-6 text-white/60 transition-colors duration-500 ease-out",
+                light: "mt-3 text-sm leading-6 text-[#5E503B] transition-colors duration-500 ease-out",
               })}
             >
               AtlaScope scored this event using hazard intensity, local
@@ -166,9 +170,9 @@ export function IncidentPanel({
               type="button"
               className={themeClasses(theme, {
                 dark:
-                  "flex-1 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#2B2928] transition hover:scale-[1.01] hover:bg-white/92",
+                  "flex-1 rounded-2xl bg-[#F0F2F6] px-4 py-3 text-sm font-semibold text-[#262624] transition-[background-color,border-color,color,box-shadow,transform] duration-500 ease-out hover:scale-[1.01] hover:bg-white",
                 light:
-                  "flex-1 rounded-2xl bg-[#2B251C] px-4 py-3 text-sm font-semibold text-[#FFF7E7] transition hover:scale-[1.01] hover:bg-[#1F1A14]",
+                  "flex-1 rounded-2xl bg-[#2B251C] px-4 py-3 text-sm font-semibold text-[#FFF7E7] transition-[background-color,border-color,color,box-shadow,transform] duration-500 ease-out hover:scale-[1.01] hover:bg-[#1F1A14]",
               })}
             >
               Acknowledge
@@ -177,9 +181,9 @@ export function IncidentPanel({
               type="button"
               className={themeClasses(theme, {
                 dark:
-                  "flex-1 rounded-2xl border border-white/12 bg-white/6 px-4 py-3 text-sm font-semibold text-white transition hover:scale-[1.01] hover:bg-white/12",
+                  "flex-1 rounded-2xl border border-white/12 bg-[rgba(255,255,255,0.04)] px-4 py-3 text-sm font-semibold text-white transition-[background-color,border-color,color,box-shadow,transform] duration-500 ease-out hover:scale-[1.01] hover:bg-[rgba(255,255,255,0.08)]",
                 light:
-                  "flex-1 rounded-2xl border border-[#8B7A5E]/14 bg-white/60 px-4 py-3 text-sm font-semibold text-[#2B251C] transition hover:scale-[1.01] hover:bg-white/90",
+                  "flex-1 rounded-2xl border border-[#8B7A5E]/14 bg-white/60 px-4 py-3 text-sm font-semibold text-[#2B251C] transition-[background-color,border-color,color,box-shadow,transform] duration-500 ease-out hover:scale-[1.01] hover:bg-white/90",
               })}
             >
               View Timeline

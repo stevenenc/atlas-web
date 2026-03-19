@@ -44,8 +44,9 @@ export function MapView({
   return (
     <div
       className={themeClasses(theme, {
-        dark: "relative h-screen w-full overflow-hidden bg-[#2B2928]",
-        light: "relative h-screen w-full overflow-hidden bg-[#F5E9CC]",
+        dark: "relative h-screen w-full overflow-hidden bg-[#262624] transition-colors duration-500 ease-out",
+        light:
+          "relative h-screen w-full overflow-hidden bg-[#F5E9CC] transition-colors duration-500 ease-out",
       })}
     >
       <div className="absolute inset-0">
@@ -69,32 +70,25 @@ export function MapView({
       <div className="pointer-events-none absolute inset-0">
         <div
           className={themeClasses(theme, {
-            dark: "absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.05),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(91,135,162,0.12),_transparent_24%),linear-gradient(180deg,_rgba(18,20,22,0.08)_0%,_rgba(18,20,22,0.18)_100%)]",
+            dark: "absolute inset-0 transition-opacity duration-500 ease-out bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.05),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(91,135,162,0.12),_transparent_24%),linear-gradient(180deg,_rgba(18,20,22,0.08)_0%,_rgba(18,20,22,0.18)_100%)]",
             light:
-              "absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.28),_transparent_20%),radial-gradient(circle_at_bottom_right,_rgba(226,189,104,0.12),_transparent_22%),linear-gradient(180deg,_rgba(255,248,236,0.06)_0%,_rgba(242,227,194,0.12)_100%)]",
+              "absolute inset-0 transition-opacity duration-500 ease-out bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.28),_transparent_20%),radial-gradient(circle_at_bottom_right,_rgba(226,189,104,0.12),_transparent_22%),linear-gradient(180deg,_rgba(255,248,236,0.06)_0%,_rgba(242,227,194,0.12)_100%)]",
           })}
         />
         <div
           className={themeClasses(theme, {
             dark:
-              "absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:96px_96px] opacity-15",
+              "absolute inset-0 transition-opacity duration-500 ease-out bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:96px_96px] opacity-15",
             light:
-              "absolute inset-0 bg-[linear-gradient(rgba(51,45,35,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(51,45,35,0.06)_1px,transparent_1px)] bg-[size:96px_96px] opacity-24",
+              "absolute inset-0 transition-opacity duration-500 ease-out bg-[linear-gradient(rgba(51,45,35,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(51,45,35,0.06)_1px,transparent_1px)] bg-[size:96px_96px] opacity-24",
           })}
         />
         <div
           className={themeClasses(theme, {
             dark:
-              "absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(43,41,40,0.08)_48%,_rgba(28,27,26,0.28)_100%)]",
+              "absolute inset-0 transition-opacity duration-500 ease-out bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(43,41,40,0.08)_48%,_rgba(28,27,26,0.28)_100%)]",
             light:
-              "absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(245,233,204,0)_38%,_rgba(178,145,78,0.08)_100%)]",
-          })}
-        />
-        <div
-          className={themeClasses(theme, {
-            dark: "absolute inset-[8%] rounded-[42px] border border-[#87AEC4]/16 bg-[#7AA6C0]/3 shadow-[0_0_0_1px_rgba(122,166,192,0.08)]",
-            light:
-              "absolute inset-[9%] rounded-[42px] border border-[#8B7A5E]/10 bg-white/8 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]",
+              "absolute inset-0 transition-opacity duration-500 ease-out bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(245,233,204,0)_38%,_rgba(178,145,78,0.08)_100%)]",
           })}
         />
         <div
@@ -126,9 +120,9 @@ export function MapView({
       <div
         className={themeClasses(theme, {
           dark:
-            "absolute left-8 top-28 rounded-full border border-white/10 bg-[rgba(51,48,46,0.72)] px-4 py-2 text-[11px] tracking-[0.34em] text-white/58 uppercase backdrop-blur-md",
+            "absolute left-8 top-28 rounded-full border border-white/10 bg-[rgba(60,60,56,0.9)] px-4 py-2 text-[11px] tracking-[0.34em] text-white/56 uppercase backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
           light:
-            "absolute left-8 top-28 rounded-full border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] px-4 py-2 text-[11px] tracking-[0.34em] text-[#5E503B] uppercase backdrop-blur-md",
+            "absolute left-8 top-28 rounded-full border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] px-4 py-2 text-[11px] tracking-[0.34em] text-[#5E503B] uppercase backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
         })}
       >
         Regional Hazard View
@@ -137,9 +131,9 @@ export function MapView({
       <div
         className={themeClasses(theme, {
           dark:
-            "absolute bottom-8 left-8 flex gap-2 rounded-full border border-white/10 bg-[rgba(51,48,46,0.72)] px-4 py-3 backdrop-blur-md",
+            "absolute bottom-8 left-8 flex gap-2 rounded-full border border-white/10 bg-[rgba(60,60,56,0.9)] px-4 py-3 backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
           light:
-            "absolute bottom-8 left-8 flex gap-2 rounded-full border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] px-4 py-3 backdrop-blur-md",
+            "absolute bottom-8 left-8 flex gap-2 rounded-full border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] px-4 py-3 backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
         })}
       >
         {legend.map((item) => (
@@ -147,9 +141,9 @@ export function MapView({
             <span className={`size-2.5 rounded-full ${item.color}`} />
             <span
               className={themeClasses(theme, {
-                dark: "text-xs text-white/58",
+                dark: "text-xs text-white/60 transition-colors duration-500 ease-out",
                 
-                light: "text-xs text-[#5E503B]",
+                light: "text-xs text-[#5E503B] transition-colors duration-500 ease-out",
               })}
             >
               {item.label}
@@ -161,24 +155,24 @@ export function MapView({
       <div
         className={themeClasses(theme, {
           dark:
-            "absolute bottom-8 right-8 rounded-[24px] border border-white/10 bg-[rgba(51,48,46,0.72)] px-4 py-3 text-right backdrop-blur-md",
+            "absolute bottom-8 right-8 rounded-[24px] border border-white/10 bg-[rgba(60,60,56,0.9)] px-4 py-3 text-right backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
           light:
-            "absolute bottom-8 right-8 rounded-[24px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] px-4 py-3 text-right backdrop-blur-md",
+            "absolute bottom-8 right-8 rounded-[24px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] px-4 py-3 text-right backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
         })}
       >
         <p
           className={themeClasses(theme, {
-            dark: "text-[10px] tracking-[0.28em] text-white/42 uppercase",
+            dark: "text-[10px] tracking-[0.28em] text-white/40 uppercase transition-colors duration-500 ease-out",
             
-            light: "text-[10px] tracking-[0.28em] text-[#8B7A5E] uppercase",
+            light: "text-[10px] tracking-[0.28em] text-[#8B7A5E] uppercase transition-colors duration-500 ease-out",
           })}
         >
           Monitoring Window
         </p>
         <p
           className={themeClasses(theme, {
-            dark: "mt-1 text-sm font-medium text-white/82",
-            light: "mt-1 text-sm font-medium text-[#2B251C]",
+            dark: "mt-1 text-sm font-medium text-white/82 transition-colors duration-500 ease-out",
+            light: "mt-1 text-sm font-medium text-[#2B251C] transition-colors duration-500 ease-out",
           })}
       >
         {visibleIncidents.length} active mock incidents
