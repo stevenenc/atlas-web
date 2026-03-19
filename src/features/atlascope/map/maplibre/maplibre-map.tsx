@@ -7,6 +7,7 @@ import Map, {
   Layer,
   NavigationControl,
   Source,
+  TerrainControl,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
 import { useState } from "react";
@@ -17,7 +18,11 @@ import {
   getMapStyle,
 } from "../map-config";
 import type { MapContainerProps, MapViewportState } from "../map-types";
-import { createHazardLayers, createHazardSourceData } from "./maplibre-layers";
+import {
+  createHazardLayers,
+  createHazardSourceData,
+  createTerrainLayers,
+} from "./maplibre-layers";
 import { MapLibreMarkerView } from "./maplibre-marker";
 
 function toViewportState(event: ViewStateChangeEvent): MapViewportState {
@@ -43,27 +48,51 @@ export function MapLibreMap({
   const visibleMarkers = markers.filter((marker) => activeLayers[marker.layerType]);
   const hazardSource = createHazardSourceData(visibleMarkers);
   const hazardLayers = createHazardLayers(theme);
+  const terrainLayers = createTerrainLayers(theme);
   const mapStyle = (
     hasStyleError ? getFallbackMapStyle(theme) : getMapStyle(theme)
   ) as StyleSpecification | string;
+  const mapInstanceKey = `${theme}-${hasStyleError ? "fallback" : "primary"}`;
 
   return (
     <div className="h-full w-full">
       <Map
+        key={mapInstanceKey}
         {...viewport}
         reuseMaps
         mapLib={maplibregl}
         mapStyle={mapStyle}
         minZoom={atlascopeMapConfig.minZoom}
         maxZoom={atlascopeMapConfig.maxZoom}
+        terrain={{
+          source: atlascopeMapConfig.terrain.sourceId,
+          exaggeration: atlascopeMapConfig.terrain.exaggeration,
+        }}
         dragRotate={false}
-        touchPitch={false}
+        touchPitch
         renderWorldCopies={false}
         attributionControl={false}
         onMove={(event) => onViewportChange(toViewportState(event))}
         onError={() => setHasStyleError(true)}
       >
-        <Source id="atlascope-hazards" type="geojson" data={hazardSource}>
+        <Source
+          key="terrain-source"
+          id={atlascopeMapConfig.terrain.sourceId}
+          type="raster-dem"
+          url={atlascopeMapConfig.terrain.sourceUrl}
+          tileSize={atlascopeMapConfig.terrain.tileSize}
+        >
+          {terrainLayers.map((layer) => (
+            <Layer key={layer.id} {...layer} />
+          ))}
+        </Source>
+
+        <Source
+          key="hazard-source"
+          id="atlascope-hazards"
+          type="geojson"
+          data={hazardSource}
+        >
           {hazardLayers.map((layer) => (
             <Layer key={layer.id} {...layer} />
           ))}
@@ -82,7 +111,12 @@ export function MapLibreMap({
         <NavigationControl
           position="bottom-right"
           showCompass={false}
-          visualizePitch={false}
+          visualizePitch
+        />
+        <TerrainControl
+          source={atlascopeMapConfig.terrain.sourceId}
+          exaggeration={atlascopeMapConfig.terrain.exaggeration}
+          position="bottom-right"
         />
       </Map>
     </div>

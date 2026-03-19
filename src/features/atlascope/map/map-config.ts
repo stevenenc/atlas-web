@@ -40,20 +40,26 @@ export const atlascopeMapConfig = {
   defaultViewport: {
     longitude: 122.4,
     latitude: 12.3,
-    zoom: 4.8,
+    zoom: 5.6,
     bearing: 0,
-    pitch: 18,
+    pitch: 36,
   } satisfies MapViewportState,
   minZoom: 3.6,
-  maxZoom: 10.5,
+  maxZoom: 16.5,
   styleByTheme: {
-    dark: "https://demotiles.maplibre.org/style.json",
-    light: "https://demotiles.maplibre.org/style.json",
+    dark: "https://tiles.openfreemap.org/styles/liberty",
+    light: "https://tiles.openfreemap.org/styles/liberty",
   } satisfies Record<ThemeMode, MapStyleConfig>,
   fallbackStyleByTheme: {
     dark: darkMapStyle,
     light: lightMapStyle,
   } satisfies Record<ThemeMode, MapStyleDefinition>,
+  terrain: {
+    sourceId: "atlascope-terrain",
+    sourceUrl: "https://demotiles.maplibre.org/terrain-tiles/tiles.json",
+    tileSize: 256,
+    exaggeration: 1.2,
+  },
   tokens: {
     maplibre: "",
     mapbox: process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "",

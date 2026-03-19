@@ -84,3 +84,22 @@ export function createHazardLayers(theme: ThemeMode): LayerProps[] {
     },
   );
 }
+
+export function createTerrainLayers(theme: ThemeMode): LayerProps[] {
+  return [
+    {
+      id: "atlascope-hillshade",
+      type: "hillshade",
+      source: "atlascope-terrain",
+      paint: {
+        "hillshade-exaggeration": 0.3,
+        "hillshade-shadow-color":
+          theme === "dark" ? "rgba(15, 23, 42, 0.35)" : "rgba(51, 45, 35, 0.18)",
+        "hillshade-highlight-color":
+          theme === "dark" ? "rgba(226, 232, 240, 0.12)" : "rgba(255, 255, 255, 0.3)",
+        "hillshade-accent-color":
+          theme === "dark" ? "rgba(148, 163, 184, 0.18)" : "rgba(120, 113, 108, 0.12)",
+      },
+    },
+  ];
+}
