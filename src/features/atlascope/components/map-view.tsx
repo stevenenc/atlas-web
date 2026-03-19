@@ -6,11 +6,13 @@ import { themeClasses } from "@/features/atlascope/config/theme";
 import type { ThemeMode } from "@/features/atlascope/config/theme";
 import { resolveMapAdapter } from "@/features/atlascope/map/map-adapter";
 import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import type { MapMarkerData } from "@/features/atlascope/map/map-types";
+import type { MapGeofenceData, MapMarkerData } from "@/features/atlascope/map/map-types";
+import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 import type { Incident, IncidentType } from "@/features/atlascope/types/atlascope";
 
 type MapViewProps = {
   incidents: Incident[];
+  geofences: AtlascopeGeofence[];
   activeLayers: Record<IncidentType, boolean>;
   selectedIncidentId: string | null;
   onSelectIncident: (incident: Incident) => void;
@@ -21,6 +23,7 @@ const ActiveMapAdapter = resolveMapAdapter();
 
 export function MapView({
   incidents,
+  geofences,
   activeLayers,
   selectedIncidentId,
   onSelectIncident,
@@ -35,6 +38,13 @@ export function MapView({
     severity: incident.severity,
     ageMinutes: extractAgeMinutes(incident.timestamp),
   }));
+  const enabledGeofences: MapGeofenceData[] = geofences
+    .filter((geofence) => geofence.isEnabled)
+    .map((geofence) => ({
+      id: String(geofence.id),
+      title: geofence.name,
+      coordinates: geofence.coordinates,
+    }));
 
   return (
     <div
@@ -46,6 +56,7 @@ export function MapView({
       <div className="absolute inset-0">
         <ActiveMapAdapter
           markers={markers}
+          geofences={enabledGeofences}
           activeLayers={activeLayers}
           selectedMarkerId={selectedIncidentId}
           viewport={viewport}

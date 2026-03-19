@@ -1,15 +1,21 @@
-import type { FeatureCollection, Point } from "geojson";
+import type { FeatureCollection, Point, Polygon } from "geojson";
 import type { LayerProps } from "react-map-gl/maplibre";
 
 import type { ThemeMode } from "@/features/atlascope/config/theme";
 import type {
   HazardLayerType,
+  MapGeofenceData,
   MapMarkerData,
 } from "@/features/atlascope/map/map-types";
 
 type HazardFeatureProperties = {
   id: string;
   layerType: HazardLayerType;
+  title: string;
+};
+
+type GeofenceFeatureProperties = {
+  id: string;
   title: string;
 };
 
@@ -85,4 +91,71 @@ export function createHazardLayers(theme: ThemeMode): LayerProps[] {
       ];
     },
   );
+}
+
+function closePolygonRing(coordinates: MapGeofenceData["coordinates"]) {
+  if (!coordinates.length) {
+    return [];
+  }
+
+  const ring = coordinates.map((coordinate) => [
+    coordinate.longitude,
+    coordinate.latitude,
+  ]);
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+
+  if (!first || !last) {
+    return ring;
+  }
+
+  if (first[0] === last[0] && first[1] === last[1]) {
+    return ring;
+  }
+
+  return [...ring, first];
+}
+
+export function createGeofenceSourceData(
+  geofences: MapGeofenceData[],
+): FeatureCollection<Polygon, GeofenceFeatureProperties> {
+  return {
+    type: "FeatureCollection",
+    features: geofences.map((geofence) => ({
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [closePolygonRing(geofence.coordinates)],
+      },
+      properties: {
+        id: geofence.id,
+        title: geofence.title,
+      },
+    })),
+  };
+}
+
+export function createGeofenceLayers(theme: ThemeMode): LayerProps[] {
+  const fillColor =
+    theme === "dark" ? "rgba(95, 211, 245, 0.14)" : "rgba(29, 140, 255, 0.12)";
+  const strokeColor = theme === "dark" ? "#5BD3F5" : "#1E63D5";
+
+  return [
+    {
+      id: "geofence-fill",
+      type: "fill",
+      paint: {
+        "fill-color": fillColor,
+      },
+    },
+    {
+      id: "geofence-line",
+      type: "line",
+      paint: {
+        "line-color": strokeColor,
+        "line-width": 2,
+        "line-opacity": 0.95,
+      },
+    },
+  ];
 }

@@ -24,6 +24,12 @@ export type MapMarkerData = {
   ageMinutes: number;
 };
 
+export type MapGeofenceData = {
+  id: string;
+  title: string;
+  coordinates: MapCoordinates[];
+};
+
 export type MapStyleDefinition = {
   version: 8;
   sources: Record<string, unknown>;
@@ -34,6 +40,7 @@ export type MapStyleConfig = string | MapStyleDefinition;
 
 export type MapContainerProps = {
   markers: MapMarkerData[];
+  geofences: MapGeofenceData[];
   activeLayers: HazardLayerVisibility;
   selectedMarkerId: string | null;
   viewport: MapViewportState;

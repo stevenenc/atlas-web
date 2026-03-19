@@ -3,7 +3,11 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
-import Map, { type ViewStateChangeEvent } from "react-map-gl/maplibre";
+import Map, {
+  Layer,
+  Source,
+  type ViewStateChangeEvent,
+} from "react-map-gl/maplibre";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -17,6 +21,10 @@ import type {
   MapContainerProps,
   MapViewportState,
 } from "@/features/atlascope/map/map-types";
+import {
+  createGeofenceLayers,
+  createGeofenceSourceData,
+} from "@/features/atlascope/map/maplibre/maplibre-layers";
 import { MapLibreMarkerView } from "@/features/atlascope/map/maplibre/maplibre-marker";
 
 function toViewportState(event: ViewStateChangeEvent): MapViewportState {
@@ -57,6 +65,7 @@ function getVerticalBoundsMinZoom(containerHeight: number) {
 
 export function MapLibreMap({
   markers,
+  geofences,
   activeLayers,
   viewport,
   theme,
@@ -141,6 +150,11 @@ export function MapLibreMap({
       ? buildDarkMapStyle(baseMapStyle)
       : buildLightMapStyle(baseMapStyle)) as StyleSpecification | string;
   }, [baseMapStyle, hasMapStyleError, theme]);
+  const geofenceSourceData = useMemo(
+    () => createGeofenceSourceData(geofences),
+    [geofences],
+  );
+  const geofenceLayers = useMemo(() => createGeofenceLayers(theme), [theme]);
 
   return (
     <div ref={containerRef} className="h-full w-full">
@@ -160,6 +174,13 @@ export function MapLibreMap({
           setHasMapStyleError(true);
         }}
       >
+        {geofences.length ? (
+          <Source id="atlascope-geofences" type="geojson" data={geofenceSourceData}>
+            {geofenceLayers.map((layer) => (
+              <Layer key={layer.id} {...layer} />
+            ))}
+          </Source>
+        ) : null}
         {markers.map((marker) => (
           <MapLibreMarkerView
             key={marker.id}

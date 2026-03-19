@@ -4,9 +4,12 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { themeClasses, type ThemeMode } from "@/features/atlascope/config/theme";
+import { mockGeofences } from "@/features/atlascope/data/mock-geofences";
 import { incidents } from "@/features/atlascope/data/mock-incidents";
+import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 import type { Incident, IncidentType } from "@/features/atlascope/types/atlascope";
 
+import { GeofencePanel, type Geofence } from "./geofence-panel";
 import { IncidentPanel } from "./incident-panel";
 import { MapView } from "./map-view";
 
@@ -26,15 +29,21 @@ const layerRows: Array<{
   { id: "air_quality", label: "Air Quality", color: "#D8B11E" },
 ];
 
-type OverlayPanelId = "system" | "layers" | null;
+type OverlayPanelId = "system" | "layers" | "geofences" | null;
 
 export function AtlascopeShell() {
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [activeLayers, setActiveLayers] = useState(initialLayers);
+  const [geofences, setGeofences] = useState<AtlascopeGeofence[]>(mockGeofences);
+  const [editingGeofenceId, setEditingGeofenceId] = useState<number | null>(null);
+  const [geofenceDraftName, setGeofenceDraftName] = useState("");
+  const [enteringGeofenceId, setEnteringGeofenceId] = useState<number | null>(null);
+  const [showGeofenceRowActions, setShowGeofenceRowActions] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [isPanelLoading, setIsPanelLoading] = useState(false);
   const [activeOverlayPanel, setActiveOverlayPanel] = useState<OverlayPanelId>(null);
   const loadingTimerRef = useRef<number | null>(null);
+  const geofenceEnterTimerRef = useRef<number | null>(null);
   const overlayControlsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -42,10 +51,18 @@ export function AtlascopeShell() {
       if (loadingTimerRef.current) {
         window.clearTimeout(loadingTimerRef.current);
       }
+
+      if (geofenceEnterTimerRef.current) {
+        window.clearTimeout(geofenceEnterTimerRef.current);
+      }
     };
   }, []);
 
   useEffect(() => {
+    if (activeOverlayPanel !== "geofences") {
+      setShowGeofenceRowActions(false);
+    }
+
     if (!activeOverlayPanel) {
       return;
     }
@@ -64,6 +81,7 @@ export function AtlascopeShell() {
       }
 
       if (!activeOverlayElement.contains(target)) {
+        setShowGeofenceRowActions(false);
         setActiveOverlayPanel(null);
       }
     };
@@ -114,6 +132,74 @@ export function AtlascopeShell() {
     setSelectedIncident(null);
   }
 
+  function handleAddGeofence() {
+    const id = Date.now();
+
+    setShowGeofenceRowActions(false);
+    setGeofences((current) => [
+      ...current,
+      {
+        id,
+        name: "New Geofence",
+        isEnabled: false,
+        coordinates: [
+          { longitude: 120.94, latitude: 13.98 },
+          { longitude: 121.18, latitude: 13.98 },
+          { longitude: 121.18, latitude: 14.21 },
+          { longitude: 120.94, latitude: 14.21 },
+        ],
+      },
+    ]);
+    setEditingGeofenceId(id);
+    setGeofenceDraftName("New Geofence");
+    setEnteringGeofenceId(id);
+
+    if (geofenceEnterTimerRef.current) {
+      window.clearTimeout(geofenceEnterTimerRef.current);
+    }
+
+    geofenceEnterTimerRef.current = window.setTimeout(() => {
+      setEnteringGeofenceId((current) => (current === id ? null : current));
+      geofenceEnterTimerRef.current = null;
+    }, 220);
+  }
+
+  function handleRenameGeofence(id: number, name: string) {
+    setGeofences((current) =>
+      current.map((geofence) => (geofence.id === id ? { ...geofence, name } : geofence)),
+    );
+  }
+
+  function handleToggleGeofenceEnabled(id: number) {
+    setGeofences((current) =>
+      current.map((geofence) =>
+        geofence.id === id
+          ? { ...geofence, isEnabled: !geofence.isEnabled }
+          : geofence,
+      ),
+    );
+  }
+
+  function handleStartEditingGeofence(geofence: Geofence) {
+    setEditingGeofenceId(geofence.id);
+    setGeofenceDraftName(geofence.name);
+  }
+
+  function handleSaveEditingGeofence() {
+    setEditingGeofenceId(null);
+  }
+
+  function handleCancelEditingGeofence(geofence: Geofence) {
+    setEditingGeofenceId((current) => (current === geofence.id ? null : current));
+    setGeofenceDraftName(geofence.name);
+  }
+
+  function handleDeleteGeofence(id: number) {
+    setGeofences((current) => current.filter((geofence) => geofence.id !== id));
+    setEditingGeofenceId((current) => (current === id ? null : current));
+    setEnteringGeofenceId((current) => (current === id ? null : current));
+  }
+
   return (
     <main
       className={themeClasses(theme, {
@@ -125,6 +211,7 @@ export function AtlascopeShell() {
     >
       <MapView
         incidents={incidents}
+        geofences={geofences}
         activeLayers={activeLayers}
         selectedIncidentId={selectedIncident?.id ?? null}
         onSelectIncident={handleSelectIncident}
@@ -139,10 +226,10 @@ export function AtlascopeShell() {
           >
             <div className="relative min-h-[72px] w-[320px]">
               <div
-                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] duration-250 ease-out ${
+                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] ease-out ${
                   activeOverlayPanel === "system"
-                    ? "scale-100 opacity-100"
-                    : "pointer-events-none scale-95 opacity-0"
+                    ? "scale-100 opacity-100 duration-250"
+                    : "pointer-events-none scale-[0.985] opacity-0 duration-120"
                 }`}
               >
                 <aside
@@ -244,10 +331,10 @@ export function AtlascopeShell() {
               </div>
 
               <div
-                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] duration-250 ease-out ${
+                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] ease-out ${
                   activeOverlayPanel === "layers"
-                    ? "scale-100 opacity-100"
-                    : "pointer-events-none scale-95 opacity-0"
+                    ? "scale-100 opacity-100 duration-250"
+                    : "pointer-events-none scale-[0.985] opacity-0 duration-120"
                 }`}
               >
                 <aside
@@ -293,6 +380,34 @@ export function AtlascopeShell() {
                   </div>
                 </aside>
               </div>
+
+              <div
+                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] ease-out ${
+                  activeOverlayPanel === "geofences"
+                    ? "scale-100 opacity-100 duration-250"
+                    : "pointer-events-none scale-[0.985] opacity-0 duration-120"
+                }`}
+              >
+                <GeofencePanel
+                  theme={theme}
+                  geofences={geofences}
+                  editingGeofenceId={editingGeofenceId}
+                  draftName={geofenceDraftName}
+                  enteringGeofenceId={enteringGeofenceId}
+                  showRowActions={showGeofenceRowActions}
+                  onAddGeofence={handleAddGeofence}
+                  onDraftNameChange={setGeofenceDraftName}
+                  onStartEditing={handleStartEditingGeofence}
+                  onSaveEditing={handleSaveEditingGeofence}
+                  onCancelEditing={handleCancelEditingGeofence}
+                  onToggleRowActions={() =>
+                    setShowGeofenceRowActions((current) => !current)
+                  }
+                  onToggleEnabled={handleToggleGeofenceEnabled}
+                  onRenameGeofence={handleRenameGeofence}
+                  onDeleteGeofence={handleDeleteGeofence}
+                />
+              </div>
             </div>
 
             <div className="flex flex-col items-end gap-3">
@@ -321,6 +436,16 @@ export function AtlascopeShell() {
               >
                 <LayersIcon />
               </OverlayRailButton>
+
+              <GeofenceButton
+                theme={theme}
+                isPressed={activeOverlayPanel === "geofences"}
+                onClick={() =>
+                  setActiveOverlayPanel((current) =>
+                    current === "geofences" ? null : "geofences",
+                  )
+                }
+              />
             </div>
           </div>
         </div>
@@ -536,9 +661,9 @@ function OverlayRailButton({
       onClick={onClick}
       className={`${themeClasses(theme, {
         dark:
-          "flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-[rgba(11,16,19,0.82)] text-white/78 shadow-[0_20px_50px_rgba(0,0,0,0.24)] backdrop-blur-md transition-colors duration-200 hover:bg-white/[0.08] hover:text-white",
+          "flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-[rgba(11,16,19,0.82)] text-white/78 shadow-[0_20px_50px_rgba(0,0,0,0.24)] backdrop-blur-md outline-none ring-0 transition-colors duration-200 hover:bg-white/[0.08] hover:text-white focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
         light:
-          "flex size-12 items-center justify-center rounded-2xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] text-[#536068] shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md transition-colors duration-200 hover:bg-white hover:text-[#1F2A30]",
+          "flex size-12 items-center justify-center rounded-2xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] text-[#536068] shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md outline-none ring-0 transition-colors duration-200 hover:bg-white hover:text-[#1F2A30] focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
       })} ${
         isPressed
           ? theme === "dark"
@@ -551,6 +676,27 @@ function OverlayRailButton({
     >
       {children}
     </button>
+  );
+}
+
+function GeofenceButton({
+  theme,
+  isPressed,
+  onClick,
+}: {
+  theme: ThemeMode;
+  isPressed: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <OverlayRailButton
+      theme={theme}
+      isPressed={isPressed}
+      onClick={onClick}
+      ariaLabel="Open geofence panel"
+    >
+      <GeofenceIcon />
+    </OverlayRailButton>
   );
 }
 
@@ -577,6 +723,19 @@ function LayersIcon() {
       <path
         d="m12 5 7 3.5-7 3.5-7-3.5L12 5Zm7 7-7 3.5L5 12m14 4-7 3.5L5 16"
         strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function GeofenceIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5 fill-none stroke-current">
+      <path
+        d="M7 3.5 18.2 12l-5 1.1 2.8 6-1.9.9-2.8-6L7 17.7V3.5Z"
+        strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

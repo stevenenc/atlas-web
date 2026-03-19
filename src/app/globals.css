@@ -23,6 +23,41 @@ body {
   font-family: var(--font-sans);
 }
 
+a,
+button,
+input,
+select,
+textarea,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a:focus,
+a:focus-visible,
+button:focus,
+button:focus-visible,
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+*:focus,
+*:focus-visible {
+  outline: none !important;
+}
+
+button::-moz-focus-inner,
+input::-moz-focus-inner {
+  border: 0;
+}
+
 @keyframes atlascope-grid-drift {
   0% {
     transform: translate3d(0, 0, 0);
@@ -98,6 +133,30 @@ body {
   }
 }
 
+@keyframes atlascope-panel-item-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes atlascope-panel-item-exit {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
 .atlascope-primary-marker-breathe {
   animation: atlascope-primary-marker-breathe 1.9s
     cubic-bezier(0.37, 0, 0.2, 1) infinite;
@@ -136,4 +195,13 @@ body {
 .atlascope-grid-drift {
   animation: atlascope-grid-drift 18s linear infinite;
   will-change: transform;
+}
+
+.atlascope-panel-item-enter {
+  animation: atlascope-panel-item-enter 220ms
+    cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.atlascope-panel-item-exit {
+  animation: atlascope-panel-item-exit 180ms ease-in forwards;
 }
