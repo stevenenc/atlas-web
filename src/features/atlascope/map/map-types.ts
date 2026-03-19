@@ -20,6 +20,8 @@ export type MapMarkerData = {
   title: string;
   layerType: HazardLayerType;
   coordinates: MapCoordinates;
+  severity: "Critical" | "High" | "Moderate";
+  ageMinutes: number;
 };
 
 export type MapStyleDefinition = {

@@ -17,12 +17,6 @@ type MapViewProps = {
   theme: ThemeMode;
 };
 
-const legend = [
-  { label: "Earthquake", color: "bg-[#F97316]" },
-  { label: "Wildfire", color: "bg-[#EF4444]" },
-  { label: "Air Quality", color: "bg-[#EAB308]" },
-];
-
 const ActiveMapAdapter = resolveMapAdapter();
 
 export function MapView({
@@ -33,20 +27,20 @@ export function MapView({
   theme,
 }: MapViewProps) {
   const [viewport, setViewport] = useState(atlascopeMapConfig.defaultViewport);
-  const visibleIncidents = incidents.filter((incident) => activeLayers[incident.type]);
   const markers: MapMarkerData[] = incidents.map((incident) => ({
     id: incident.id,
     title: incident.locationName,
     layerType: incident.type,
     coordinates: incident.coordinates,
+    severity: incident.severity,
+    ageMinutes: extractAgeMinutes(incident.timestamp),
   }));
 
   return (
     <div
       className={themeClasses(theme, {
-        dark: "relative h-screen w-full overflow-hidden bg-[#262624] transition-colors duration-500 ease-out",
-        light:
-          "relative h-screen w-full overflow-hidden bg-[#F5E9CC] transition-colors duration-500 ease-out",
+        dark: "relative h-screen w-full overflow-hidden bg-[#12171A] transition-colors duration-500 ease-out",
+        light: "relative h-screen w-full overflow-hidden bg-[#D9DEE0] transition-colors duration-500 ease-out",
       })}
     >
       <div className="absolute inset-0">
@@ -70,114 +64,71 @@ export function MapView({
       <div className="pointer-events-none absolute inset-0">
         <div
           className={themeClasses(theme, {
-            dark: "absolute inset-0 transition-opacity duration-500 ease-out bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.05),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(91,135,162,0.12),_transparent_24%),linear-gradient(180deg,_rgba(18,20,22,0.08)_0%,_rgba(18,20,22,0.18)_100%)]",
+            dark:
+              "absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(111,136,150,0.12),_transparent_28%),linear-gradient(180deg,_rgba(7,10,12,0.08)_0%,_rgba(7,10,12,0.22)_58%,_rgba(7,10,12,0.48)_100%)]",
             light:
-              "absolute inset-0 transition-opacity duration-500 ease-out bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.28),_transparent_20%),radial-gradient(circle_at_bottom_right,_rgba(226,189,104,0.12),_transparent_22%),linear-gradient(180deg,_rgba(255,248,236,0.06)_0%,_rgba(242,227,194,0.12)_100%)]",
+              "absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.36),_transparent_28%),linear-gradient(180deg,_rgba(221,226,229,0.08)_0%,_rgba(205,212,215,0.16)_52%,_rgba(180,188,193,0.32)_100%)]",
           })}
         />
         <div
           className={themeClasses(theme, {
             dark:
-              "absolute inset-0 transition-opacity duration-500 ease-out bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:96px_96px] opacity-15",
+              "absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:120px_120px] opacity-35",
             light:
-              "absolute inset-0 transition-opacity duration-500 ease-out bg-[linear-gradient(rgba(51,45,35,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(51,45,35,0.06)_1px,transparent_1px)] bg-[size:96px_96px] opacity-24",
+              "absolute inset-0 bg-[linear-gradient(rgba(44,53,59,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(44,53,59,0.055)_1px,transparent_1px)] bg-[size:120px_120px] opacity-32",
           })}
         />
         <div
           className={themeClasses(theme, {
             dark:
-              "absolute inset-0 transition-opacity duration-500 ease-out bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(43,41,40,0.08)_48%,_rgba(28,27,26,0.28)_100%)]",
+              "absolute inset-x-0 top-[17%] h-px bg-gradient-to-r from-transparent via-white/10 to-transparent",
             light:
-              "absolute inset-0 transition-opacity duration-500 ease-out bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(245,233,204,0)_38%,_rgba(178,145,78,0.08)_100%)]",
+              "absolute inset-x-0 top-[17%] h-px bg-gradient-to-r from-transparent via-[#465158]/18 to-transparent",
           })}
         />
         <div
           className={themeClasses(theme, {
             dark:
-              "absolute inset-x-0 top-[14%] h-px bg-gradient-to-r from-transparent via-white/8 to-transparent",
+              "absolute bottom-[18%] left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent",
             light:
-              "absolute inset-x-0 top-[14%] h-px bg-gradient-to-r from-transparent via-[#6F624D]/16 to-transparent",
+              "absolute bottom-[18%] left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#465158]/16 to-transparent",
           })}
         />
         <div
           className={themeClasses(theme, {
             dark:
-              "absolute left-[22%] top-0 h-full w-px bg-gradient-to-b from-transparent via-white/6 to-transparent",
+              "absolute left-[24%] top-0 h-full w-px bg-gradient-to-b from-transparent via-white/8 to-transparent",
             light:
-              "absolute left-[22%] top-0 h-full w-px bg-gradient-to-b from-transparent via-[#6F624D]/14 to-transparent",
+              "absolute left-[24%] top-0 h-full w-px bg-gradient-to-b from-transparent via-[#465158]/16 to-transparent",
           })}
         />
         <div
           className={themeClasses(theme, {
             dark:
-              "absolute right-[18%] top-0 h-full w-px bg-gradient-to-b from-transparent via-white/5 to-transparent",
+              "absolute right-[20%] top-0 h-full w-px bg-gradient-to-b from-transparent via-white/7 to-transparent",
             light:
-              "absolute right-[18%] top-0 h-full w-px bg-gradient-to-b from-transparent via-[#6F624D]/12 to-transparent",
+              "absolute right-[20%] top-0 h-full w-px bg-gradient-to-b from-transparent via-[#465158]/14 to-transparent",
           })}
         />
-      </div>
-
-      <div
-        className={themeClasses(theme, {
-          dark:
-            "absolute left-8 top-28 rounded-full border border-white/10 bg-[rgba(60,60,56,0.9)] px-4 py-2 text-[11px] tracking-[0.34em] text-white/56 uppercase backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-          light:
-            "absolute left-8 top-28 rounded-full border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] px-4 py-2 text-[11px] tracking-[0.34em] text-[#5E503B] uppercase backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-        })}
-      >
-        Regional Hazard View
-      </div>
-
-      <div
-        className={themeClasses(theme, {
-          dark:
-            "absolute bottom-8 left-8 flex gap-2 rounded-full border border-white/10 bg-[rgba(60,60,56,0.9)] px-4 py-3 backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-          light:
-            "absolute bottom-8 left-8 flex gap-2 rounded-full border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] px-4 py-3 backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-        })}
-      >
-        {legend.map((item) => (
-          <div key={item.label} className="flex items-center gap-2">
-            <span className={`size-2.5 rounded-full ${item.color}`} />
-            <span
-              className={themeClasses(theme, {
-                dark: "text-xs text-white/60 transition-colors duration-500 ease-out",
-                
-                light: "text-xs text-[#5E503B] transition-colors duration-500 ease-out",
-              })}
-            >
-              {item.label}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <div
-        className={themeClasses(theme, {
-          dark:
-            "absolute bottom-8 right-8 rounded-[24px] border border-white/10 bg-[rgba(60,60,56,0.9)] px-4 py-3 text-right backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-          light:
-            "absolute bottom-8 right-8 rounded-[24px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.82)] px-4 py-3 text-right backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-        })}
-      >
-        <p
+        <div
           className={themeClasses(theme, {
-            dark: "text-[10px] tracking-[0.28em] text-white/40 uppercase transition-colors duration-500 ease-out",
-            
-            light: "text-[10px] tracking-[0.28em] text-[#8B7A5E] uppercase transition-colors duration-500 ease-out",
+            dark:
+              "absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_42%,_rgba(5,8,10,0.14)_72%,_rgba(5,8,10,0.48)_100%)]",
+            light:
+              "absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_38%,_rgba(128,138,144,0.08)_72%,_rgba(96,106,112,0.2)_100%)]",
           })}
-        >
-          Monitoring Window
-        </p>
-        <p
-          className={themeClasses(theme, {
-            dark: "mt-1 text-sm font-medium text-white/82 transition-colors duration-500 ease-out",
-            light: "mt-1 text-sm font-medium text-[#2B251C] transition-colors duration-500 ease-out",
-          })}
-      >
-        {visibleIncidents.length} active mock incidents
-        </p>
+        />
       </div>
     </div>
   );
+}
+
+function extractAgeMinutes(timestamp: string) {
+  const match = timestamp.match(/(\d+)/);
+
+  if (!match) {
+    return 60;
+  }
+
+  return Number.parseInt(match[1] ?? "60", 10);
 }

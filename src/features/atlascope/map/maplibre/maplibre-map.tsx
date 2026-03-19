@@ -3,15 +3,15 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
-import Map, { NavigationControl, type ViewStateChangeEvent } from "react-map-gl/maplibre";
-import { useEffect, useState } from "react";
+import Map, { type ViewStateChangeEvent } from "react-map-gl/maplibre";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   atlascopeMapConfig,
   buildDarkMapStyle,
+  buildLightMapStyle,
   DEMO_TILE_STYLE_URL,
   getFallbackMapStyle,
-  getMapStyle,
 } from "@/features/atlascope/map/map-config";
 import type {
   MapContainerProps,
@@ -29,25 +29,37 @@ function toViewportState(event: ViewStateChangeEvent): MapViewportState {
   };
 }
 
+function getHorizontalWorldMinZoom(containerWidth: number) {
+  if (!Number.isFinite(containerWidth) || containerWidth <= 0) {
+    return atlascopeMapConfig.minZoom;
+  }
+
+  return Math.max(
+    atlascopeMapConfig.minZoom,
+    Math.log2(containerWidth / 512),
+  );
+}
+
 export function MapLibreMap({
   markers,
   activeLayers,
-  selectedMarkerId,
   viewport,
   theme,
   onViewportChange,
   onMarkerClick,
 }: MapContainerProps) {
-  const [darkThemeMapStyle, setDarkThemeMapStyle] = useState<StyleSpecification | null>(
-    null,
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [baseMapStyle, setBaseMapStyle] = useState<StyleSpecification | null>(null);
+  const [hasMapStyleError, setHasMapStyleError] = useState(false);
+  const [horizontalWorldMinZoom, setHorizontalWorldMinZoom] = useState(
+    atlascopeMapConfig.minZoom,
   );
-  const [hasDarkThemeStyleError, setHasDarkThemeStyleError] = useState(false);
   const visibleMarkers = markers.filter((marker) => activeLayers[marker.layerType]);
 
   useEffect(() => {
     let isCancelled = false;
 
-    if (theme !== "dark" || darkThemeMapStyle || hasDarkThemeStyleError) {
+    if (baseMapStyle || hasMapStyleError) {
       return () => {
         isCancelled = true;
       };
@@ -62,63 +74,86 @@ export function MapLibreMap({
         const style = (await response.json()) as StyleSpecification;
 
         if (!isCancelled) {
-          setDarkThemeMapStyle(buildDarkMapStyle(style));
+          setBaseMapStyle(style);
         }
       })
       .catch(() => {
         if (!isCancelled) {
-          setHasDarkThemeStyleError(true);
+          setHasMapStyleError(true);
         }
       });
 
     return () => {
       isCancelled = true;
     };
-  }, [darkThemeMapStyle, hasDarkThemeStyleError, theme]);
+  }, [baseMapStyle, hasMapStyleError]);
 
-  const mapStyle = (
-    theme === "dark"
-      ? hasDarkThemeStyleError
-        ? getFallbackMapStyle(theme)
-        : darkThemeMapStyle ?? DEMO_TILE_STYLE_URL
-      : getMapStyle(theme)
-  ) as StyleSpecification | string;
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const updateMinZoom = () => {
+      setHorizontalWorldMinZoom(
+        getHorizontalWorldMinZoom(container.clientWidth),
+      );
+    };
+
+    updateMinZoom();
+
+    const observer = new ResizeObserver(() => {
+      updateMinZoom();
+    });
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const mapStyle = useMemo(() => {
+    if (hasMapStyleError) {
+      return getFallbackMapStyle(theme) as StyleSpecification | string;
+    }
+
+    if (!baseMapStyle) {
+      return DEMO_TILE_STYLE_URL as StyleSpecification | string;
+    }
+
+    return (theme === "dark"
+      ? buildDarkMapStyle(baseMapStyle)
+      : buildLightMapStyle(baseMapStyle)) as StyleSpecification | string;
+  }, [baseMapStyle, hasMapStyleError, theme]);
 
   return (
-    <div className="h-full w-full">
+    <div ref={containerRef} className="h-full w-full">
       <Map
         {...viewport}
         reuseMaps
         mapLib={maplibregl}
         mapStyle={mapStyle}
-        minZoom={atlascopeMapConfig.minZoom}
+        minZoom={horizontalWorldMinZoom}
         maxZoom={atlascopeMapConfig.maxZoom}
         dragRotate={false}
         touchPitch={false}
-        renderWorldCopies={false}
+        renderWorldCopies
         attributionControl={false}
         onMove={(event) => onViewportChange(toViewportState(event))}
         onError={() => {
-          if (theme === "dark") {
-            setHasDarkThemeStyleError(true);
-          }
+          setHasMapStyleError(true);
         }}
       >
         {visibleMarkers.map((marker) => (
           <MapLibreMarkerView
             key={marker.id}
             marker={marker}
-            isSelected={selectedMarkerId === marker.id}
             onClick={onMarkerClick}
             theme={theme}
           />
         ))}
-
-        <NavigationControl
-          position="bottom-right"
-          showCompass={false}
-          visualizePitch={false}
-        />
       </Map>
     </div>
   );

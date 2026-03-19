@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { themeClasses, type ThemeMode } from "@/features/atlascope/config/theme";
@@ -7,7 +8,6 @@ import { incidents } from "@/features/atlascope/data/mock-incidents";
 import type { Incident, IncidentType } from "@/features/atlascope/types/atlascope";
 
 import { IncidentPanel } from "./incident-panel";
-import { LayerPanel } from "./layer-panel";
 import { MapView } from "./map-view";
 
 const initialLayers: Record<IncidentType, boolean> = {
@@ -16,11 +16,22 @@ const initialLayers: Record<IncidentType, boolean> = {
   air_quality: true,
 };
 
+const layerRows: Array<{
+  id: IncidentType;
+  label: string;
+  color: string;
+}> = [
+  { id: "earthquake", label: "Earthquake", color: "#F97316" },
+  { id: "wildfire", label: "Wildfire", color: "#EF4444" },
+  { id: "air_quality", label: "Air Quality", color: "#D8B11E" },
+];
+
 export function AtlascopeShell() {
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [activeLayers, setActiveLayers] = useState(initialLayers);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [isPanelLoading, setIsPanelLoading] = useState(false);
+  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
   const loadingTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -57,7 +68,7 @@ export function AtlascopeShell() {
       setSelectedIncident(incident);
       setIsPanelLoading(false);
       loadingTimerRef.current = null;
-    }, 320);
+    }, 280);
   }
 
   function handleClosePanel() {
@@ -73,9 +84,10 @@ export function AtlascopeShell() {
   return (
     <main
       className={themeClasses(theme, {
-        dark: "relative min-h-screen overflow-hidden bg-[#262624] text-white transition-colors duration-500 ease-out",
+        dark:
+          "relative min-h-screen overflow-hidden bg-[#12171A] text-white transition-colors duration-500 ease-out",
         light:
-          "relative min-h-screen overflow-hidden bg-[#F5E9CC] text-[#2B251C] transition-colors duration-500 ease-out",
+          "relative min-h-screen overflow-hidden bg-[#D9DEE0] text-[#1F2A30] transition-colors duration-500 ease-out",
       })}
     >
       <MapView
@@ -87,135 +99,160 @@ export function AtlascopeShell() {
       />
 
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-x-6 top-6 flex items-center justify-between gap-4">
-          <div
-            className={themeClasses(theme, {
-              dark:
-                "pointer-events-auto flex w-full max-w-[780px] items-center gap-4 rounded-[32px] border border-white/10 bg-[rgba(63,63,59,0.92)] px-5 py-4 shadow-[0_28px_80px_rgba(0,0,0,0.36)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-              light:
-                "pointer-events-auto flex w-full max-w-[780px] items-center gap-4 rounded-[32px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.8)] px-5 py-4 shadow-[0_20px_70px_rgba(120,97,59,0.12)] backdrop-blur-xl transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-            })}
-          >
+        <div className="fixed right-6 top-6 z-30 flex items-start justify-end">
+          <div className="pointer-events-auto relative h-[72px] w-[72px]">
             <div
-              className={themeClasses(theme, {
-                dark:
-                  "flex size-11 items-center justify-center rounded-full border border-white/12 bg-[rgba(255,255,255,0.05)] text-white/72 transition-[background-color,border-color,color] duration-500 ease-out",
-                light:
-                  "flex size-11 items-center justify-center rounded-full border border-[#8B7A5E]/14 bg-white/65 text-[#7A6951] transition-[background-color,border-color,color] duration-500 ease-out",
-              })}
+              className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] duration-250 ease-out ${
+                isControlPanelOpen
+                  ? "scale-100 opacity-100"
+                  : "pointer-events-none scale-95 opacity-0"
+              }`}
             >
-              <SearchIcon />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p
+              <aside
                 className={themeClasses(theme, {
                   dark:
-                    "text-[11px] tracking-[0.32em] text-white/36 uppercase transition-colors duration-500 ease-out",
-                  
+                    "w-[320px] rounded-3xl border border-white/10 bg-[rgba(11,16,19,0.84)] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.3)] backdrop-blur-md",
                   light:
-                    "text-[11px] tracking-[0.32em] text-[#8B7A5E] uppercase transition-colors duration-500 ease-out",
+                    "w-[320px] rounded-3xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] p-4 shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md",
                 })}
               >
-                AtlaScope
-              </p>
-              <input
-                readOnly
-                value="Search hazards, regions, or alerts"
-                className={themeClasses(theme, {
-                  dark:
-                    "mt-1 w-full bg-transparent text-sm text-white/84 outline-none placeholder:text-white/30 transition-colors duration-500 ease-out",
-                  light:
-                    "mt-1 w-full bg-transparent text-sm text-[#2B251C] outline-none placeholder:text-[#8B7A5E] transition-colors duration-500 ease-out",
-                })}
-              />
-            </div>
-          </div>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p
+                      className={themeClasses(theme, {
+                        dark: "text-[30px] font-semibold tracking-[-0.02em] text-white/88",
+                        light: "text-[30px] font-semibold tracking-[-0.02em] text-[#36424A]",
+                      })}
+                    >
+                      AtlaScope
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsControlPanelOpen(false)}
+                    className={themeClasses(theme, {
+                      dark:
+                        "flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/58 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
+                      light:
+                        "flex size-12 items-center justify-center rounded-2xl border border-[#3D464C]/10 bg-white/72 text-[#607078] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
+                    })}
+                    aria-label="Collapse control panel"
+                  >
+                    <MenuIcon />
+                  </button>
+                </div>
 
-          <div
-            className={themeClasses(theme, {
-              dark:
-                "pointer-events-auto flex items-center gap-3 rounded-[30px] border border-white/10 bg-[rgba(63,63,59,0.92)] p-2 shadow-[0_28px_80px_rgba(0,0,0,0.36)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-              light:
-                "pointer-events-auto flex items-center gap-3 rounded-[30px] border border-[#8B7A5E]/14 bg-[rgba(255,249,238,0.8)] p-2 shadow-[0_20px_70px_rgba(120,97,59,0.12)] backdrop-blur-xl transition-[background-color,border-color,color,box-shadow] duration-500 ease-out",
-            })}
-          >
+                <Section title="System" theme={theme} className="mt-4">
+                  <SearchRow theme={theme} />
+
+                  <ControlRow
+                    theme={theme}
+                    label="Steven"
+                    detail="Premium account"
+                    control={
+                      <span
+                        className={themeClasses(theme, {
+                          dark:
+                            "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2F3C47] to-[#121A20] text-sm font-semibold text-white",
+                          light:
+                            "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#36454F] to-[#11181D] text-sm font-semibold text-white",
+                        })}
+                      >
+                        SE
+                      </span>
+                    }
+                  />
+                </Section>
+
+                <Section title="Hazard Layers" theme={theme} className="mt-5">
+                  {layerRows.map((layer) => (
+                    <LayerRow
+                      key={layer.id}
+                      theme={theme}
+                      label={layer.label}
+                      color={layer.color}
+                      active={activeLayers[layer.id]}
+                      onClick={() => handleToggleLayer(layer.id)}
+                    />
+                  ))}
+                </Section>
+
+                <Section title="Utilities" theme={theme} className="mt-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      className={themeClasses(theme, {
+                        dark:
+                          "flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
+                        light:
+                          "flex items-center justify-center gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-3 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
+                      })}
+                    >
+                      <span
+                        className={themeClasses(theme, {
+                          dark:
+                            "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
+                          light:
+                            "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
+                        })}
+                      >
+                        <ToolIcon />
+                      </span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.14em]">
+                        Settings
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+                      className={themeClasses(theme, {
+                        dark:
+                          "flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
+                        light:
+                          "flex items-center justify-center gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-3 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
+                      })}
+                    >
+                      <span
+                        className={themeClasses(theme, {
+                          dark:
+                            "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
+                          light:
+                            "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
+                        })}
+                      >
+                        {theme === "dark" ? <MoonIcon /> : <SunIcon />}
+                      </span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.14em]">
+                        {theme}
+                      </span>
+                    </button>
+                  </div>
+                </Section>
+              </aside>
+            </div>
+
             <button
               type="button"
-              onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-              className={themeClasses(theme, {
+              onClick={() => setIsControlPanelOpen((current) => !current)}
+              className={`${themeClasses(theme, {
                 dark:
-                  "flex h-12 items-center gap-1 rounded-full border border-white/12 bg-[rgba(255,255,255,0.04)] p-1 text-white/76 transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-[rgba(255,255,255,0.08)] hover:text-white",
+                  "flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-[rgba(11,16,19,0.82)] text-white/78 shadow-[0_20px_50px_rgba(0,0,0,0.24)] backdrop-blur-md transition-colors duration-200 hover:bg-white/[0.08] hover:text-white",
                 light:
-                  "flex h-12 items-center gap-1 rounded-full border border-[#8B7A5E]/14 bg-white/65 p-1 text-[#7A6951] transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-white/90 hover:text-[#2B251C]",
-              })}
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                  "flex size-12 items-center justify-center rounded-2xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] text-[#536068] shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md transition-colors duration-200 hover:bg-white hover:text-[#1F2A30]",
+              })} ${
+                isControlPanelOpen
+                  ? "pointer-events-none absolute right-4 top-4 opacity-0"
+                  : "absolute right-0 top-0 opacity-100"
+              }`}
+              aria-label="Open control panel"
             >
-              <span
-                className={themeClasses(theme, {
-                  dark:
-                    "flex size-10 items-center justify-center rounded-full bg-[#F2F2EE] text-[#262624] transition-[background-color,color] duration-500 ease-out",
-                  light:
-                    "flex size-10 items-center justify-center rounded-full bg-[#2B251C] text-[#FFF7E7] transition-[background-color,color] duration-500 ease-out",
-                })}
-              >
-                {theme === "dark" ? <MoonIcon /> : <SunIcon />}
-              </span>
-              <span className="pr-3 text-xs font-semibold uppercase tracking-[0.22em]">
-                {theme}
-              </span>
-            </button>
-            <button
-              type="button"
-              className={themeClasses(theme, {
-                dark:
-                  "flex size-12 items-center justify-center rounded-full border border-white/12 bg-[rgba(255,255,255,0.04)] text-white/70 transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-[rgba(255,255,255,0.08)] hover:text-white",
-                light:
-                  "flex size-12 items-center justify-center rounded-full border border-[#8B7A5E]/14 bg-white/65 text-[#7A6951] transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-white/90 hover:text-[#2B251C]",
-              })}
-              aria-label="Settings"
-            >
-              <SettingsIcon />
-            </button>
-            <button
-              type="button"
-              className={themeClasses(theme, {
-                dark:
-                  "flex items-center gap-3 rounded-full border border-white/12 bg-[rgba(255,255,255,0.04)] px-4 py-2.5 transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-[rgba(255,255,255,0.08)]",
-                light:
-                  "flex items-center gap-3 rounded-full border border-[#8B7A5E]/14 bg-white/65 px-4 py-2.5 transition-[background-color,border-color,color,box-shadow] duration-500 ease-out hover:bg-white/90",
-              })}
-            >
-              <span
-                className={themeClasses(theme, {
-                  dark:
-                    "flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-[#7DAED2] to-[#5A89AF] text-xs font-semibold text-white transition-[background-image,color] duration-500 ease-out",
-                  light:
-                    "flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-[#F5C54B] to-[#F97316] text-xs font-semibold text-[#2B251C] transition-[background-image,color] duration-500 ease-out",
-                })}
-              >
-                AS
-              </span>
-              <span
-                className={themeClasses(theme, {
-                  dark: "pr-1 text-sm font-medium text-white/82 transition-colors duration-500 ease-out",
-                  light: "pr-1 text-sm font-medium text-[#2B251C] transition-colors duration-500 ease-out",
-                })}
-              >
-                Ops Desk
-              </span>
+              <MenuIcon />
             </button>
           </div>
         </div>
 
-        <div className="absolute bottom-6 left-6 top-28 flex items-start">
-          <LayerPanel
-            activeLayers={activeLayers}
-            onToggle={handleToggleLayer}
-            theme={theme}
-          />
-        </div>
-
-        <div className="absolute bottom-6 right-6 top-28 flex items-start justify-end">
+        <div className="absolute bottom-6 right-6 top-[420px] flex items-start justify-end">
           <IncidentPanel
             incident={selectedIncident}
             isLoading={isPanelLoading}
@@ -228,6 +265,186 @@ export function AtlascopeShell() {
   );
 }
 
+function Section({
+  title,
+  theme,
+  className,
+  children,
+}: {
+  title: string;
+  theme: ThemeMode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={className}>
+      <p
+        className={themeClasses(theme, {
+          dark: "px-1 text-[10px] font-semibold tracking-[0.24em] text-white/30 uppercase",
+          light: "px-1 text-[10px] font-semibold tracking-[0.24em] text-[#607078] uppercase",
+        })}
+      >
+        {title}
+      </p>
+      <div className="mt-2 space-y-2">{children}</div>
+    </section>
+  );
+}
+
+function SearchRow({ theme }: { theme: ThemeMode }) {
+  return (
+    <div
+      className={themeClasses(theme, {
+        dark:
+          "flex w-full items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3",
+        light:
+          "flex w-full items-center gap-3 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3",
+      })}
+    >
+      <div
+        className={themeClasses(theme, {
+          dark: "flex size-5 items-center justify-center text-white/56",
+          light: "flex size-5 items-center justify-center text-[#607078]",
+        })}
+      >
+        <SearchIcon />
+      </div>
+      <div className="min-w-0 flex-1">
+        <input
+          type="text"
+          placeholder="Search region or hazard"
+          className={themeClasses(theme, {
+            dark:
+              "w-full bg-transparent text-sm text-white/78 outline-none placeholder:text-white/42",
+            light:
+              "w-full bg-transparent text-sm text-[#536068] outline-none placeholder:text-[#7A8790]",
+          })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ControlRow({
+  theme,
+  label,
+  detail,
+  control,
+  onClick,
+}: {
+  theme: ThemeMode;
+  label: string;
+  detail: string;
+  control: ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={themeClasses(theme, {
+        dark:
+          "flex min-h-[88px] w-full items-center justify-between gap-4 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left transition-colors duration-300 hover:bg-white/[0.05]",
+        light:
+          "flex min-h-[88px] w-full items-center justify-between gap-4 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3 text-left transition-colors duration-300 hover:bg-white/72",
+      })}
+    >
+      <div className="min-w-0">
+        <p
+          className={themeClasses(theme, {
+            dark: "text-sm font-semibold text-white/86",
+            light: "text-sm font-semibold text-[#1F2A30]",
+          })}
+        >
+          {label}
+        </p>
+        <p
+          className={themeClasses(theme, {
+            dark: "mt-1 text-xs leading-5 text-white/46",
+            light: "mt-1 text-xs leading-5 text-[#607078]",
+          })}
+        >
+          {detail}
+        </p>
+      </div>
+      <div className="shrink-0">{control}</div>
+    </button>
+  );
+}
+
+function LayerRow({
+  theme,
+  label,
+  color,
+  active,
+  onClick,
+}: {
+  theme: ThemeMode;
+  label: string;
+  color: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={themeClasses(theme, {
+        dark:
+          "grid w-full grid-cols-[minmax(0,1fr)_76px] items-center gap-4 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-2.5 text-left transition-colors duration-300 hover:bg-white/[0.05]",
+        light:
+          "grid w-full grid-cols-[minmax(0,1fr)_76px] items-center gap-4 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-2.5 text-left transition-colors duration-300 hover:bg-white/72",
+      })}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          className="size-3 rounded-full"
+          style={{
+            backgroundColor: color,
+            boxShadow: active ? `0 0 14px ${color}55` : "none",
+            opacity: active ? 1 : 0.35,
+          }}
+        />
+        <span
+          className={themeClasses(theme, {
+            dark: "text-sm font-semibold text-white/86",
+            light: "text-sm font-semibold text-[#1F2A30]",
+          })}
+        >
+          {label}
+        </span>
+      </div>
+      <div className="flex h-full min-h-[52px] w-[76px] items-center justify-center">
+        <span
+          className="relative inline-flex h-7 w-12 items-center rounded-full border px-0.5 transition-[background-color,border-color] duration-300"
+          style={{
+            borderColor: active
+              ? `${color}88`
+              : theme === "dark"
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(61,70,76,0.16)",
+            backgroundColor: active
+              ? `${color}24`
+              : theme === "dark"
+                ? "rgba(255,255,255,0.04)"
+                : "rgba(214,221,226,0.9)",
+          }}
+        >
+          <span
+            className={`absolute left-0.5 top-0.5 size-5 rounded-full transition-[transform,background-color,box-shadow] duration-300 ease-out ${
+              active ? "translate-x-5" : "translate-x-0"
+            }`}
+            style={{
+              backgroundColor: active ? color : theme === "dark" ? "#8F9AA1" : "#75818A",
+              boxShadow: active ? `0 0 12px ${color}44` : "none",
+            }}
+          />
+        </span>
+      </div>
+    </button>
+  );
+}
+
 function SearchIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-4 fill-none stroke-current">
@@ -237,15 +454,23 @@ function SearchIcon() {
   );
 }
 
-function SettingsIcon() {
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5 fill-none stroke-current">
+      <path d="M5 7h14M5 12h14M5 17h14" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ToolIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-4 fill-none stroke-current">
       <path
-        d="M12 3.75v2.5m0 11.5v2.5m8.25-8.25h-2.5M6.25 12H3.75m14.084 5.834-1.768-1.768M7.934 7.934 6.166 6.166m11.668 0-1.768 1.768M7.934 16.066l-1.768 1.768"
-        strokeWidth="1.5"
+        d="M14.5 6.5a4 4 0 0 0-5.4 4.9L4 16.5V20h3.6l5.1-5.1a4 4 0 0 0 4.9-5.4l-2.7 2.7-2.1-.4-.4-2.1 2.7-2.7Z"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
         strokeLinecap="round"
       />
-      <circle cx="12" cy="12" r="3.25" strokeWidth="1.5" />
     </svg>
   );
 }
