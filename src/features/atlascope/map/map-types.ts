@@ -1,4 +1,5 @@
 import type { ThemeMode } from "@/features/atlascope/config/theme";
+import type { MapStyleDefinition } from "@/features/atlascope/map/map-provider";
 
 export type HazardLayerType = "earthquake" | "wildfire" | "air_quality";
 
@@ -29,12 +30,6 @@ export type MapGeofenceData = {
   id: string;
   title: string;
   coordinates: MapCoordinates[];
-};
-
-export type MapStyleDefinition = {
-  version: 8;
-  sources: Record<string, unknown>;
-  layers: Array<Record<string, unknown>>;
 };
 
 export type MapStyleConfig = string | MapStyleDefinition;

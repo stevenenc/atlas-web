@@ -2,6 +2,7 @@ import type { FeatureCollection, LineString, Point, Polygon } from "geojson";
 import type { LayerProps } from "react-map-gl/maplibre";
 
 import type { ThemeMode } from "@/features/atlascope/config/theme";
+import { getMapTheme } from "@/features/atlascope/map/map-theme";
 import type {
   HazardLayerType,
   MapGeofenceData,
@@ -136,23 +137,23 @@ export function createGeofenceSourceData(
 }
 
 export function createGeofenceLayers(theme: ThemeMode): LayerProps[] {
-  const fillColor =
-    theme === "dark" ? "rgba(95, 211, 245, 0.08)" : "rgba(29, 140, 255, 0.06)";
-  const strokeColor = theme === "dark" ? "#5BD3F5" : "#1E63D5";
+  const {
+    colors: { geofence },
+  } = getMapTheme(theme);
 
   return [
     {
       id: "geofence-fill",
       type: "fill",
       paint: {
-        "fill-color": fillColor,
+        "fill-color": geofence.fill,
       },
     },
     {
       id: "geofence-line",
       type: "line",
       paint: {
-        "line-color": strokeColor,
+        "line-color": geofence.stroke,
         "line-width": 1.3,
         "line-opacity": theme === "dark" ? 0.62 : 0.5,
       },
@@ -209,15 +210,16 @@ export function createDraftGeofencePointSourceData(
 }
 
 export function createDraftGeofenceLayers(theme: ThemeMode): LayerProps[] {
-  const strokeColor = theme === "dark" ? "#8AE5FF" : "#1354BF";
-  const pointFill = theme === "dark" ? "#D9F8FF" : "#F8FBFF";
+  const {
+    colors: { geofence },
+  } = getMapTheme(theme);
 
   return [
     {
       id: "draft-geofence-line",
       type: "line",
       paint: {
-        "line-color": strokeColor,
+        "line-color": geofence.draftStroke,
         "line-width": 2.5,
         "line-dasharray": [1.2, 1.1],
         "line-opacity": 0.96,
@@ -237,8 +239,8 @@ export function createDraftGeofenceLayers(theme: ThemeMode): LayerProps[] {
       type: "circle",
       paint: {
         "circle-radius": 5.5,
-        "circle-color": pointFill,
-        "circle-stroke-color": strokeColor,
+        "circle-color": geofence.draftHandleFill,
+        "circle-stroke-color": geofence.selectedStroke,
         "circle-stroke-width": 2,
       },
     },

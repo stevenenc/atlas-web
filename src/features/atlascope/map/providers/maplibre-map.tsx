@@ -11,15 +11,18 @@ import Map, {
   Source,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   atlascopeMapConfig,
-  buildDarkMapStyle,
-  buildLightMapStyle,
-  DEMO_TILE_STYLE_URL,
-  getFallbackMapStyle,
+  getMapStyle,
 } from "@/features/atlascope/map/map-config";
+import {
+  buildOperationalMapStyle,
+  getOperationalFallbackStyle,
+  loadBaseMapStyle,
+} from "@/features/atlascope/map/map-style";
+import type { MapStyleDefinition, VectorMapProvider } from "@/features/atlascope/map/map-provider";
 import type {
   MapContainerProps,
   MapViewportState,
@@ -30,8 +33,9 @@ import {
   createDraftGeofencePointSourceData,
   createGeofenceLayers,
   createGeofenceSourceData,
-} from "@/features/atlascope/map/maplibre/maplibre-layers";
-import { MapLibreMarkerView } from "@/features/atlascope/map/maplibre/maplibre-marker";
+} from "@/features/atlascope/map/providers/maplibre-layers";
+import { MapLibreMarkerView } from "@/features/atlascope/map/providers/maplibre-marker";
+import { createMapLibreProvider } from "@/features/atlascope/map/providers/maplibre-provider";
 
 const DRAFT_POINT_LAYER_IDS = [
   "draft-geofence-points-hit-area",
@@ -64,9 +68,13 @@ const DRAWING_CURSOR =
 type DraftPointEvent = MapLayerMouseEvent | MapLayerTouchEvent;
 
 function mercatorY(latitude: number) {
-  const latitudeInRadians = (Math.max(Math.min(latitude, 85.05112878), -85.05112878) * Math.PI) / 180;
+  const latitudeInRadians =
+    (Math.max(Math.min(latitude, 85.05112878), -85.05112878) * Math.PI) / 180;
 
-  return (1 - Math.log(Math.tan(latitudeInRadians) + 1 / Math.cos(latitudeInRadians)) / Math.PI) / 2;
+  return (
+    (1 - Math.log(Math.tan(latitudeInRadians) + 1 / Math.cos(latitudeInRadians)) / Math.PI) /
+    2
+  );
 }
 
 function getVerticalBoundsMinZoom(containerHeight: number) {
@@ -84,7 +92,29 @@ function getVerticalBoundsMinZoom(containerHeight: number) {
   );
 }
 
-export function MapLibreMap({
+function getPointerClientPosition(event: DraftPointEvent) {
+  const originalEvent = event.originalEvent;
+
+  if ("clientX" in originalEvent && "clientY" in originalEvent) {
+    return {
+      clientX: originalEvent.clientX,
+      clientY: originalEvent.clientY,
+    };
+  }
+
+  const touch = originalEvent.touches[0] ?? originalEvent.changedTouches[0];
+
+  if (!touch) {
+    return null;
+  }
+
+  return {
+    clientX: touch.clientX,
+    clientY: touch.clientY,
+  };
+}
+
+export const MapLibreMap = memo(function MapLibreMap({
   markers,
   geofences,
   focusedGeofenceCoordinates,
@@ -108,11 +138,15 @@ export function MapLibreMap({
 }: MapContainerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapRef | null>(null);
+  const mapProviderRef = useRef<VectorMapProvider | null>(null);
+  const [initialMapStyle] = useState<StyleSpecification | string>(
+    () => getOperationalFallbackStyle(theme) as StyleSpecification,
+  );
   const trashTargetRef = useRef<HTMLDivElement | null>(null);
   const draggedPointIndexRef = useRef<number | null>(null);
   const dragPointerIdRef = useRef<number | null>(null);
   const suppressMapClickRef = useRef(false);
-  const [baseMapStyle, setBaseMapStyle] = useState<StyleSpecification | null>(null);
+  const [baseMapStyle, setBaseMapStyle] = useState<MapStyleDefinition | null>(null);
   const [hasMapStyleError, setHasMapStyleError] = useState(false);
   const [verticalBoundsMinZoom, setVerticalBoundsMinZoom] = useState(
     atlascopeMapConfig.minZoom,
@@ -122,26 +156,16 @@ export function MapLibreMap({
   );
   const [isDraggingPoint, setIsDraggingPoint] = useState(false);
   const [isTrashTargetActive, setIsTrashTargetActive] = useState(false);
+  const styleUrl = getMapStyle(theme);
 
   useEffect(() => {
     let isCancelled = false;
 
-    if (baseMapStyle || hasMapStyleError) {
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    void fetch(DEMO_TILE_STYLE_URL)
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to load style: ${response.status}`);
-        }
-
-        const style = (await response.json()) as StyleSpecification;
-
+    void loadBaseMapStyle(String(styleUrl))
+      .then((style) => {
         if (!isCancelled) {
           setBaseMapStyle(style);
+          setHasMapStyleError(false);
         }
       })
       .catch(() => {
@@ -153,7 +177,7 @@ export function MapLibreMap({
     return () => {
       isCancelled = true;
     };
-  }, [baseMapStyle, hasMapStyleError]);
+  }, [styleUrl]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -181,18 +205,12 @@ export function MapLibreMap({
     };
   }, []);
 
-  const mapStyle = useMemo(() => {
-    if (hasMapStyleError) {
-      return getFallbackMapStyle(theme) as StyleSpecification | string;
+  const mapStyle = useMemo<StyleSpecification | string>(() => {
+    if (hasMapStyleError || !baseMapStyle) {
+      return getOperationalFallbackStyle(theme) as StyleSpecification;
     }
 
-    if (!baseMapStyle) {
-      return getFallbackMapStyle(theme) as StyleSpecification | string;
-    }
-
-    return (theme === "dark"
-      ? buildDarkMapStyle(baseMapStyle)
-      : buildLightMapStyle(baseMapStyle)) as StyleSpecification | string;
+    return buildOperationalMapStyle(baseMapStyle, theme) as StyleSpecification;
   }, [baseMapStyle, hasMapStyleError, theme]);
   const geofenceSourceData = useMemo(
     () => createGeofenceSourceData(geofences),
@@ -209,6 +227,31 @@ export function MapLibreMap({
   const isDragSessionActive = hasActiveGeofenceEdit && isDraggingPoint;
   const isPanGestureEnabled = !hasActiveGeofenceEdit && !isInteractionLocked;
   const isZoomGestureEnabled = !isInteractionLocked;
+
+  useEffect(() => {
+    const mapInstance = mapRef.current?.getMap();
+    const container = containerRef.current;
+
+    if (!mapInstance || !container) {
+      return;
+    }
+
+    if (!mapProviderRef.current) {
+      mapProviderRef.current = createMapLibreProvider(mapInstance);
+      mapProviderRef.current.initializeMap(container, {
+        style: mapStyle as string | MapStyleDefinition,
+      });
+      return;
+    }
+
+    mapProviderRef.current.updateStyle(mapStyle as string | MapStyleDefinition);
+  }, [mapStyle]);
+
+  useEffect(() => {
+    return () => {
+      mapProviderRef.current?.destroy();
+    };
+  }, []);
 
   useEffect(() => {
     if (!focusedGeofenceCoordinates?.length) {
@@ -343,7 +386,9 @@ export function MapLibreMap({
         : pointerType === "pen"
           ? DRAFT_POINT_POINTER_RADIUS.pen
           : DRAFT_POINT_POINTER_RADIUS.mouse;
-    const activeLayerIds = DRAFT_POINT_LAYER_IDS.filter((layerId) => mapInstance.getLayer(layerId));
+    const activeLayerIds = DRAFT_POINT_LAYER_IDS.filter((layerId) =>
+      mapInstance.getLayer(layerId),
+    );
 
     if (!activeLayerIds.length) {
       return null;
@@ -411,9 +456,14 @@ export function MapLibreMap({
       return false;
     }
 
+    const pointerPosition = getPointerClientPosition(event);
+
+    if (!pointerPosition) {
+      return false;
+    }
+
     const trashRect = trashTarget.getBoundingClientRect();
-    const pointerX = event.originalEvent.clientX;
-    const pointerY = event.originalEvent.clientY;
+    const { clientX: pointerX, clientY: pointerY } = pointerPosition;
 
     return (
       pointerX >= trashRect.left &&
@@ -656,7 +706,8 @@ export function MapLibreMap({
         {...viewport}
         reuseMaps
         mapLib={maplibregl}
-        mapStyle={mapStyle}
+        mapStyle={initialMapStyle}
+        projection="globe"
         minZoom={verticalBoundsMinZoom}
         maxZoom={atlascopeMapConfig.maxZoom}
         interactiveLayerIds={
@@ -676,6 +727,24 @@ export function MapLibreMap({
         onMove={(event) => onViewportChange(toViewportState(event))}
         onClick={handleMapClick}
         onMouseMove={handleMapPointerMove}
+        onLoad={() => {
+          const mapInstance = mapRef.current?.getMap();
+          const container = containerRef.current;
+
+          if (!mapInstance || !container) {
+            return;
+          }
+
+          if (!mapProviderRef.current) {
+            mapProviderRef.current = createMapLibreProvider(mapInstance);
+            mapProviderRef.current.initializeMap(container, {
+              style: mapStyle as string | MapStyleDefinition,
+            });
+            return;
+          }
+
+          mapProviderRef.current.updateStyle(mapStyle as string | MapStyleDefinition);
+        }}
         onError={() => {
           setHasMapStyleError(true);
         }}
@@ -741,7 +810,7 @@ export function MapLibreMap({
       ) : null}
     </div>
   );
-}
+});
 
 function TrashTargetIcon() {
   return (

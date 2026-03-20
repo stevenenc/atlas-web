@@ -1,14 +1,14 @@
-import type { JSX } from "react";
+import type { ComponentType } from "react";
 
 import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import { MapLibreMap } from "@/features/atlascope/map/maplibre/maplibre-map";
+import { MapLibreMap } from "@/features/atlascope/map/providers/maplibre-map";
 import {
   isImplementedMapProvider,
   type MapProviderId,
-} from "@/features/atlascope/map/provider";
+} from "@/features/atlascope/map/map-provider";
 import type { MapContainerProps } from "@/features/atlascope/map/map-types";
 
-type MapAdapterComponent = (props: MapContainerProps) => JSX.Element;
+type MapAdapterComponent = ComponentType<MapContainerProps>;
 type ImplementedMapProvider = "maplibre";
 
 const implementedAdapters = {

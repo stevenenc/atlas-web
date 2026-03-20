@@ -1,0 +1,133 @@
+export type ZoomStop = readonly [number, number];
+
+export type ZoomWidthStops = readonly [number, number][];
+
+export const mapZoomTokens = {
+  detail: {
+    low: 0,
+    wide: 4,
+    regional: 6,
+    corridor: 9,
+    local: 12,
+    street: 14.5,
+  },
+  boundaries: {
+    coastlineBaseWidth: [
+      [0, 1.3],
+      [6, 1.55],
+      [10, 1.8],
+      [14.5, 2.15],
+    ] as ZoomWidthStops,
+    coastlineBaseOpacity: [
+      [0, 0.34],
+      [6, 0.42],
+      [10, 0.48],
+      [14.5, 0.54],
+    ] as ZoomWidthStops,
+    coastlineTopWidth: [
+      [0, 1],
+      [6, 1.2],
+      [10, 1.35],
+      [12, 1.7],
+      [14.5, 2],
+    ] as ZoomWidthStops,
+    coastlineTopOpacity: [
+      [0, 0.78],
+      [6, 0.82],
+      [10, 0.86],
+      [14.5, 0.9],
+    ] as ZoomWidthStops,
+    countryWidth: [
+      [2.5, 0.75],
+      [6, 1],
+      [12, 1.5],
+    ] as ZoomWidthStops,
+    countryOpacity: [
+      [0, 0.26],
+      [4, 0.54],
+      [10, 0.72],
+    ] as ZoomWidthStops,
+    regionWidth: [
+      [5, 0.4],
+      [9, 0.72],
+      [12, 1.02],
+    ] as ZoomWidthStops,
+    regionOpacity: [
+      [5, 0.12],
+      [8, 0.32],
+      [12, 0.46],
+    ] as ZoomWidthStops,
+  },
+  labels: {
+    regionOpacity: [
+      [0, 0.92],
+      [6, 0.96],
+      [12, 1],
+    ] as ZoomWidthStops,
+    regionHaloWidth: [
+      [0, 1.3],
+      [8, 1.1],
+      [12, 1],
+    ] as ZoomWidthStops,
+    stateOpacity: [
+      [4, 0.54],
+      [7, 0.72],
+      [12, 0.88],
+    ] as ZoomWidthStops,
+    stateHaloWidth: [
+      [4, 1.1],
+      [8, 0.95],
+      [12, 0.85],
+    ] as ZoomWidthStops,
+    majorRoadMinZoom: 10.8,
+    localRoadMinZoom: 12.8,
+    majorRoadOpacity: [
+      [10.8, 0],
+      [11.6, 0.7],
+      [14.5, 0.84],
+    ] as ZoomWidthStops,
+    localRoadOpacity: [
+      [12.8, 0],
+      [13.6, 0.5],
+      [14.5, 0.66],
+    ] as ZoomWidthStops,
+  },
+  roads: {
+    majorMinZoom: 5.6,
+    secondaryMinZoom: 8.2,
+    minorMinZoom: 11.8,
+    majorWidth: [
+      [5.6, 0.72],
+      [8, 1.04],
+      [11.5, 1.58],
+      [14.5, 2.2],
+    ] as ZoomWidthStops,
+    majorOpacity: [
+      [5.6, 0],
+      [6.2, 0.42],
+      [10, 0.58],
+      [14.5, 0.7],
+    ] as ZoomWidthStops,
+    secondaryWidth: [
+      [8.2, 0.52],
+      [11.2, 0.94],
+      [14.5, 1.4],
+    ] as ZoomWidthStops,
+    secondaryOpacity: [
+      [8.2, 0],
+      [9, 0.28],
+      [12, 0.42],
+      [14.5, 0.52],
+    ] as ZoomWidthStops,
+    minorWidth: [
+      [11.8, 0.34],
+      [13.2, 0.68],
+      [14.5, 0.98],
+    ] as ZoomWidthStops,
+    minorOpacity: [
+      [11.8, 0],
+      [12.5, 0.2],
+      [14.5, 0.32],
+    ] as ZoomWidthStops,
+  },
+} as const;
