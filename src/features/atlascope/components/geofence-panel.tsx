@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { BasePanel, PanelHeader } from "@/features/atlascope/components/panel-system";
@@ -62,6 +63,7 @@ export function GeofencePanel({
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
   const [exitingId, setExitingId] = useState<number | null>(null);
   const deleteTimerRef = useRef<number | null>(null);
+  const pendingDeleteIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -97,6 +99,11 @@ export function GeofencePanel({
   }
 
   function handleDeleteGeofence(id: number) {
+    if (pendingDeleteIdRef.current === id) {
+      return;
+    }
+
+    pendingDeleteIdRef.current = id;
     setConfirmingDeleteId(null);
     setExitingId(id);
 
@@ -107,6 +114,7 @@ export function GeofencePanel({
     deleteTimerRef.current = window.setTimeout(() => {
       onDeleteGeofence(id);
       setExitingId((current) => (current === id ? null : current));
+      pendingDeleteIdRef.current = null;
       deleteTimerRef.current = null;
     }, 180);
   }
@@ -343,6 +351,24 @@ function GeofenceItem({
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  function handleItemClick(event: MouseEvent<HTMLDivElement>) {
+    const target = event.target;
+
+    if (target instanceof Element && target.closest("button, input")) {
+      return;
+    }
+
+    onFocusGeofence();
+  }
+
+  function handleActionClick(
+    event: MouseEvent<HTMLButtonElement | HTMLInputElement>,
+    action: () => void,
+  ) {
+    event.stopPropagation();
+    action();
+  }
+
   useEffect(() => {
     if (!isEditing) {
       return;
@@ -381,7 +407,7 @@ function GeofenceItem({
   return (
     <div
       data-geofence-item-id={geofence.id}
-      onClick={onFocusGeofence}
+      onClick={handleItemClick}
       className={`${themeClasses(theme, {
         dark:
           isSelected || isSelectedForEditing
@@ -401,6 +427,9 @@ function GeofenceItem({
             <input
               ref={inputRef}
               value={draftName}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
               onChange={(event) => {
                 onDraftNameChange(event.target.value);
               }}
@@ -425,7 +454,7 @@ function GeofenceItem({
           ) : showActions ? (
             <button
               type="button"
-              onClick={onStartRenaming}
+              onClick={(event) => handleActionClick(event, onStartRenaming)}
               aria-label={`Rename ${geofence.name}`}
               className="flex min-h-10 w-full cursor-text select-text items-center px-1 text-left"
             >
@@ -465,7 +494,9 @@ function GeofenceItem({
             <>
               <button
                 type="button"
-                onClick={isConfirmingDelete || isSelectedForEditing ? onSaveEditing : onSaveEditing}
+                onClick={(event) =>
+                  handleActionClick(event, isConfirmingDelete ? onConfirmDelete : onSaveEditing)
+                }
                 aria-label={
                   isConfirmingDelete
                     ? `Confirm delete ${geofence.name}`
@@ -484,7 +515,9 @@ function GeofenceItem({
               </button>
               <button
                 type="button"
-                onClick={isConfirmingDelete ? onCancelDelete : onCancelEditing}
+                onClick={(event) =>
+                  handleActionClick(event, isConfirmingDelete ? onCancelDelete : onCancelEditing)
+                }
                 aria-label={
                   isConfirmingDelete
                     ? `Cancel delete ${geofence.name}`
@@ -506,7 +539,7 @@ function GeofenceItem({
             <>
               <button
                 type="button"
-                onClick={onToggleVisibility}
+                onClick={(event) => handleActionClick(event, onToggleVisibility)}
                 aria-label={
                   geofence.isEnabled
                     ? `Hide ${geofence.name}`
@@ -525,7 +558,7 @@ function GeofenceItem({
               </button>
               <button
                 type="button"
-                onClick={onStartEditing}
+                onClick={(event) => handleActionClick(event, onStartEditing)}
                 aria-label={`${isSelectedForEditing ? "Stop editing" : "Edit"} ${geofence.name}`}
                 className={themeClasses(theme, {
                   dark:
@@ -542,7 +575,7 @@ function GeofenceItem({
               </button>
               <button
                 type="button"
-                onClick={onToggleDeleteConfirm}
+                onClick={(event) => handleActionClick(event, onToggleDeleteConfirm)}
                 aria-label={`Delete ${geofence.name}`}
                 className={themeClasses(theme, {
                   dark:

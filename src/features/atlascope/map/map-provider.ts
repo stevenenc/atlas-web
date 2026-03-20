@@ -25,6 +25,10 @@ export type MapStyleDefinition = {
   version: 8;
   glyphs?: string;
   sprite?: string;
+  transition?: {
+    duration?: number;
+    delay?: number;
+  };
   sources: Record<string, MapSourceDefinition>;
   layers: MapLayerDefinition[];
 };

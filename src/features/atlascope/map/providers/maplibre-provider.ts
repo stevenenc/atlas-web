@@ -11,23 +11,16 @@ import type {
 
 type MapLibreProviderState = {
   activeStyleSignature: string | null;
-  container: HTMLElement | null;
-  isInitialized: boolean;
 };
 
 export function createMapLibreProvider(map: MapLibreMapInstance): VectorMapProvider {
   const state: MapLibreProviderState = {
     activeStyleSignature: null,
-    container: null,
-    isInitialized: false,
   };
 
   return {
     providerId: "maplibre",
-    initializeMap(container, options) {
-      state.container = container;
-      state.isInitialized = true;
-
+    initializeMap(_container, options) {
       if (options?.style) {
         this.updateStyle(options.style);
       }
@@ -69,12 +62,12 @@ export function createMapLibreProvider(map: MapLibreMapInstance): VectorMapProvi
       }
 
       state.activeStyleSignature = nextStyleSignature;
-      map.setStyle(style as Parameters<MapLibreMapInstance["setStyle"]>[0]);
+      map.setStyle(style as Parameters<MapLibreMapInstance["setStyle"]>[0], {
+        diff: true,
+      });
     },
     destroy() {
       state.activeStyleSignature = null;
-      state.container = null;
-      state.isInitialized = false;
     },
     hasLayer(layerId) {
       return Boolean(map.getLayer(layerId));

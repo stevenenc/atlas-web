@@ -515,10 +515,11 @@ export function AtlascopeShell() {
   }
 
   function handleStartRenamingGeofence(geofence: Geofence) {
-    setEditingGeofenceId(geofence.id);
-    setEditingGeofenceSnapshot(geofence.coordinates.map((point) => ({ ...point })));
+    setEditingGeofenceId(null);
+    setEditingGeofenceSnapshot(null);
     setRenamingGeofenceId(geofence.id);
     setGeofenceDraftName(geofence.name);
+    handleFocusGeofence(geofence);
     openPanel("geofences");
   }
 

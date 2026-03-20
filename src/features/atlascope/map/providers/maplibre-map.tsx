@@ -17,8 +17,10 @@ import {
   atlascopeMapConfig,
   getMapStyle,
 } from "@/features/atlascope/map/map-config";
+import type { ThemeMode } from "@/features/atlascope/config/theme";
 import {
   buildOperationalMapStyle,
+  createOperationalThemeLayerUpdates,
   getOperationalFallbackStyle,
   loadBaseMapStyle,
 } from "@/features/atlascope/map/map-style";
@@ -157,6 +159,8 @@ export const MapLibreMap = memo(function MapLibreMap({
   const [isDraggingPoint, setIsDraggingPoint] = useState(false);
   const [isTrashTargetActive, setIsTrashTargetActive] = useState(false);
   const styleUrl = getMapStyle(theme);
+  const hasAppliedOperationalStyleRef = useRef(false);
+  const lastAppliedThemeRef = useRef<ThemeMode | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -212,6 +216,55 @@ export const MapLibreMap = memo(function MapLibreMap({
 
     return buildOperationalMapStyle(baseMapStyle, theme) as StyleSpecification;
   }, [baseMapStyle, hasMapStyleError, theme]);
+  const markCurrentThemeAsApplied = useCallback((isOperationalStyleApplied: boolean) => {
+    hasAppliedOperationalStyleRef.current = isOperationalStyleApplied;
+    lastAppliedThemeRef.current = theme;
+  }, [theme]);
+
+  const applyMapThemeStyle = useCallback(() => {
+    const mapInstance = mapRef.current?.getMap();
+    const container = containerRef.current;
+
+    if (!mapInstance || !container) {
+      return;
+    }
+
+    if (!mapProviderRef.current) {
+      mapProviderRef.current = createMapLibreProvider(mapInstance);
+      mapProviderRef.current.initializeMap(container, {
+        style: mapStyle as string | MapStyleDefinition,
+      });
+      markCurrentThemeAsApplied(Boolean(baseMapStyle && !hasMapStyleError));
+      return;
+    }
+
+    if (hasMapStyleError || !baseMapStyle) {
+      mapProviderRef.current.updateStyle(getOperationalFallbackStyle(theme));
+      markCurrentThemeAsApplied(false);
+      return;
+    }
+
+    if (!hasAppliedOperationalStyleRef.current) {
+      mapProviderRef.current.updateStyle(mapStyle as string | MapStyleDefinition);
+      markCurrentThemeAsApplied(true);
+      return;
+    }
+
+    if (lastAppliedThemeRef.current === theme) {
+      return;
+    }
+
+    createOperationalThemeLayerUpdates(baseMapStyle, theme).forEach(({ id, definition, style }) => {
+      if (mapProviderRef.current?.hasLayer(id)) {
+        mapProviderRef.current.updateLayerStyle(id, style);
+        return;
+      }
+
+      mapProviderRef.current?.addLayer(definition);
+    });
+
+    lastAppliedThemeRef.current = theme;
+  }, [baseMapStyle, hasMapStyleError, mapStyle, markCurrentThemeAsApplied, theme]);
   const geofenceSourceData = useMemo(
     () => createGeofenceSourceData(geofences),
     [geofences],
@@ -229,23 +282,8 @@ export const MapLibreMap = memo(function MapLibreMap({
   const isZoomGestureEnabled = !isInteractionLocked;
 
   useEffect(() => {
-    const mapInstance = mapRef.current?.getMap();
-    const container = containerRef.current;
-
-    if (!mapInstance || !container) {
-      return;
-    }
-
-    if (!mapProviderRef.current) {
-      mapProviderRef.current = createMapLibreProvider(mapInstance);
-      mapProviderRef.current.initializeMap(container, {
-        style: mapStyle as string | MapStyleDefinition,
-      });
-      return;
-    }
-
-    mapProviderRef.current.updateStyle(mapStyle as string | MapStyleDefinition);
-  }, [mapStyle]);
+    applyMapThemeStyle();
+  }, [applyMapThemeStyle]);
 
   useEffect(() => {
     return () => {
@@ -728,22 +766,7 @@ export const MapLibreMap = memo(function MapLibreMap({
         onClick={handleMapClick}
         onMouseMove={handleMapPointerMove}
         onLoad={() => {
-          const mapInstance = mapRef.current?.getMap();
-          const container = containerRef.current;
-
-          if (!mapInstance || !container) {
-            return;
-          }
-
-          if (!mapProviderRef.current) {
-            mapProviderRef.current = createMapLibreProvider(mapInstance);
-            mapProviderRef.current.initializeMap(container, {
-              style: mapStyle as string | MapStyleDefinition,
-            });
-            return;
-          }
-
-          mapProviderRef.current.updateStyle(mapStyle as string | MapStyleDefinition);
+          applyMapThemeStyle();
         }}
         onError={() => {
           setHasMapStyleError(true);

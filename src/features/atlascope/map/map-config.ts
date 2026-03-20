@@ -13,6 +13,10 @@ const lightTheme = getMapTheme("light").colors;
 
 const darkFallbackStyle: MapStyleDefinition = {
   version: 8,
+  transition: {
+    duration: 280,
+    delay: 0,
+  },
   sources: {},
   layers: [
     {
@@ -27,6 +31,10 @@ const darkFallbackStyle: MapStyleDefinition = {
 
 const lightFallbackStyle: MapStyleDefinition = {
   version: 8,
+  transition: {
+    duration: 280,
+    delay: 0,
+  },
   sources: {},
   layers: [
     {
