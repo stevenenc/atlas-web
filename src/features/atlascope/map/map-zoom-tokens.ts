@@ -83,13 +83,13 @@ export const mapZoomTokens = {
     localRoadMinZoom: 12.8,
     majorRoadOpacity: [
       [10.8, 0],
-      [11.6, 0.7],
-      [14.5, 0.84],
+      [11.4, 0.82],
+      [14.5, 0.96],
     ] as ZoomWidthStops,
     localRoadOpacity: [
       [12.8, 0],
-      [13.6, 0.5],
-      [14.5, 0.66],
+      [13.4, 0.62],
+      [14.5, 0.82],
     ] as ZoomWidthStops,
   },
   roads: {
@@ -104,9 +104,9 @@ export const mapZoomTokens = {
     ] as ZoomWidthStops,
     majorOpacity: [
       [5.6, 0],
-      [6.2, 0.42],
-      [10, 0.58],
-      [14.5, 0.7],
+      [6.1, 0.5],
+      [10, 0.68],
+      [14.5, 0.8],
     ] as ZoomWidthStops,
     secondaryWidth: [
       [8.2, 0.52],
@@ -115,9 +115,9 @@ export const mapZoomTokens = {
     ] as ZoomWidthStops,
     secondaryOpacity: [
       [8.2, 0],
-      [9, 0.28],
-      [12, 0.42],
-      [14.5, 0.52],
+      [8.9, 0.36],
+      [12, 0.52],
+      [14.5, 0.64],
     ] as ZoomWidthStops,
     minorWidth: [
       [11.8, 0.34],
@@ -126,8 +126,8 @@ export const mapZoomTokens = {
     ] as ZoomWidthStops,
     minorOpacity: [
       [11.8, 0],
-      [12.5, 0.2],
-      [14.5, 0.32],
+      [12.4, 0.28],
+      [14.5, 0.42],
     ] as ZoomWidthStops,
   },
 } as const;
