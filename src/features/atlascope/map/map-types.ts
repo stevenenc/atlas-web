@@ -22,6 +22,7 @@ export type MapMarkerData = {
   coordinates: MapCoordinates;
   severity: "Critical" | "High" | "Moderate";
   ageMinutes: number;
+  isActive: boolean;
 };
 
 export type MapGeofenceData = {

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { themeClasses } from "@/features/atlascope/config/theme";
 import type { ThemeMode } from "@/features/atlascope/config/theme";
+import { isIncidentActiveAtTime } from "@/features/atlascope/lib/incident-timeline";
 import { resolveMapAdapter } from "@/features/atlascope/map/map-adapter";
 import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
 import type { MapGeofenceData, MapMarkerData } from "@/features/atlascope/map/map-types";
@@ -18,6 +19,7 @@ type MapViewProps = {
   editingGeofenceId: number | null;
   activeLayers: Record<IncidentType, boolean>;
   selectedIncidentId: string | null;
+  selectedTimeMs: number;
   onSelectIncident: (incident: Incident) => void;
   onMapClick: (coordinates: MapGeofenceData["coordinates"][number]) => void;
   onDrawingCoordinateUpdate: (
@@ -46,6 +48,7 @@ export function MapView({
   editingGeofenceId,
   activeLayers,
   selectedIncidentId,
+  selectedTimeMs,
   onSelectIncident,
   onMapClick,
   onDrawingCoordinateUpdate,
@@ -63,6 +66,7 @@ export function MapView({
     coordinates: incident.coordinates,
     severity: incident.severity,
     ageMinutes: extractAgeMinutes(incident.timestamp),
+    isActive: isIncidentActiveAtTime(incident, selectedTimeMs),
   }));
   const editingGeofence = geofences.find((geofence) => geofence.id === editingGeofenceId) ?? null;
   const visibleGeofences: MapGeofenceData[] = geofences

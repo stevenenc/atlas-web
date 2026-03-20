@@ -48,6 +48,14 @@ export function MapLibreMarkerView({
   theme,
 }: MapLibreMarkerProps) {
   const style = markerStyles[marker.layerType];
+  const inactiveRingClass =
+    "absolute left-1/2 top-1/2 size-[22px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2";
+  const activeRingClass =
+    "absolute left-1/2 top-1/2 size-[22px] rounded-full border-2 atlascope-primary-marker-ring";
+  const glowBaseClass =
+    "absolute left-1/2 top-1/2 size-10 rounded-full";
+  const activeGlowClass = `${glowBaseClass} atlascope-primary-marker-glow`;
+  const inactiveGlowClass = `${glowBaseClass} -translate-x-1/2 -translate-y-1/2 opacity-45 blur-[10px]`;
 
   return (
     <MapLibreMarker
@@ -57,28 +65,48 @@ export function MapLibreMarkerView({
     >
       <button
         type="button"
+        disabled={!isVisible || !isInteractive || !marker.isActive}
         aria-label={`${style.label} alert at ${marker.title}`}
         onClick={() => onClick(marker)}
         className={`group relative z-10 flex items-center justify-center transition-[opacity,transform,filter] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] hover:z-20 focus-visible:z-20 focus-visible:outline-none ${
           isVisible
             ? isInteractive
-              ? "opacity-100 blur-0 scale-100"
-              : "pointer-events-none opacity-100 blur-0 scale-100"
+              ? marker.isActive
+                ? "opacity-100 blur-0 scale-100"
+                : "pointer-events-none opacity-45 blur-0 scale-[0.92] saturate-50"
+              : marker.isActive
+                ? "pointer-events-none opacity-100 blur-0 scale-100"
+                : "pointer-events-none opacity-45 blur-0 scale-[0.92] saturate-50"
             : "pointer-events-none opacity-0 blur-[1px] scale-75"
         }`}
       >
-        <span className="relative flex size-20 items-center justify-center atlascope-primary-marker-breathe">
+        <span
+          className={`relative flex size-20 items-center justify-center ${
+            marker.isActive ? "atlascope-primary-marker-breathe" : ""
+          }`}
+        >
           <span
-            className={`atlascope-primary-marker-glow absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 rounded-full ${style.pulse}`}
+            className={`${marker.isActive ? activeGlowClass : inactiveGlowClass} ${style.pulse}`}
+            style={
+              marker.isActive
+                ? {
+                    transform: "translate(-50%, -50%)",
+                  }
+                : undefined
+            }
           />
           <span
             className={`absolute left-1/2 top-1/2 size-8 -translate-x-1/2 -translate-y-1/2 rounded-full border ${style.ring} opacity-80`}
           />
           <span
-            className={`atlascope-primary-marker-ring atlascope-primary-marker-ring-a absolute left-1/2 top-1/2 size-[22px] rounded-full border-2 ${style.ring} opacity-90`}
+            className={`${marker.isActive ? activeRingClass : inactiveRingClass} ${style.ring} opacity-90 ${
+              marker.isActive ? "atlascope-primary-marker-ring-a" : ""
+            }`}
           />
           <span
-            className={`atlascope-primary-marker-ring atlascope-primary-marker-ring-b absolute left-1/2 top-1/2 size-[22px] rounded-full border-2 ${style.ring} opacity-90`}
+            className={`${marker.isActive ? activeRingClass : inactiveRingClass} ${style.ring} opacity-90 ${
+              marker.isActive ? "atlascope-primary-marker-ring-b" : ""
+            }`}
           />
           <span
             className={themeClasses(theme, {
@@ -89,7 +117,9 @@ export function MapLibreMarkerView({
             })}
           >
             <span
-              className={`atlascope-primary-marker-core block size-3 rounded-full ${style.core} ${style.glow}`}
+              className={`block size-3 rounded-full ${style.core} ${style.glow} ${
+                marker.isActive ? "atlascope-primary-marker-core" : "opacity-70"
+              }`}
             />
           </span>
         </span>

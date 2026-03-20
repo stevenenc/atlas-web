@@ -13,6 +13,8 @@ export type Incident = {
   locationName: string;
   severity: IncidentSeverity;
   timestamp: string;
+  startTime: string;
+  endTime: string;
   coordinates: MapCoordinates;
   whyThisAlert: string;
 };

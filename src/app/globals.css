@@ -214,3 +214,45 @@ input::-moz-focus-inner {
 .atlascope-panel-item-exit {
   animation: atlascope-panel-item-exit 180ms ease-in forwards;
 }
+
+.atlascope-timeline-slider {
+  width: 100%;
+  height: 1.25rem;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.atlascope-timeline-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(91, 211, 245, 0.72), rgba(91, 211, 245, 0.18));
+}
+
+.atlascope-timeline-slider::-moz-range-track {
+  height: 4px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(91, 211, 245, 0.72), rgba(91, 211, 245, 0.18));
+}
+
+.atlascope-timeline-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 0;
+  height: 0;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.atlascope-timeline-slider::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+}

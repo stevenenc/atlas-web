@@ -10,7 +10,7 @@ import Map, {
   Source,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   atlascopeMapConfig,
@@ -189,24 +189,33 @@ export function MapLibreMap({
   const hasActiveGeofenceEdit = isDrawingGeofence || isEditingGeofence;
   const activeEditingCoordinates = isDrawingGeofence ? drawingCoordinates : editingCoordinates;
   const canDeleteDraggedPoint = isDrawingGeofence || activeEditingCoordinates.length > 3;
+  const isDragSessionActive = hasActiveGeofenceEdit && isDraggingPoint;
 
   useEffect(() => {
     if (!hasActiveGeofenceEdit) {
       draggedPointIndexRef.current = null;
       suppressMapClickRef.current = false;
-      setIsDraggingPoint(false);
-      setIsTrashTargetActive(false);
-      setMapCursor("default");
+      mapRef.current?.getMap().dragPan.enable();
       mapRef.current?.getCanvas().style.removeProperty("cursor");
-      return;
     }
-
-    setMapCursor(DRAWING_CURSOR);
   }, [hasActiveGeofenceEdit]);
 
   useEffect(() => {
-    mapRef.current?.getCanvas().style.setProperty("cursor", mapCursor);
-  }, [mapCursor]);
+    const canvas = mapRef.current?.getCanvas();
+
+    if (!canvas) {
+      return;
+    }
+
+    const nextCursor = hasActiveGeofenceEdit ? mapCursor : "default";
+
+    if (nextCursor === "default") {
+      canvas.style.removeProperty("cursor");
+      return;
+    }
+
+    canvas.style.setProperty("cursor", nextCursor);
+  }, [hasActiveGeofenceEdit, mapCursor]);
 
   function getDraftPointIndex(event: MapLayerMouseEvent) {
     const matchingFeature = event.features?.find(
@@ -263,7 +272,7 @@ export function MapLibreMap({
     );
   }
 
-  function finishPointDrag(shouldDeletePoint: boolean) {
+  const finishPointDrag = useCallback((shouldDeletePoint: boolean) => {
     const draggedPointIndex = draggedPointIndexRef.current;
 
     if (draggedPointIndex === null) {
@@ -286,10 +295,14 @@ export function MapLibreMap({
     }
 
     onEditingCoordinateRemove(draggedPointIndex);
-  }
+  }, [
+    isDrawingGeofence,
+    onDrawingCoordinateRemove,
+    onEditingCoordinateRemove,
+  ]);
 
   useEffect(() => {
-    if (!isDraggingPoint) {
+    if (!isDragSessionActive) {
       return;
     }
 
@@ -304,7 +317,7 @@ export function MapLibreMap({
     return () => {
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [canDeleteDraggedPoint, isDraggingPoint, isDrawingGeofence]);
+  }, [canDeleteDraggedPoint, finishPointDrag, isDragSessionActive]);
 
   function handleMapClick(event: MapLayerMouseEvent) {
     if (!hasActiveGeofenceEdit) {
@@ -459,7 +472,7 @@ export function MapLibreMap({
       </Map>
 
       {hasActiveGeofenceEdit ? (
-        <div className="pointer-events-none absolute inset-x-0 bottom-8 flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 bottom-28 flex justify-center">
           <div
             ref={trashTargetRef}
             className={`flex size-[72px] items-center justify-center rounded-[28px] border transition-all duration-200 ${
