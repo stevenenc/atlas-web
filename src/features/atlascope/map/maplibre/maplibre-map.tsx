@@ -6,6 +6,7 @@ import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import Map, {
   Layer,
   type MapLayerMouseEvent,
+  type MapLayerTouchEvent,
   type MapRef,
   Source,
   type ViewStateChangeEvent,
@@ -32,6 +33,16 @@ import {
 } from "@/features/atlascope/map/maplibre/maplibre-layers";
 import { MapLibreMarkerView } from "@/features/atlascope/map/maplibre/maplibre-marker";
 
+const DRAFT_POINT_LAYER_IDS = [
+  "draft-geofence-points-hit-area",
+  "draft-geofence-points",
+] as const;
+const DRAFT_POINT_POINTER_RADIUS = {
+  mouse: 14,
+  pen: 18,
+  touch: 28,
+} as const;
+
 function toViewportState(event: ViewStateChangeEvent): MapViewportState {
   return {
     longitude: event.viewState.longitude,
@@ -49,6 +60,8 @@ const NORWAY_TO_AUSTRALIA_BOUNDS = {
 
 const DRAWING_CURSOR =
   'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 28 28\' fill=\'none\'%3E%3Cpath d=\'M18.69 4.2a2.4 2.4 0 0 1 3.4 0l1.7 1.7a2.4 2.4 0 0 1 0 3.4l-11.2 11.2-4.94.72.72-4.94L18.69 4.2Z\' fill=\'%23111A1F\'/%3E%3Cpath d=\'M19.61 5.11a1.1 1.1 0 0 1 1.55 0l1.73 1.73a1.1 1.1 0 0 1 0 1.55L11.92 19.36l-2.86.42.42-2.86L19.61 5.11Z\' fill=\'%235BD3F5\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\'/%3E%3Cpath d=\'M18.65 7.61l2.74 2.74\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\' stroke-linecap=\'round\'/%3E%3C/svg%3E") 4 24, crosshair';
+
+type DraftPointEvent = MapLayerMouseEvent | MapLayerTouchEvent;
 
 function mercatorY(latitude: number) {
   const latitudeInRadians = (Math.max(Math.min(latitude, 85.05112878), -85.05112878) * Math.PI) / 180;
@@ -78,6 +91,7 @@ export function MapLibreMap({
   isDrawingGeofence,
   editingCoordinates,
   isEditingGeofence,
+  isInteractionLocked = false,
   activeLayers,
   viewport,
   theme,
@@ -94,6 +108,7 @@ export function MapLibreMap({
   const mapRef = useRef<MapRef | null>(null);
   const trashTargetRef = useRef<HTMLDivElement | null>(null);
   const draggedPointIndexRef = useRef<number | null>(null);
+  const dragPointerIdRef = useRef<number | null>(null);
   const suppressMapClickRef = useRef(false);
   const [baseMapStyle, setBaseMapStyle] = useState<StyleSpecification | null>(null);
   const [hasMapStyleError, setHasMapStyleError] = useState(false);
@@ -190,6 +205,8 @@ export function MapLibreMap({
   const activeEditingCoordinates = isDrawingGeofence ? drawingCoordinates : editingCoordinates;
   const canDeleteDraggedPoint = isDrawingGeofence || activeEditingCoordinates.length > 3;
   const isDragSessionActive = hasActiveGeofenceEdit && isDraggingPoint;
+  const isPanGestureEnabled = !hasActiveGeofenceEdit && !isInteractionLocked;
+  const isZoomGestureEnabled = !isInteractionLocked;
 
   useEffect(() => {
     if (!hasActiveGeofenceEdit) {
@@ -199,6 +216,21 @@ export function MapLibreMap({
       mapRef.current?.getCanvas().style.removeProperty("cursor");
     }
   }, [hasActiveGeofenceEdit]);
+
+  useEffect(() => {
+    const mapInstance = mapRef.current?.getMap();
+
+    if (!mapInstance || hasActiveGeofenceEdit) {
+      return;
+    }
+
+    if (isInteractionLocked) {
+      mapInstance.dragPan.disable();
+      return;
+    }
+
+    mapInstance.dragPan.enable();
+  }, [hasActiveGeofenceEdit, isInteractionLocked]);
 
   useEffect(() => {
     const canvas = mapRef.current?.getCanvas();
@@ -217,9 +249,11 @@ export function MapLibreMap({
     canvas.style.setProperty("cursor", nextCursor);
   }, [hasActiveGeofenceEdit, mapCursor]);
 
-  function getDraftPointIndex(event: MapLayerMouseEvent) {
+  function getDraftPointIndex(event: DraftPointEvent) {
     const matchingFeature = event.features?.find(
-      (feature) => feature.layer.id === "draft-geofence-points",
+      (feature) =>
+        feature.layer.id === "draft-geofence-points" ||
+        feature.layer.id === "draft-geofence-points-hit-area",
     );
     const rawIndex = matchingFeature?.properties?.index;
 
@@ -236,7 +270,94 @@ export function MapLibreMap({
     return null;
   }
 
-  function isPointerOverTrashTarget(event: MapLayerMouseEvent) {
+  function getDraftPointIndexAtScreenPoint(
+    clientX: number,
+    clientY: number,
+    pointerType: string,
+  ) {
+    const mapInstance = mapRef.current?.getMap();
+    const canvas = mapRef.current?.getCanvas();
+
+    if (!mapInstance || !canvas) {
+      return null;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+      return null;
+    }
+
+    const hitRadius =
+      pointerType === "touch"
+        ? DRAFT_POINT_POINTER_RADIUS.touch
+        : pointerType === "pen"
+          ? DRAFT_POINT_POINTER_RADIUS.pen
+          : DRAFT_POINT_POINTER_RADIUS.mouse;
+    const activeLayerIds = DRAFT_POINT_LAYER_IDS.filter((layerId) => mapInstance.getLayer(layerId));
+
+    if (!activeLayerIds.length) {
+      return null;
+    }
+
+    let features;
+
+    try {
+      features = mapInstance.queryRenderedFeatures(
+        [
+          [x - hitRadius, y - hitRadius],
+          [x + hitRadius, y + hitRadius],
+        ],
+        {
+          layers: activeLayerIds,
+        },
+      );
+    } catch {
+      return null;
+    }
+
+    const matchingFeature = features.find((feature) => {
+      const layerId = feature.layer.id;
+
+      return layerId === "draft-geofence-points" || layerId === "draft-geofence-points-hit-area";
+    });
+    const rawIndex = matchingFeature?.properties?.index;
+
+    if (typeof rawIndex === "number") {
+      return rawIndex;
+    }
+
+    if (typeof rawIndex === "string") {
+      const parsedIndex = Number.parseInt(rawIndex, 10);
+
+      return Number.isNaN(parsedIndex) ? null : parsedIndex;
+    }
+
+    return null;
+  }
+
+  function getCoordinatesFromClientPoint(clientX: number, clientY: number) {
+    const mapInstance = mapRef.current?.getMap();
+    const canvas = mapRef.current?.getCanvas();
+
+    if (!mapInstance || !canvas) {
+      return null;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const lngLat = mapInstance.unproject([x, y]);
+
+    return {
+      longitude: lngLat.lng,
+      latitude: lngLat.lat,
+    };
+  }
+
+  function isPointerOverTrashTarget(event: DraftPointEvent) {
     const trashTarget = trashTargetRef.current;
 
     if (!trashTarget) {
@@ -319,6 +440,108 @@ export function MapLibreMap({
     };
   }, [canDeleteDraggedPoint, finishPointDrag, isDragSessionActive]);
 
+  useEffect(() => {
+    if (!hasActiveGeofenceEdit) {
+      dragPointerIdRef.current = null;
+      return;
+    }
+
+    const canvas = mapRef.current?.getCanvas();
+
+    if (!canvas) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const pointIndex = getDraftPointIndexAtScreenPoint(
+        event.clientX,
+        event.clientY,
+        event.pointerType,
+      );
+
+      if (pointIndex === null) {
+        return;
+      }
+
+      event.preventDefault();
+      dragPointerIdRef.current = event.pointerId;
+      draggedPointIndexRef.current = pointIndex;
+      suppressMapClickRef.current = false;
+      setIsDraggingPoint(true);
+      setMapCursor("grabbing");
+      canvas.setPointerCapture(event.pointerId);
+      mapRef.current?.getMap().dragPan.disable();
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (dragPointerIdRef.current !== event.pointerId) {
+        return;
+      }
+
+      const draggedPointIndex = draggedPointIndexRef.current;
+
+      if (draggedPointIndex === null) {
+        return;
+      }
+
+      const coordinates = getCoordinatesFromClientPoint(event.clientX, event.clientY);
+
+      if (!coordinates) {
+        return;
+      }
+
+      event.preventDefault();
+      suppressMapClickRef.current = true;
+      setIsDraggingPoint(true);
+      setIsTrashTargetActive(
+        canDeleteDraggedPoint && isClientPointOverTrashTarget(event.clientX, event.clientY),
+      );
+      setMapCursor("grabbing");
+
+      if (isDrawingGeofence) {
+        onDrawingCoordinateUpdate(draggedPointIndex, coordinates);
+      } else {
+        onEditingCoordinateUpdate(draggedPointIndex, coordinates);
+      }
+    };
+
+    const handlePointerFinish = (event: PointerEvent) => {
+      if (dragPointerIdRef.current !== event.pointerId) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+
+      dragPointerIdRef.current = null;
+      finishPointDrag(
+        canDeleteDraggedPoint && isClientPointOverTrashTarget(event.clientX, event.clientY),
+      );
+    };
+
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerup", handlePointerFinish);
+    canvas.addEventListener("pointercancel", handlePointerFinish);
+
+    return () => {
+      canvas.removeEventListener("pointerdown", handlePointerDown);
+      canvas.removeEventListener("pointermove", handlePointerMove);
+      canvas.removeEventListener("pointerup", handlePointerFinish);
+      canvas.removeEventListener("pointercancel", handlePointerFinish);
+    };
+  }, [
+    canDeleteDraggedPoint,
+    finishPointDrag,
+    hasActiveGeofenceEdit,
+    isDrawingGeofence,
+    onDrawingCoordinateUpdate,
+    onEditingCoordinateUpdate,
+  ]);
+
   function handleMapClick(event: MapLayerMouseEvent) {
     if (!hasActiveGeofenceEdit) {
       return;
@@ -346,7 +569,7 @@ export function MapLibreMap({
     onEditingCoordinateAdd(coordinates);
   }
 
-  function handleMapMouseMove(event: MapLayerMouseEvent) {
+  function handleMapPointerMove(event: DraftPointEvent) {
     if (!hasActiveGeofenceEdit) {
       return;
     }
@@ -376,32 +599,6 @@ export function MapLibreMap({
     setMapCursor(getDraftPointIndex(event) !== null ? "grab" : DRAWING_CURSOR);
   }
 
-  function handleMapMouseDown(event: MapLayerMouseEvent) {
-    if (!hasActiveGeofenceEdit) {
-      return;
-    }
-
-    const pointIndex = getDraftPointIndex(event);
-
-    if (pointIndex === null) {
-      return;
-    }
-
-    draggedPointIndexRef.current = pointIndex;
-    suppressMapClickRef.current = false;
-    setIsDraggingPoint(true);
-    setMapCursor("grabbing");
-    mapRef.current?.getMap().dragPan.disable();
-  }
-
-  function handleMapMouseUp(event: MapLayerMouseEvent) {
-    if (draggedPointIndexRef.current === null) {
-      return;
-    }
-
-    finishPointDrag(canDeleteDraggedPoint && isPointerOverTrashTarget(event));
-  }
-
   return (
     <div
       ref={containerRef}
@@ -415,18 +612,23 @@ export function MapLibreMap({
         mapStyle={mapStyle}
         minZoom={verticalBoundsMinZoom}
         maxZoom={atlascopeMapConfig.maxZoom}
-        interactiveLayerIds={hasActiveGeofenceEdit ? ["draft-geofence-points"] : undefined}
+        interactiveLayerIds={
+          hasActiveGeofenceEdit
+            ? ["draft-geofence-points-hit-area", "draft-geofence-points"]
+            : undefined
+        }
         cursor={mapCursor}
         dragRotate={false}
         touchPitch={false}
+        dragPan={isPanGestureEnabled}
+        scrollZoom={isZoomGestureEnabled}
+        doubleClickZoom={isZoomGestureEnabled}
+        touchZoomRotate={isZoomGestureEnabled}
         renderWorldCopies
         attributionControl={false}
-        doubleClickZoom={!hasActiveGeofenceEdit}
         onMove={(event) => onViewportChange(toViewportState(event))}
         onClick={handleMapClick}
-        onMouseMove={handleMapMouseMove}
-        onMouseDown={handleMapMouseDown}
-        onMouseUp={handleMapMouseUp}
+        onMouseMove={handleMapPointerMove}
         onError={() => {
           setHasMapStyleError(true);
         }}
@@ -457,6 +659,7 @@ export function MapLibreMap({
             data={createDraftGeofencePointSourceData(activeEditingCoordinates)}
           >
             <Layer {...draftGeofenceLayers[1]} />
+            <Layer {...draftGeofenceLayers[2]} />
           </Source>
         ) : null}
         {markers.map((marker) => (

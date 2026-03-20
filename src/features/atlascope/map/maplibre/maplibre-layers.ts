@@ -224,6 +224,15 @@ export function createDraftGeofenceLayers(theme: ThemeMode): LayerProps[] {
       },
     },
     {
+      id: "draft-geofence-points-hit-area",
+      type: "circle",
+      paint: {
+        "circle-radius": 18,
+        "circle-color": "rgba(0, 0, 0, 0)",
+        "circle-stroke-width": 0,
+      },
+    },
+    {
       id: "draft-geofence-points",
       type: "circle",
       paint: {

@@ -47,11 +47,11 @@ export const atlascopeMapConfig = {
   defaultViewport: {
     longitude: 122.4,
     latitude: 12.3,
-    zoom: 4.8,
+    zoom: 6.2,
     bearing: 0,
     pitch: 18,
   } satisfies MapViewportState,
-  minZoom: 0,
+  minZoom: 5.1,
   maxZoom: 10.5,
   styleByTheme: {
     dark: DEMO_TILE_STYLE_URL,

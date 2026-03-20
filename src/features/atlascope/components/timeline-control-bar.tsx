@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { themeClasses, type ThemeMode } from "@/features/atlascope/config/theme";
-import {
-  formatTimelineDateTime,
-  formatTimelineTime,
-} from "@/features/atlascope/lib/incident-timeline";
+import { formatTimelineTime } from "@/features/atlascope/lib/incident-timeline";
 
 type TimelineControlBarProps = {
   currentTimeMs: number;
@@ -14,8 +16,11 @@ type TimelineControlBarProps = {
   maxTimeMs: number;
   isPlaying: boolean;
   activeIncidentCount: number;
+  trackedIncidentCount: number;
+  currentDateLabel: string;
   onPlayPause: () => void;
   onTimeChange: (timeMs: number) => void;
+  onInteractionChange: (isInteracting: boolean) => void;
 };
 
 export function TimelineControlBar({
@@ -24,218 +29,262 @@ export function TimelineControlBar({
   maxTimeMs,
   isPlaying,
   activeIncidentCount,
+  trackedIncidentCount,
+  currentDateLabel,
   onPlayPause,
   onTimeChange,
+  onInteractionChange,
   theme,
 }: TimelineControlBarProps & { theme: ThemeMode }) {
   const bubbleWidth = 92;
-  const trackInset = bubbleWidth / 2;
-  const formattedTime = formatTimelineDateTime(currentTimeMs);
+  const bubbleSidePadding = 12;
+  const bubbleArrowInset = 12;
+  const thumbSafeInset = bubbleWidth / 2 + bubbleSidePadding;
   const range = Math.max(1, maxTimeMs - minTimeMs);
   const progress = (currentTimeMs - minTimeMs) / range;
-  const progressValue = String(Math.round(currentTimeMs));
   const [isScrubbing, setIsScrubbing] = useState(false);
   const sliderAreaRef = useRef<HTMLDivElement | null>(null);
-  const [sliderAreaWidth, setSliderAreaWidth] = useState(0);
-  const bubbleCenterX =
-    sliderAreaWidth > 0
-      ? bubbleWidth / 2 + (sliderAreaWidth - bubbleWidth) * progress
-      : bubbleWidth / 2;
-  const thumbOffsetStyle = {
-    left: `${bubbleCenterX}px`,
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [trackMetrics, setTrackMetrics] = useState({ left: 0, width: 0, containerWidth: 0 });
+  const thumbX =
+    trackMetrics.width > 0
+      ? trackMetrics.left + trackMetrics.width * progress
+      : thumbSafeInset;
+  const bubbleLeft = Math.min(
+    Math.max(thumbX - bubbleWidth / 2, bubbleSidePadding),
+    Math.max(bubbleSidePadding, trackMetrics.containerWidth - bubbleWidth - bubbleSidePadding),
+  );
+  const bubbleStyle = {
+    left: `${bubbleLeft}px`,
   } as const;
-  const updateTimeFromClientX = useCallback((clientX: number) => {
+  const bubbleArrowX = Math.min(
+    Math.max(thumbX - bubbleLeft, bubbleArrowInset),
+    bubbleWidth - bubbleArrowInset,
+  );
+  const bubbleArrowStyle = {
+    left: `${bubbleArrowX}px`,
+  } as const;
+  const fillWidth = Math.max(0, trackMetrics.width * progress);
+  const updateTrackMetrics = useCallback(() => {
     const sliderArea = sliderAreaRef.current;
+    const track = trackRef.current;
 
-    if (!sliderArea) {
+    if (!sliderArea || !track) {
       return;
     }
 
-    const rect = sliderArea.getBoundingClientRect();
-    const nextProgress = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    const rawTime = minTimeMs + nextProgress * range;
+    const sliderRect = sliderArea.getBoundingClientRect();
+    const trackRect = track.getBoundingClientRect();
+
+    setTrackMetrics({
+      containerWidth: sliderRect.width,
+      left: trackRect.left - sliderRect.left,
+      width: trackRect.width,
+    });
+  }, []);
+  const updateTimeFromClientX = useCallback((clientX: number) => {
+    const track = trackRef.current;
+
+    if (!track) {
+      return;
+    }
+
+    const rect = track.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    const rawTime = minTimeMs + ratio * range;
     const steppedTime = Math.round(rawTime / 60_000) * 60_000;
 
     onTimeChange(Math.min(maxTimeMs, Math.max(minTimeMs, steppedTime)));
   }, [maxTimeMs, minTimeMs, onTimeChange, range]);
+  const startScrubbingAtClientX = useCallback((clientX: number) => {
+    setIsScrubbing(true);
+    updateTimeFromClientX(clientX);
+    sliderAreaRef.current?.focus();
+  }, [updateTimeFromClientX]);
 
   useEffect(() => {
     const sliderArea = sliderAreaRef.current;
+    const track = trackRef.current;
 
-    if (!sliderArea) {
+    if (!sliderArea || !track) {
       return;
     }
 
-    const updateWidth = () => {
-      setSliderAreaWidth(sliderArea.clientWidth);
-    };
-
-    updateWidth();
+    updateTrackMetrics();
 
     const observer = new ResizeObserver(() => {
-      updateWidth();
+      updateTrackMetrics();
     });
 
     observer.observe(sliderArea);
+    observer.observe(track);
 
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [updateTrackMetrics]);
 
   useEffect(() => {
-    if (!isScrubbing) {
-      return;
-    }
+    onInteractionChange(isScrubbing);
+  }, [isScrubbing, onInteractionChange]);
 
-    const handlePointerMove = (event: PointerEvent) => {
-      updateTimeFromClientX(event.clientX);
-    };
-    const handlePointerUp = () => {
-      setIsScrubbing(false);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-  }, [isScrubbing, updateTimeFromClientX]);
+  useEffect(() => () => {
+    onInteractionChange(false);
+  }, [onInteractionChange]);
+  const stepTimeline = useCallback((deltaMs: number) => {
+    onTimeChange(Math.min(maxTimeMs, Math.max(minTimeMs, currentTimeMs + deltaMs)));
+  }, [currentTimeMs, maxTimeMs, minTimeMs, onTimeChange]);
 
   return (
     <div
       className={themeClasses(theme, {
         dark:
-          "pointer-events-auto w-full max-w-[680px] rounded-[28px] border border-white/10 bg-[rgba(10,15,19,0.72)] px-3 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.28)] backdrop-blur-xl",
+          "pointer-events-auto w-full max-w-[840px] rounded-[28px] border border-white/10 bg-[rgba(10,15,19,0.72)] px-3 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:px-4",
         light:
-          "pointer-events-auto w-full max-w-[680px] rounded-[28px] border border-[#3D464C]/12 bg-[rgba(244,247,248,0.74)] px-3 py-3 shadow-[0_18px_42px_rgba(68,79,88,0.16)] backdrop-blur-xl",
+          "pointer-events-auto w-full max-w-[840px] rounded-[28px] border border-[#3D464C]/12 bg-[rgba(244,247,248,0.74)] px-3 py-3 shadow-[0_18px_42px_rgba(68,79,88,0.16)] backdrop-blur-xl sm:px-4",
       })}
     >
-      <div className="flex items-center gap-2 sm:gap-3">
-        <button
-          type="button"
-          onClick={onPlayPause}
-          aria-label={isPlaying ? "Pause timeline playback" : "Start timeline playback"}
-          className={themeClasses(theme, {
-            dark:
-              "flex size-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-white/84 transition-colors duration-200 hover:bg-white/[0.1] hover:text-white",
-            light:
-              "flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[#3D464C]/10 bg-white/70 text-[#233038] transition-colors duration-200 hover:bg-white hover:text-[#11191E]",
-          })}
+      <div className="flex flex-col gap-2.5">
+        <div
+          ref={sliderAreaRef}
+          role="slider"
+          tabIndex={0}
+          aria-label="Playback timeline"
+          aria-valuemin={minTimeMs}
+          aria-valuemax={maxTimeMs}
+          aria-valuenow={currentTimeMs}
+          aria-valuetext={formatTimelineTime(currentTimeMs)}
+          className="relative -mx-3 -my-2 cursor-pointer px-3 pb-3 pt-12 outline-none sm:-mx-4 sm:px-4"
+          style={{ touchAction: "none" }}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            startScrubbingAtClientX(event.clientX);
+          }}
+          onPointerMove={(event) => {
+            if (!isScrubbing) {
+              return;
+            }
+
+            event.preventDefault();
+            updateTimeFromClientX(event.clientX);
+          }}
+          onPointerUp={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+
+            setIsScrubbing(false);
+          }}
+          onPointerCancel={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+
+            setIsScrubbing(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+              event.preventDefault();
+              stepTimeline(-60_000);
+              return;
+            }
+
+            if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+              event.preventDefault();
+              stepTimeline(60_000);
+              return;
+            }
+
+            if (event.key === "Home") {
+              event.preventDefault();
+              onTimeChange(minTimeMs);
+              return;
+            }
+
+            if (event.key === "End") {
+              event.preventDefault();
+              onTimeChange(maxTimeMs);
+            }
+          }}
         >
-          {isPlaying ? <PauseIcon /> : <PlayIcon />}
-        </button>
-
-        <div className="min-w-0 shrink-0 sm:w-[150px]">
-          <p
-            className={themeClasses(theme, {
-              dark: "text-[10px] font-semibold tracking-[0.22em] text-white/34 uppercase",
-              light: "text-[10px] font-semibold tracking-[0.22em] text-[#66757D] uppercase",
-            })}
-          >
-            Playback Time
-          </p>
-          <p
-            className={themeClasses(theme, {
-              dark: "mt-1 truncate text-sm font-semibold text-white/88",
-              light: "mt-1 truncate text-sm font-semibold text-[#203039]",
-            })}
-          >
-            {formattedTime}
-          </p>
-        </div>
-
-        <div className="min-w-0 flex-1">
           <div
-            ref={sliderAreaRef}
-            className="relative pb-3 pt-10"
-            onPointerDown={(event) => {
-              setIsScrubbing(true);
-              updateTimeFromClientX(event.clientX);
-            }}
+            style={bubbleStyle}
+            className="pointer-events-none absolute left-0 top-0 z-10"
           >
-            <div
-              style={thumbOffsetStyle}
-              className="absolute top-0 z-10 -translate-x-1/2"
-            >
-              <button
-                type="button"
-                aria-label={`Drag timeline marker at ${formatTimelineTime(currentTimeMs)}`}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                  setIsScrubbing(true);
-                  updateTimeFromClientX(event.clientX);
-                }}
+            <div className="flex items-start pt-1">
+              <div
+                aria-hidden="true"
                 className={themeClasses(theme, {
                   dark:
-                    "relative flex h-[38px] w-[92px] cursor-grab items-center justify-center rounded-[16px] border border-[#7EDCFA]/35 bg-[#5BD3F5] px-2.5 text-center text-[8px] font-semibold tracking-[0.12em] text-[#08202B] uppercase shadow-[0_8px_20px_rgba(17,97,124,0.24)] active:cursor-grabbing",
+                    "relative flex h-[38px] w-[92px] items-center justify-center rounded-[16px] border border-[#7EDCFA]/35 bg-[#5BD3F5] px-2.5 text-center text-[8px] font-semibold tracking-[0.12em] text-[#08202B] uppercase shadow-[0_8px_20px_rgba(17,97,124,0.24)]",
                   light:
-                    "relative flex h-[38px] w-[92px] cursor-grab items-center justify-center rounded-[16px] border border-[#4EBEDC]/28 bg-[#5BD3F5] px-2.5 text-center text-[8px] font-semibold tracking-[0.12em] text-[#08303D] uppercase shadow-[0_8px_18px_rgba(48,127,152,0.16)] active:cursor-grabbing",
+                    "relative flex h-[38px] w-[92px] items-center justify-center rounded-[16px] border border-[#4EBEDC]/28 bg-[#5BD3F5] px-2.5 text-center text-[8px] font-semibold tracking-[0.12em] text-[#08303D] uppercase shadow-[0_8px_18px_rgba(48,127,152,0.16)]",
                 })}
               >
                 <span className="whitespace-nowrap leading-none">{formatTimelineTime(currentTimeMs)}</span>
-                <span className="absolute left-1/2 top-full size-3 -translate-x-1/2 -translate-y-[70%] rotate-45 border-b border-r border-[#4EBEDC]/28 bg-[#5BD3F5]" />
-              </button>
+                <span
+                  style={bubbleArrowStyle}
+                  className="absolute top-full size-3 -translate-x-1/2 -translate-y-[70%] rotate-45 border-b border-r border-[#4EBEDC]/28 bg-[#5BD3F5]"
+                />
+              </div>
             </div>
-
-            <div
-              className={themeClasses(theme, {
-                dark: "absolute top-[50px] h-1 rounded-full bg-[#B9EAF8]/42",
-                light: "absolute top-[50px] h-1 rounded-full bg-[#B9EAF8]/80",
-              })}
-              style={{
-                left: `${trackInset}px`,
-                right: `${trackInset}px`,
-              }}
-            />
-
-            <input
-              type="range"
-              min={minTimeMs}
-              max={maxTimeMs}
-              step={60_000}
-              value={progressValue}
-              aria-label="Playback timeline"
-              className="atlascope-timeline-slider absolute top-[42px]"
-              style={{
-                left: `${trackInset}px`,
-                right: `${trackInset}px`,
-              }}
-              onPointerDown={(event) => {
-                event.stopPropagation();
-              }}
-              onChange={(event) => {
-                onTimeChange(Number(event.currentTarget.value));
-              }}
-            />
           </div>
-          <div className="mt-2 flex items-center justify-between gap-3 text-[10px] font-semibold tracking-[0.16em] uppercase">
-            <span
+
+          <div
+            ref={trackRef}
+            className={themeClasses(theme, {
+              dark: "absolute top-[52px] h-1.5 rounded-full bg-[#B9EAF8]/24",
+              light: "absolute top-[52px] h-1.5 rounded-full bg-[#B9EAF8]/72",
+            })}
+            style={{
+              left: `${thumbSafeInset}px`,
+              right: `${thumbSafeInset}px`,
+            }}
+          />
+          <div
+            className="pointer-events-none absolute top-[52px] h-1.5 rounded-full bg-[#5BD3F5]"
+            style={{
+              left: `${trackMetrics.left}px`,
+              width: `${fillWidth}px`,
+              maxWidth: `${trackMetrics.width}px`,
+            }}
+          />
+        </div>
+
+        <div className="flex items-end justify-between gap-3">
+          <button
+            type="button"
+            onClick={onPlayPause}
+            aria-label={isPlaying ? "Pause timeline playback" : "Start timeline playback"}
+            className={themeClasses(theme, {
+              dark:
+                "flex size-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-white/84 transition-colors duration-200 hover:bg-white/[0.1] hover:text-white",
+              light:
+                "flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[#3D464C]/10 bg-white/70 text-[#233038] transition-colors duration-200 hover:bg-white hover:text-[#11191E]",
+            })}
+          >
+            {isPlaying ? <PauseIcon /> : <PlayIcon />}
+          </button>
+
+          <div className="min-w-0 flex-1 text-right">
+            <p
               className={themeClasses(theme, {
-                dark: "text-white/34",
-                light: "text-[#6D7B83]",
+                dark: "text-[11px] font-semibold tracking-[0.16em] text-white/56 uppercase",
+                light: "text-[11px] font-semibold tracking-[0.16em] text-[#53636C] uppercase",
               })}
             >
-              {formatTimelineTime(minTimeMs)}
-            </span>
-            <span
+              {activeIncidentCount} active <span className="mx-1 text-current/60">•</span> {trackedIncidentCount} tracked
+            </p>
+            <p
               className={themeClasses(theme, {
-                dark: "text-white/52",
-                light: "text-[#53636C]",
+                dark: "mt-1 text-sm font-medium text-white/82",
+                light: "mt-1 text-sm font-medium text-[#223038]",
               })}
             >
-              {activeIncidentCount} active
-            </span>
-            <span
-              className={themeClasses(theme, {
-                dark: "text-white/34",
-                light: "text-[#6D7B83]",
-              })}
-            >
-              {formatTimelineTime(maxTimeMs)}
-            </span>
+              {currentDateLabel}
+            </p>
           </div>
         </div>
       </div>

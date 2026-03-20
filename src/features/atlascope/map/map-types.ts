@@ -46,6 +46,7 @@ export type MapContainerProps = {
   isDrawingGeofence: boolean;
   editingCoordinates: MapCoordinates[];
   isEditingGeofence: boolean;
+  isInteractionLocked?: boolean;
   activeLayers: HazardLayerVisibility;
   selectedMarkerId: string | null;
   viewport: MapViewportState;

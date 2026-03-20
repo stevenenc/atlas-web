@@ -9,6 +9,7 @@ import { mockGeofences } from "@/features/atlascope/data/mock-geofences";
 import { incidents } from "@/features/atlascope/data/mock-incidents";
 import {
   clampTimelineTime,
+  formatTimelineDate,
   getTimelineBounds,
   isIncidentActiveAtTime,
 } from "@/features/atlascope/lib/incident-timeline";
@@ -60,6 +61,7 @@ export function AtlascopeShell() {
   const [isPanelLoading, setIsPanelLoading] = useState(false);
   const [selectedTimeMs, setSelectedTimeMs] = useState(timelineBounds.startMs);
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
+  const [isTimelineInteracting, setIsTimelineInteracting] = useState(false);
   const [activeOverlayPanel, setActiveOverlayPanel] = useState<OverlayPanelId>(null);
   const loadingTimerRef = useRef<number | null>(null);
   const geofenceEnterTimerRef = useRef<number | null>(null);
@@ -68,9 +70,14 @@ export function AtlascopeShell() {
   const playbackOriginTimeRef = useRef(timelineBounds.startMs);
   const selectedTimeRef = useRef(timelineBounds.startMs);
   const overlayControlsRef = useRef<HTMLDivElement | null>(null);
+  const trackedIncidents = useMemo(
+    () => incidents.filter((incident) => activeLayers[incident.type]),
+    [activeLayers],
+  );
   const activeIncidents = useMemo(
-    () => incidents.filter((incident) => isIncidentActiveAtTime(incident, selectedTimeMs)),
-    [selectedTimeMs],
+    () =>
+      trackedIncidents.filter((incident) => isIncidentActiveAtTime(incident, selectedTimeMs)),
+    [selectedTimeMs, trackedIncidents],
   );
   const activeIncidentIds = useMemo(
     () => new Set(activeIncidents.map((incident) => incident.id)),
@@ -416,7 +423,7 @@ export function AtlascopeShell() {
     setDrawingGeofenceCoordinates([]);
   }
 
-  function handleFinishDrawingGeofence() {
+  const handleFinishDrawingGeofence = useCallback(() => {
     if (drawingGeofenceCoordinates.length < 3) {
       return;
     }
@@ -448,7 +455,7 @@ export function AtlascopeShell() {
       setEnteringGeofenceId((current) => (current === id ? null : current));
       geofenceEnterTimerRef.current = null;
     }, 220);
-  }
+  }, [drawingGeofenceCoordinates]);
 
   function handleRenameGeofence(id: number, name: string) {
     setGeofences((current) =>
@@ -502,6 +509,70 @@ export function AtlascopeShell() {
     setEnteringGeofenceId((current) => (current === id ? null : current));
   }
 
+  useEffect(() => {
+    if (!isDrawingGeofence && editingGeofenceId === null) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+
+        if (isDrawingGeofence) {
+          handleCancelDrawingGeofence();
+          return;
+        }
+
+        const geofence = geofences.find((item) => item.id === editingGeofenceId);
+
+        if (geofence) {
+          handleCancelEditingGeofence(geofence);
+        }
+
+        return;
+      }
+
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      if (event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (isDrawingGeofence) {
+        if (drawingGeofenceCoordinates.length >= 3) {
+          handleFinishDrawingGeofence();
+        }
+
+        return;
+      }
+
+      if (editingGeofenceId !== null) {
+        handleSaveEditingGeofence();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    drawingGeofenceCoordinates.length,
+    editingGeofenceId,
+    geofences,
+    handleCancelEditingGeofence,
+    handleFinishDrawingGeofence,
+    isDrawingGeofence,
+  ]);
+
   return (
     <main
       className={themeClasses(theme, {
@@ -517,6 +588,7 @@ export function AtlascopeShell() {
         drawingCoordinates={drawingGeofenceCoordinates}
         isDrawingGeofence={isDrawingGeofence}
         editingGeofenceId={editingGeofenceId}
+        isInteractionLocked={isTimelineInteracting}
         activeLayers={activeLayers}
         selectedIncidentId={selectedIncident?.id ?? null}
         selectedTimeMs={selectedTimeMs}
@@ -786,8 +858,11 @@ export function AtlascopeShell() {
             maxTimeMs={timelineBounds.endMs}
             isPlaying={isTimelinePlaying}
             activeIncidentCount={activeIncidents.length}
+            trackedIncidentCount={trackedIncidents.length}
+            currentDateLabel={formatTimelineDate(selectedTimeMs)}
             onPlayPause={handleTimelinePlayPause}
             onTimeChange={handleTimelineTimeChange}
+            onInteractionChange={setIsTimelineInteracting}
             theme={theme}
           />
         </div>

@@ -17,6 +17,7 @@ type MapViewProps = {
   drawingCoordinates: MapGeofenceData["coordinates"];
   isDrawingGeofence: boolean;
   editingGeofenceId: number | null;
+  isInteractionLocked: boolean;
   activeLayers: Record<IncidentType, boolean>;
   selectedIncidentId: string | null;
   selectedTimeMs: number;
@@ -46,6 +47,7 @@ export function MapView({
   drawingCoordinates,
   isDrawingGeofence,
   editingGeofenceId,
+  isInteractionLocked,
   activeLayers,
   selectedIncidentId,
   selectedTimeMs,
@@ -102,6 +104,7 @@ export function MapView({
           isDrawingGeofence={isDrawingGeofence}
           editingCoordinates={editingGeofence?.coordinates ?? []}
           isEditingGeofence={editingGeofence !== null}
+          isInteractionLocked={isInteractionLocked}
           activeLayers={activeLayers}
           selectedMarkerId={selectedIncidentId}
           viewport={viewport}
@@ -134,46 +137,6 @@ export function MapView({
               "absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(111,136,150,0.12),_transparent_28%),linear-gradient(180deg,_rgba(7,10,12,0.08)_0%,_rgba(7,10,12,0.22)_58%,_rgba(7,10,12,0.48)_100%)]",
             light:
               "absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.36),_transparent_28%),linear-gradient(180deg,_rgba(221,226,229,0.08)_0%,_rgba(205,212,215,0.16)_52%,_rgba(180,188,193,0.32)_100%)]",
-          })}
-        />
-        <div
-          className={themeClasses(theme, {
-            dark:
-              "atlascope-grid-drift absolute -inset-[120px] bg-[linear-gradient(rgba(255,255,255,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.028)_1px,transparent_1px)] bg-[size:120px_120px] opacity-35",
-            light:
-              "atlascope-grid-drift absolute -inset-[120px] bg-[linear-gradient(rgba(44,53,59,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(44,53,59,0.055)_1px,transparent_1px)] bg-[size:120px_120px] opacity-32",
-          })}
-        />
-        <div
-          className={themeClasses(theme, {
-            dark:
-              "absolute inset-x-0 top-[17%] h-px bg-gradient-to-r from-transparent via-white/10 to-transparent",
-            light:
-              "absolute inset-x-0 top-[17%] h-px bg-gradient-to-r from-transparent via-[#465158]/18 to-transparent",
-          })}
-        />
-        <div
-          className={themeClasses(theme, {
-            dark:
-              "absolute bottom-[18%] left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent",
-            light:
-              "absolute bottom-[18%] left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#465158]/16 to-transparent",
-          })}
-        />
-        <div
-          className={themeClasses(theme, {
-            dark:
-              "absolute left-[24%] top-0 h-full w-px bg-gradient-to-b from-transparent via-white/8 to-transparent",
-            light:
-              "absolute left-[24%] top-0 h-full w-px bg-gradient-to-b from-transparent via-[#465158]/16 to-transparent",
-          })}
-        />
-        <div
-          className={themeClasses(theme, {
-            dark:
-              "absolute right-[20%] top-0 h-full w-px bg-gradient-to-b from-transparent via-white/7 to-transparent",
-            light:
-              "absolute right-[20%] top-0 h-full w-px bg-gradient-to-b from-transparent via-[#465158]/14 to-transparent",
           })}
         />
         <div

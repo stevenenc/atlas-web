@@ -47,6 +47,14 @@ export function formatTimelineDateTime(value: number) {
   }).format(value);
 }
 
+export function formatTimelineDate(value: number) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(value);
+}
+
 export function getTimelineHourMarks(startMs: number, endMs: number) {
   const marks: number[] = [];
   const startDate = new Date(startMs);
