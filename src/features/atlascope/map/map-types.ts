@@ -42,6 +42,8 @@ export type MapStyleConfig = string | MapStyleDefinition;
 export type MapContainerProps = {
   markers: MapMarkerData[];
   geofences: MapGeofenceData[];
+  focusedGeofenceCoordinates: MapCoordinates[] | null;
+  focusedGeofenceNonce: number;
   drawingCoordinates: MapCoordinates[];
   isDrawingGeofence: boolean;
   editingCoordinates: MapCoordinates[];

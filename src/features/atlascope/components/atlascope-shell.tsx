@@ -3,6 +3,11 @@
 import type { ReactNode } from "react";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  BasePanel,
+  PanelHeader,
+  usePanelManager,
+} from "@/features/atlascope/components/panel-system";
 import { themeClasses, type ThemeMode } from "@/features/atlascope/config/theme";
 import { TimelineControlBar } from "@/features/atlascope/components/timeline-control-bar";
 import { mockGeofences } from "@/features/atlascope/data/mock-geofences";
@@ -37,7 +42,7 @@ const layerRows: Array<{
   { id: "air_quality", label: "Air Quality", color: "#D8B11E" },
 ];
 
-type OverlayPanelId = "system" | "layers" | "geofences" | null;
+type OverlayPanelId = "search" | "user" | "layers" | "geofences";
 const PLAYBACK_DURATION_MS = 18_000;
 
 export function AtlascopeShell() {
@@ -57,19 +62,72 @@ export function AtlascopeShell() {
   const [geofenceDraftName, setGeofenceDraftName] = useState("");
   const [enteringGeofenceId, setEnteringGeofenceId] = useState<number | null>(null);
   const [showGeofenceRowActions, setShowGeofenceRowActions] = useState(false);
+  const [selectedGeofenceId, setSelectedGeofenceId] = useState<number | null>(null);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [isPanelLoading, setIsPanelLoading] = useState(false);
   const [selectedTimeMs, setSelectedTimeMs] = useState(timelineBounds.startMs);
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [isTimelineInteracting, setIsTimelineInteracting] = useState(false);
-  const [activeOverlayPanel, setActiveOverlayPanel] = useState<OverlayPanelId>(null);
+  const [activeOverlayPanel, setActiveOverlayPanel] = useState<OverlayPanelId | null>(null);
+  const [focusedGeofenceRequest, setFocusedGeofenceRequest] = useState<{
+    geofenceId: number;
+    nonce: number;
+  } | null>(null);
   const loadingTimerRef = useRef<number | null>(null);
   const geofenceEnterTimerRef = useRef<number | null>(null);
   const playbackFrameRef = useRef<number | null>(null);
   const playbackStartRef = useRef<number | null>(null);
   const playbackOriginTimeRef = useRef(timelineBounds.startMs);
+  const selectedGeofencePreviewRef = useRef<{
+    geofenceId: number;
+    previousVisibility: boolean;
+  } | null>(null);
   const selectedTimeRef = useRef(timelineBounds.startMs);
   const overlayControlsRef = useRef<HTMLDivElement | null>(null);
+  const isGeofencePanelPersistent = isDrawingGeofence || editingGeofenceId !== null;
+  const restoreSelectedGeofencePreview = useCallback(() => {
+    const preview = selectedGeofencePreviewRef.current;
+
+    if (!preview) {
+      return;
+    }
+
+    selectedGeofencePreviewRef.current = null;
+    setGeofences((current) =>
+      current.map((geofence) =>
+        geofence.id === preview.geofenceId
+          ? { ...geofence, isEnabled: preview.previousVisibility }
+          : geofence,
+      ),
+    );
+  }, []);
+  const panelConfigs = useMemo(
+    () => ({
+      search: { dismissible: true },
+      user: { dismissible: true },
+      layers: { dismissible: true },
+      geofences: { dismissible: !isGeofencePanelPersistent },
+    }),
+    [isGeofencePanelPersistent],
+  );
+  const handleActiveOverlayPanelChange = useCallback((nextPanel: OverlayPanelId | null) => {
+    if (nextPanel !== "geofences") {
+      restoreSelectedGeofencePreview();
+      setSelectedGeofenceId(null);
+      setShowGeofenceRowActions(false);
+      setEditingGeofenceId(null);
+      setRenamingGeofenceId(null);
+      setEditingGeofenceSnapshot(null);
+    }
+
+    setActiveOverlayPanel(nextPanel);
+  }, [restoreSelectedGeofencePreview]);
+  const { openPanel, togglePanel, isPanelOpen } = usePanelManager<OverlayPanelId>({
+    activePanel: activeOverlayPanel,
+    onActivePanelChange: handleActiveOverlayPanelChange,
+    panelConfigs,
+    panelRootRef: overlayControlsRef,
+  });
   const trackedIncidents = useMemo(
     () => incidents.filter((incident) => activeLayers[incident.type]),
     [activeLayers],
@@ -110,6 +168,33 @@ export function AtlascopeShell() {
   useEffect(() => {
     selectedTimeRef.current = selectedTimeMs;
   }, [selectedTimeMs]);
+
+  useEffect(() => {
+    if (selectedGeofenceId === null) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (target.closest(`[data-geofence-item-id="${selectedGeofenceId}"]`)) {
+        return;
+      }
+
+      restoreSelectedGeofencePreview();
+      setSelectedGeofenceId(null);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [restoreSelectedGeofencePreview, selectedGeofenceId]);
 
   useEffect(() => {
     if (!isTimelinePlaying) {
@@ -160,65 +245,6 @@ export function AtlascopeShell() {
       }
     };
   }, [isTimelinePlaying, timelineBounds]);
-
-  function handleToggleOverlayPanel(panel: Exclude<OverlayPanelId, null>) {
-    if (panel !== "geofences" && (isDrawingGeofence || editingGeofenceId !== null)) {
-      return;
-    }
-
-    if (
-      panel === "geofences" &&
-      activeOverlayPanel === "geofences" &&
-      (isDrawingGeofence || editingGeofenceId !== null)
-    ) {
-      return;
-    }
-
-    setShowGeofenceRowActions(
-      panel === "geofences" && activeOverlayPanel === "geofences" ? (current) => current : false,
-    );
-    if (panel !== "geofences") {
-      setEditingGeofenceId(null);
-      setRenamingGeofenceId(null);
-      setEditingGeofenceSnapshot(null);
-    }
-    setActiveOverlayPanel((current) => (current === panel ? null : panel));
-  }
-
-  useEffect(() => {
-    if (!activeOverlayPanel) {
-      return;
-    }
-
-    const activeOverlayElement = overlayControlsRef.current;
-
-    if (!activeOverlayElement) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target;
-
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (!activeOverlayElement.contains(target)) {
-        if (isDrawingGeofence || editingGeofenceId !== null) {
-          return;
-        }
-
-        setShowGeofenceRowActions(false);
-        setActiveOverlayPanel(null);
-      }
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [activeOverlayPanel, editingGeofenceId, isDrawingGeofence]);
 
   const handleCancelEditingGeofence = useCallback((geofence: Geofence) => {
     if (editingGeofenceSnapshot) {
@@ -335,7 +361,7 @@ export function AtlascopeShell() {
     setGeofenceDraftName("New Geofence");
     setDrawingGeofenceCoordinates([]);
     setIsDrawingGeofence(true);
-    setActiveOverlayPanel("geofences");
+    openPanel("geofences");
   }
 
   function handleAddGeofencePoint(coordinates: MapCoordinates) {
@@ -446,6 +472,7 @@ export function AtlascopeShell() {
     setEnteringGeofenceId(id);
     setIsDrawingGeofence(false);
     setDrawingGeofenceCoordinates([]);
+    openPanel("geofences");
 
     if (geofenceEnterTimerRef.current) {
       window.clearTimeout(geofenceEnterTimerRef.current);
@@ -455,7 +482,7 @@ export function AtlascopeShell() {
       setEnteringGeofenceId((current) => (current === id ? null : current));
       geofenceEnterTimerRef.current = null;
     }, 220);
-  }, [drawingGeofenceCoordinates]);
+  }, [drawingGeofenceCoordinates, openPanel]);
 
   function handleRenameGeofence(id: number, name: string) {
     setGeofences((current) =>
@@ -463,7 +490,7 @@ export function AtlascopeShell() {
     );
   }
 
-  function handleToggleGeofenceEnabled(id: number) {
+  function handleToggleGeofenceVisibility(id: number) {
     setGeofences((current) =>
       current.map((geofence) =>
         geofence.id === id
@@ -484,7 +511,7 @@ export function AtlascopeShell() {
       return nextId;
     });
     setRenamingGeofenceId(null);
-    setActiveOverlayPanel("geofences");
+    openPanel("geofences");
   }
 
   function handleStartRenamingGeofence(geofence: Geofence) {
@@ -492,7 +519,7 @@ export function AtlascopeShell() {
     setEditingGeofenceSnapshot(geofence.coordinates.map((point) => ({ ...point })));
     setRenamingGeofenceId(geofence.id);
     setGeofenceDraftName(geofence.name);
-    setActiveOverlayPanel("geofences");
+    openPanel("geofences");
   }
 
   function handleSaveEditingGeofence() {
@@ -502,11 +529,40 @@ export function AtlascopeShell() {
   }
 
   function handleDeleteGeofence(id: number) {
+    if (selectedGeofencePreviewRef.current?.geofenceId === id) {
+      selectedGeofencePreviewRef.current = null;
+    }
+
     setGeofences((current) => current.filter((geofence) => geofence.id !== id));
     setEditingGeofenceId((current) => (current === id ? null : current));
     setRenamingGeofenceId((current) => (current === id ? null : current));
     setEditingGeofenceSnapshot((current) => (editingGeofenceId === id ? null : current));
     setEnteringGeofenceId((current) => (current === id ? null : current));
+    setSelectedGeofenceId((current) => (current === id ? null : current));
+  }
+
+  function handleFocusGeofence(geofence: Geofence) {
+    if (selectedGeofenceId !== geofence.id) {
+      restoreSelectedGeofencePreview();
+      selectedGeofencePreviewRef.current = {
+        geofenceId: geofence.id,
+        previousVisibility: geofence.isEnabled,
+      };
+
+      if (!geofence.isEnabled) {
+        setGeofences((current) =>
+          current.map((item) =>
+            item.id === geofence.id ? { ...item, isEnabled: true } : item,
+          ),
+        );
+      }
+    }
+
+    setSelectedGeofenceId(geofence.id);
+    setFocusedGeofenceRequest({
+      geofenceId: geofence.id,
+      nonce: Date.now(),
+    });
   }
 
   useEffect(() => {
@@ -585,6 +641,8 @@ export function AtlascopeShell() {
       <MapView
         incidents={incidents}
         geofences={geofences}
+        focusedGeofenceId={focusedGeofenceRequest?.geofenceId ?? null}
+        focusedGeofenceNonce={focusedGeofenceRequest?.nonce ?? 0}
         drawingCoordinates={drawingGeofenceCoordinates}
         isDrawingGeofence={isDrawingGeofence}
         editingGeofenceId={editingGeofenceId}
@@ -608,222 +666,200 @@ export function AtlascopeShell() {
             ref={overlayControlsRef}
             className="pointer-events-auto flex items-start gap-3"
           >
-            <div className="relative min-h-[72px] w-[320px]">
-              <div
-                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] ease-out ${
-                  activeOverlayPanel === "system"
-                    ? "scale-100 opacity-100 duration-250"
-                    : "pointer-events-none scale-[0.985] opacity-0 duration-120"
-                }`}
+            <div className="relative min-h-[192px] w-[320px]">
+              <BasePanel
+                theme={theme}
+                isOpen={isPanelOpen("search")}
+                ariaLabel="Search panel"
+                variant="compact"
+                widthClassName="w-[272px]"
               >
-                <aside
+                <PanelHeader theme={theme} eyebrow="Search" />
+
+                <div
                   className={themeClasses(theme, {
                     dark:
-                      "w-[320px] rounded-3xl border border-white/10 bg-[rgba(11,16,19,0.84)] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.3)] backdrop-blur-md",
+                      "mt-5 flex w-full items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3",
                     light:
-                      "w-[320px] rounded-3xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] p-4 shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md",
+                      "mt-5 flex w-full items-center gap-3 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3",
                   })}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p
+                  <div
+                    className={themeClasses(theme, {
+                      dark: "flex size-5 items-center justify-center text-white/56",
+                      light: "flex size-5 items-center justify-center text-[#607078]",
+                    })}
+                  >
+                    <SearchIcon />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search region or hazard"
+                    className={themeClasses(theme, {
+                      dark:
+                        "w-full bg-transparent text-sm text-white/78 outline-none placeholder:text-white/42",
+                      light:
+                        "w-full bg-transparent text-sm text-[#536068] outline-none placeholder:text-[#7A8790]",
+                    })}
+                  />
+                </div>
+              </BasePanel>
+
+              <BasePanel theme={theme} isOpen={isPanelOpen("user")} ariaLabel="User panel">
+                <Section title="User" theme={theme}>
+                  <ControlRow
+                    theme={theme}
+                    label="Steven Encarnacion"
+                    detail="Premium account"
+                    control={
+                      <span
                         className={themeClasses(theme, {
-                          dark: "text-[30px] font-semibold tracking-[-0.02em] text-white/88",
-                          light: "text-[30px] font-semibold tracking-[-0.02em] text-[#36424A]",
+                          dark:
+                            "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2F3C47] to-[#121A20] text-sm font-semibold text-white",
+                          light:
+                            "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#36454F] to-[#11181D] text-sm font-semibold text-white",
                         })}
                       >
-                        AtlaScope
-                      </p>
-                    </div>
+                        SE
+                      </span>
+                    }
+                  />
+                </Section>
+
+                <Section title="Utilities" theme={theme} className="mt-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      className={themeClasses(theme, {
+                        dark:
+                          "flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
+                        light:
+                          "flex items-center justify-center gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-3 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
+                      })}
+                    >
+                      <span
+                        className={themeClasses(theme, {
+                          dark:
+                            "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
+                          light:
+                            "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
+                        })}
+                      >
+                        <ToolIcon />
+                      </span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.14em]">
+                        Settings
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+                      className={themeClasses(theme, {
+                        dark:
+                          "flex items-center justify-start gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
+                        light:
+                          "flex items-center justify-start gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-5 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
+                      })}
+                    >
+                      <span
+                        className={themeClasses(theme, {
+                          dark:
+                            "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
+                          light:
+                            "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
+                        })}
+                      >
+                        {theme === "dark" ? <MoonIcon /> : <SunIcon />}
+                      </span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.14em]">
+                        {theme}
+                      </span>
+                    </button>
                   </div>
+                </Section>
+              </BasePanel>
 
-                  <Section title="System" theme={theme} className="mt-4">
-                    <SearchRow theme={theme} />
+              <BasePanel theme={theme} isOpen={isPanelOpen("layers")} ariaLabel="Layers panel">
+                <PanelHeader theme={theme} eyebrow="Hazard Layers" />
 
-                    <ControlRow
+                <div className="mt-5 space-y-2">
+                  {layerRows.map((layer) => (
+                    <LayerRow
+                      key={layer.id}
                       theme={theme}
-                      label="Steven Encarnacion"
-                      detail="Premium account"
-                      control={
-                        <span
-                          className={themeClasses(theme, {
-                            dark:
-                              "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2F3C47] to-[#121A20] text-sm font-semibold text-white",
-                            light:
-                              "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#36454F] to-[#11181D] text-sm font-semibold text-white",
-                          })}
-                        >
-                          SE
-                        </span>
-                      }
+                      label={layer.label}
+                      color={layer.color}
+                      active={activeLayers[layer.id]}
+                      onClick={() => handleToggleLayer(layer.id)}
                     />
-                  </Section>
+                  ))}
+                </div>
+              </BasePanel>
 
-                  <Section title="Utilities" theme={theme} className="mt-5">
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        className={themeClasses(theme, {
-                          dark:
-                            "flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
-                          light:
-                            "flex items-center justify-center gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-3 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
-                        })}
-                      >
-                        <span
-                          className={themeClasses(theme, {
-                            dark:
-                              "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
-                            light:
-                              "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
-                          })}
-                        >
-                          <ToolIcon />
-                        </span>
-                        <span className="text-xs font-semibold uppercase tracking-[0.14em]">
-                          Settings
-                        </span>
-                      </button>
+              <GeofencePanel
+                theme={theme}
+                isOpen={isPanelOpen("geofences")}
+                geofences={geofences}
+                selectedGeofenceId={selectedGeofenceId}
+                isDrawingGeofence={isDrawingGeofence}
+                drawingPointCount={drawingGeofenceCoordinates.length}
+                editingGeofenceId={editingGeofenceId}
+                renamingGeofenceId={renamingGeofenceId}
+                draftName={geofenceDraftName}
+                enteringGeofenceId={enteringGeofenceId}
+                showRowActions={showGeofenceRowActions}
+                onAddGeofence={handleAddGeofence}
+                onCancelDrawing={handleCancelDrawingGeofence}
+                onFinishDrawing={handleFinishDrawingGeofence}
+                onDraftNameChange={setGeofenceDraftName}
+                onFocusGeofence={handleFocusGeofence}
+                onStartEditing={handleStartEditingGeofence}
+                onStartRenaming={handleStartRenamingGeofence}
+                onSaveEditing={handleSaveEditingGeofence}
+                onCancelEditing={handleCancelEditingGeofence}
+                onToggleRowActions={() =>
+                  setShowGeofenceRowActions((current) => {
+                    const next = !current;
 
-                      <button
-                        type="button"
-                        onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-                        className={themeClasses(theme, {
-                          dark:
-                            "flex items-center justify-start gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
-                          light:
-                            "flex items-center justify-start gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-5 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
-                        })}
-                      >
-                        <span
-                          className={themeClasses(theme, {
-                            dark:
-                              "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
-                            light:
-                              "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
-                          })}
-                        >
-                          {theme === "dark" ? <MoonIcon /> : <SunIcon />}
-                        </span>
-                        <span className="text-xs font-semibold uppercase tracking-[0.14em]">
-                          {theme}
-                        </span>
-                      </button>
-                    </div>
-                  </Section>
-                </aside>
-              </div>
+                    if (!next) {
+                      setEditingGeofenceId(null);
+                      setRenamingGeofenceId(null);
+                      setEditingGeofenceSnapshot(null);
+                    }
 
-              <div
-                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] ease-out ${
-                  activeOverlayPanel === "layers"
-                    ? "scale-100 opacity-100 duration-250"
-                    : "pointer-events-none scale-[0.985] opacity-0 duration-120"
-                }`}
-              >
-                <aside
-                  className={themeClasses(theme, {
-                    dark:
-                      "w-[320px] rounded-3xl border border-white/10 bg-[rgba(11,16,19,0.84)] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.3)] backdrop-blur-md",
-                    light:
-                      "w-[320px] rounded-3xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] p-4 shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md",
-                  })}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p
-                        className={themeClasses(theme, {
-                          dark: "text-[10px] font-semibold tracking-[0.24em] text-white/30 uppercase",
-                          light: "text-[10px] font-semibold tracking-[0.24em] text-[#607078] uppercase",
-                        })}
-                      >
-                        Hazard Layers
-                      </p>
-                      <p
-                        className={themeClasses(theme, {
-                          dark: "mt-2 text-lg font-semibold text-white/86",
-                          light: "mt-2 text-lg font-semibold text-[#1F2A30]",
-                        })}
-                      >
-                        Visibility Controls
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    {layerRows.map((layer) => (
-                      <LayerRow
-                        key={layer.id}
-                        theme={theme}
-                        label={layer.label}
-                        color={layer.color}
-                        active={activeLayers[layer.id]}
-                        onClick={() => handleToggleLayer(layer.id)}
-                      />
-                    ))}
-                  </div>
-                </aside>
-              </div>
-
-              <div
-                className={`absolute right-0 top-0 origin-top-right transition-[opacity,transform] ease-out ${
-                  activeOverlayPanel === "geofences"
-                    ? "scale-100 opacity-100 duration-250"
-                    : "pointer-events-none scale-[0.985] opacity-0 duration-120"
-                }`}
-              >
-                <GeofencePanel
-                  theme={theme}
-                  geofences={geofences}
-                  isDrawingGeofence={isDrawingGeofence}
-                  drawingPointCount={drawingGeofenceCoordinates.length}
-                  editingGeofenceId={editingGeofenceId}
-                  renamingGeofenceId={renamingGeofenceId}
-                  draftName={geofenceDraftName}
-                  enteringGeofenceId={enteringGeofenceId}
-                  showRowActions={showGeofenceRowActions}
-                  onAddGeofence={handleAddGeofence}
-                  onCancelDrawing={handleCancelDrawingGeofence}
-                  onFinishDrawing={handleFinishDrawingGeofence}
-                  onDraftNameChange={setGeofenceDraftName}
-                  onStartEditing={handleStartEditingGeofence}
-                  onStartRenaming={handleStartRenamingGeofence}
-                  onSaveEditing={handleSaveEditingGeofence}
-                  onCancelEditing={handleCancelEditingGeofence}
-                  onToggleRowActions={() =>
-                    setShowGeofenceRowActions((current) => {
-                      const next = !current;
-
-                      if (!next) {
-                        setEditingGeofenceId(null);
-                        setRenamingGeofenceId(null);
-                        setEditingGeofenceSnapshot(null);
-                      }
-
-                      return next;
-                    })
-                  }
-                  onToggleEnabled={handleToggleGeofenceEnabled}
-                  onRenameGeofence={handleRenameGeofence}
-                  onDeleteGeofence={handleDeleteGeofence}
-                />
-              </div>
+                    return next;
+                  })
+                }
+                onToggleVisibility={handleToggleGeofenceVisibility}
+                onRenameGeofence={handleRenameGeofence}
+                onDeleteGeofence={handleDeleteGeofence}
+              />
             </div>
 
             <div className="flex flex-col items-end gap-3">
               <OverlayRailButton
                 theme={theme}
-                isPressed={activeOverlayPanel === "system"}
-                onClick={() => handleToggleOverlayPanel("system")}
-                ariaLabel="Open control panel"
+                isPressed={isPanelOpen("search")}
+                onClick={() => togglePanel("search")}
+                ariaLabel="Open search panel"
               >
-                <MenuIcon />
+                <SearchIcon />
               </OverlayRailButton>
 
               <OverlayRailButton
                 theme={theme}
-                isPressed={activeOverlayPanel === "layers"}
-                onClick={() => handleToggleOverlayPanel("layers")}
+                isPressed={isPanelOpen("user")}
+                onClick={() => togglePanel("user")}
+                ariaLabel="Open user panel"
+              >
+                <UserIcon />
+              </OverlayRailButton>
+
+              <OverlayRailButton
+                theme={theme}
+                isPressed={isPanelOpen("layers")}
+                onClick={() => togglePanel("layers")}
                 ariaLabel="Open hazard layers"
               >
                 <LayersIcon />
@@ -831,8 +867,8 @@ export function AtlascopeShell() {
 
               <GeofenceButton
                 theme={theme}
-                isPressed={activeOverlayPanel === "geofences"}
-                onClick={() => handleToggleOverlayPanel("geofences")}
+                isPressed={isPanelOpen("geofences")}
+                onClick={() => togglePanel("geofences")}
               />
             </div>
           </div>
@@ -894,40 +930,6 @@ function Section({
       </p>
       <div className="mt-2 space-y-2">{children}</div>
     </section>
-  );
-}
-
-function SearchRow({ theme }: { theme: ThemeMode }) {
-  return (
-    <div
-      className={themeClasses(theme, {
-        dark:
-          "flex w-full items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3",
-        light:
-          "flex w-full items-center gap-3 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3",
-      })}
-    >
-      <div
-        className={themeClasses(theme, {
-          dark: "flex size-5 items-center justify-center text-white/56",
-          light: "flex size-5 items-center justify-center text-[#607078]",
-        })}
-      >
-        <SearchIcon />
-      </div>
-      <div className="min-w-0 flex-1">
-        <input
-          type="text"
-          placeholder="Search region or hazard"
-          className={themeClasses(theme, {
-            dark:
-              "w-full bg-transparent text-sm text-white/78 outline-none placeholder:text-white/42",
-            light:
-              "w-full bg-transparent text-sm text-[#536068] outline-none placeholder:text-[#7A8790]",
-          })}
-        />
-      </div>
-    </div>
   );
 }
 
@@ -1117,10 +1119,18 @@ function SearchIcon() {
   );
 }
 
-function MenuIcon() {
+function UserIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-5 fill-none stroke-current">
-      <path d="M5 7h14M5 12h14M5 17h14" strokeWidth="2.2" strokeLinecap="round" />
+      <path
+        d="M12 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"
+        strokeWidth="1.9"
+      />
+      <path
+        d="M5.5 19.25a6.5 6.5 0 0 1 13 0"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -1142,11 +1152,12 @@ function GeofenceIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-5 fill-none stroke-current">
       <path
-        d="M7 3.5 18.2 12l-5 1.1 2.8 6-1.9.9-2.8-6L7 17.7V3.5Z"
-        strokeWidth="1.7"
+        d="M12 20.25c-.53 0-1-.24-1.31-.68l-3.74-5.4A7.4 7.4 0 0 1 5.7 10.05C5.7 6.14 8.52 3.3 12 3.3s6.3 2.84 6.3 6.75c0 1.53-.45 2.95-1.25 4.12l-3.74 5.4c-.31.44-.78.68-1.31.68Z"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      <circle cx="12" cy="10.2" r="2.7" strokeWidth="1.8" />
     </svg>
   );
 }

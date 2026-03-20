@@ -14,6 +14,8 @@ import type { Incident, IncidentType } from "@/features/atlascope/types/atlascop
 type MapViewProps = {
   incidents: Incident[];
   geofences: AtlascopeGeofence[];
+  focusedGeofenceId: number | null;
+  focusedGeofenceNonce: number;
   drawingCoordinates: MapGeofenceData["coordinates"];
   isDrawingGeofence: boolean;
   editingGeofenceId: number | null;
@@ -44,6 +46,8 @@ const ActiveMapAdapter = resolveMapAdapter();
 export function MapView({
   incidents,
   geofences,
+  focusedGeofenceId,
+  focusedGeofenceNonce,
   drawingCoordinates,
   isDrawingGeofence,
   editingGeofenceId,
@@ -71,6 +75,7 @@ export function MapView({
     isActive: isIncidentActiveAtTime(incident, selectedTimeMs),
   }));
   const editingGeofence = geofences.find((geofence) => geofence.id === editingGeofenceId) ?? null;
+  const focusedGeofence = geofences.find((geofence) => geofence.id === focusedGeofenceId) ?? null;
   const visibleGeofences: MapGeofenceData[] = geofences
     .filter((geofence) => geofence.isEnabled || geofence.id === editingGeofenceId)
     .map((geofence) => ({
@@ -100,6 +105,8 @@ export function MapView({
         <ActiveMapAdapter
           markers={markers}
           geofences={geofenceLayers}
+          focusedGeofenceCoordinates={focusedGeofence?.coordinates ?? null}
+          focusedGeofenceNonce={focusedGeofenceNonce}
           drawingCoordinates={drawingCoordinates}
           isDrawingGeofence={isDrawingGeofence}
           editingCoordinates={editingGeofence?.coordinates ?? []}

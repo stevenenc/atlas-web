@@ -87,6 +87,8 @@ function getVerticalBoundsMinZoom(containerHeight: number) {
 export function MapLibreMap({
   markers,
   geofences,
+  focusedGeofenceCoordinates,
+  focusedGeofenceNonce,
   drawingCoordinates,
   isDrawingGeofence,
   editingCoordinates,
@@ -207,6 +209,51 @@ export function MapLibreMap({
   const isDragSessionActive = hasActiveGeofenceEdit && isDraggingPoint;
   const isPanGestureEnabled = !hasActiveGeofenceEdit && !isInteractionLocked;
   const isZoomGestureEnabled = !isInteractionLocked;
+
+  useEffect(() => {
+    if (!focusedGeofenceCoordinates?.length) {
+      return;
+    }
+
+    const mapInstance = mapRef.current?.getMap();
+    const container = containerRef.current;
+
+    if (!mapInstance || !container) {
+      return;
+    }
+
+    let minLongitude = focusedGeofenceCoordinates[0]?.longitude ?? 0;
+    let maxLongitude = minLongitude;
+    let minLatitude = focusedGeofenceCoordinates[0]?.latitude ?? 0;
+    let maxLatitude = minLatitude;
+
+    focusedGeofenceCoordinates.forEach((point) => {
+      minLongitude = Math.min(minLongitude, point.longitude);
+      maxLongitude = Math.max(maxLongitude, point.longitude);
+      minLatitude = Math.min(minLatitude, point.latitude);
+      maxLatitude = Math.max(maxLatitude, point.latitude);
+    });
+
+    const horizontalPadding = Math.round(container.clientWidth * 0.15);
+    const verticalPadding = Math.round(container.clientHeight * 0.15);
+
+    mapInstance.fitBounds(
+      [
+        [minLongitude, minLatitude],
+        [maxLongitude, maxLatitude],
+      ],
+      {
+        duration: 900,
+        maxZoom: atlascopeMapConfig.maxZoom,
+        padding: {
+          top: verticalPadding,
+          right: horizontalPadding,
+          bottom: verticalPadding,
+          left: horizontalPadding,
+        },
+      },
+    );
+  }, [focusedGeofenceCoordinates, focusedGeofenceNonce]);
 
   useEffect(() => {
     if (!hasActiveGeofenceEdit) {
