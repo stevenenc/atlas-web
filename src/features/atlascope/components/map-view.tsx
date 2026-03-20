@@ -15,6 +15,7 @@ type MapViewProps = {
   geofences: AtlascopeGeofence[];
   drawingCoordinates: MapGeofenceData["coordinates"];
   isDrawingGeofence: boolean;
+  editingGeofenceId: number | null;
   activeLayers: Record<IncidentType, boolean>;
   selectedIncidentId: string | null;
   onSelectIncident: (incident: Incident) => void;
@@ -23,6 +24,15 @@ type MapViewProps = {
     index: number,
     coordinates: MapGeofenceData["coordinates"][number],
   ) => void;
+  onDrawingCoordinateRemove: (index: number) => void;
+  onEditingCoordinateAdd: (
+    coordinates: MapGeofenceData["coordinates"][number],
+  ) => void;
+  onEditingCoordinateUpdate: (
+    index: number,
+    coordinates: MapGeofenceData["coordinates"][number],
+  ) => void;
+  onEditingCoordinateRemove: (index: number) => void;
   theme: ThemeMode;
 };
 
@@ -33,11 +43,16 @@ export function MapView({
   geofences,
   drawingCoordinates,
   isDrawingGeofence,
+  editingGeofenceId,
   activeLayers,
   selectedIncidentId,
   onSelectIncident,
   onMapClick,
   onDrawingCoordinateUpdate,
+  onDrawingCoordinateRemove,
+  onEditingCoordinateAdd,
+  onEditingCoordinateUpdate,
+  onEditingCoordinateRemove,
   theme,
 }: MapViewProps) {
   const [viewport, setViewport] = useState(atlascopeMapConfig.defaultViewport);
@@ -49,8 +64,9 @@ export function MapView({
     severity: incident.severity,
     ageMinutes: extractAgeMinutes(incident.timestamp),
   }));
-  const enabledGeofences: MapGeofenceData[] = geofences
-    .filter((geofence) => geofence.isEnabled)
+  const editingGeofence = geofences.find((geofence) => geofence.id === editingGeofenceId) ?? null;
+  const visibleGeofences: MapGeofenceData[] = geofences
+    .filter((geofence) => geofence.isEnabled || geofence.id === editingGeofenceId)
     .map((geofence) => ({
       id: String(geofence.id),
       title: geofence.name,
@@ -58,14 +74,14 @@ export function MapView({
     }));
   const geofenceLayers = isDrawingGeofence && drawingCoordinates.length >= 3
     ? [
-        ...enabledGeofences,
+        ...visibleGeofences,
         {
           id: "draft-geofence",
           title: "Draft geofence",
           coordinates: drawingCoordinates,
         },
       ]
-    : enabledGeofences;
+    : visibleGeofences;
 
   return (
     <div
@@ -80,6 +96,8 @@ export function MapView({
           geofences={geofenceLayers}
           drawingCoordinates={drawingCoordinates}
           isDrawingGeofence={isDrawingGeofence}
+          editingCoordinates={editingGeofence?.coordinates ?? []}
+          isEditingGeofence={editingGeofence !== null}
           activeLayers={activeLayers}
           selectedMarkerId={selectedIncidentId}
           viewport={viewport}
@@ -87,8 +105,12 @@ export function MapView({
           onViewportChange={setViewport}
           onMapClick={onMapClick}
           onDrawingCoordinateUpdate={onDrawingCoordinateUpdate}
+          onDrawingCoordinateRemove={onDrawingCoordinateRemove}
+          onEditingCoordinateAdd={onEditingCoordinateAdd}
+          onEditingCoordinateUpdate={onEditingCoordinateUpdate}
+          onEditingCoordinateRemove={onEditingCoordinateRemove}
           onMarkerClick={(marker: MapMarkerData) => {
-            if (isDrawingGeofence) {
+            if (isDrawingGeofence || editingGeofence !== null) {
               return;
             }
 

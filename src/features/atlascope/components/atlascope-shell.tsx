@@ -41,6 +41,10 @@ export function AtlascopeShell() {
   >([]);
   const [isDrawingGeofence, setIsDrawingGeofence] = useState(false);
   const [editingGeofenceId, setEditingGeofenceId] = useState<number | null>(null);
+  const [renamingGeofenceId, setRenamingGeofenceId] = useState<number | null>(null);
+  const [editingGeofenceSnapshot, setEditingGeofenceSnapshot] = useState<MapCoordinates[] | null>(
+    null,
+  );
   const [geofenceDraftName, setGeofenceDraftName] = useState("");
   const [enteringGeofenceId, setEnteringGeofenceId] = useState<number | null>(null);
   const [showGeofenceRowActions, setShowGeofenceRowActions] = useState(false);
@@ -64,17 +68,26 @@ export function AtlascopeShell() {
   }, []);
 
   function handleToggleOverlayPanel(panel: Exclude<OverlayPanelId, null>) {
-    if (panel !== "geofences" && isDrawingGeofence) {
+    if (panel !== "geofences" && (isDrawingGeofence || editingGeofenceId !== null)) {
       return;
     }
 
-    if (panel === "geofences" && activeOverlayPanel === "geofences" && isDrawingGeofence) {
+    if (
+      panel === "geofences" &&
+      activeOverlayPanel === "geofences" &&
+      (isDrawingGeofence || editingGeofenceId !== null)
+    ) {
       return;
     }
 
     setShowGeofenceRowActions(
       panel === "geofences" && activeOverlayPanel === "geofences" ? (current) => current : false,
     );
+    if (panel !== "geofences") {
+      setEditingGeofenceId(null);
+      setRenamingGeofenceId(null);
+      setEditingGeofenceSnapshot(null);
+    }
     setActiveOverlayPanel((current) => (current === panel ? null : panel));
   }
 
@@ -97,7 +110,7 @@ export function AtlascopeShell() {
       }
 
       if (!activeOverlayElement.contains(target)) {
-        if (isDrawingGeofence) {
+        if (isDrawingGeofence || editingGeofenceId !== null) {
           return;
         }
 
@@ -111,7 +124,34 @@ export function AtlascopeShell() {
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [activeOverlayPanel, isDrawingGeofence]);
+  }, [activeOverlayPanel, editingGeofenceId, isDrawingGeofence]);
+
+  useEffect(() => {
+    if (editingGeofenceId === null) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      const geofence = geofences.find((item) => item.id === editingGeofenceId);
+
+      if (!geofence) {
+        return;
+      }
+
+      event.preventDefault();
+      handleCancelEditingGeofence(geofence);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [editingGeofenceId, geofences]);
 
   function handleToggleLayer(layer: IncidentType) {
     setActiveLayers((current) => {
@@ -155,6 +195,8 @@ export function AtlascopeShell() {
   function handleAddGeofence() {
     setShowGeofenceRowActions(false);
     setEditingGeofenceId(null);
+    setRenamingGeofenceId(null);
+    setEditingGeofenceSnapshot(null);
     setGeofenceDraftName("New Geofence");
     setDrawingGeofenceCoordinates([]);
     setIsDrawingGeofence(true);
@@ -181,6 +223,66 @@ export function AtlascopeShell() {
     );
   }
 
+  function handleRemoveDrawingGeofencePoint(index: number) {
+    if (!isDrawingGeofence) {
+      return;
+    }
+
+    setDrawingGeofenceCoordinates((current) =>
+      current.filter((_, pointIndex) => pointIndex !== index),
+    );
+  }
+
+  function handleAddEditingGeofencePoint(coordinates: MapCoordinates) {
+    if (isDrawingGeofence || editingGeofenceId === null) {
+      return;
+    }
+
+    setGeofences((current) =>
+      current.map((geofence) =>
+        geofence.id === editingGeofenceId
+          ? { ...geofence, coordinates: [...geofence.coordinates, coordinates] }
+          : geofence,
+      ),
+    );
+  }
+
+  function handleUpdateEditingGeofencePoint(index: number, coordinates: MapCoordinates) {
+    if (isDrawingGeofence || editingGeofenceId === null) {
+      return;
+    }
+
+    setGeofences((current) =>
+      current.map((geofence) =>
+        geofence.id === editingGeofenceId
+          ? {
+              ...geofence,
+              coordinates: geofence.coordinates.map((point, pointIndex) =>
+                pointIndex === index ? coordinates : point,
+              ),
+            }
+          : geofence,
+      ),
+    );
+  }
+
+  function handleRemoveEditingGeofencePoint(index: number) {
+    if (isDrawingGeofence || editingGeofenceId === null) {
+      return;
+    }
+
+    setGeofences((current) =>
+      current.map((geofence) =>
+        geofence.id === editingGeofenceId
+          ? {
+              ...geofence,
+              coordinates: geofence.coordinates.filter((_, pointIndex) => pointIndex !== index),
+            }
+          : geofence,
+      ),
+    );
+  }
+
   function handleCancelDrawingGeofence() {
     setIsDrawingGeofence(false);
     setDrawingGeofenceCoordinates([]);
@@ -203,6 +305,8 @@ export function AtlascopeShell() {
       },
     ]);
     setEditingGeofenceId(id);
+    setRenamingGeofenceId(id);
+    setEditingGeofenceSnapshot(null);
     setGeofenceDraftName("New Geofence");
     setEnteringGeofenceId(id);
     setIsDrawingGeofence(false);
@@ -235,22 +339,58 @@ export function AtlascopeShell() {
   }
 
   function handleStartEditingGeofence(geofence: Geofence) {
+    setEditingGeofenceId((current) => {
+      const nextId = current === geofence.id ? null : geofence.id;
+
+      setEditingGeofenceSnapshot(
+        nextId === geofence.id ? geofence.coordinates.map((point) => ({ ...point })) : null,
+      );
+
+      return nextId;
+    });
+    setRenamingGeofenceId(null);
+    setActiveOverlayPanel("geofences");
+  }
+
+  function handleStartRenamingGeofence(geofence: Geofence) {
     setEditingGeofenceId(geofence.id);
+    setEditingGeofenceSnapshot(geofence.coordinates.map((point) => ({ ...point })));
+    setRenamingGeofenceId(geofence.id);
     setGeofenceDraftName(geofence.name);
+    setActiveOverlayPanel("geofences");
   }
 
   function handleSaveEditingGeofence() {
+    setEditingGeofenceSnapshot(null);
     setEditingGeofenceId(null);
+    setRenamingGeofenceId(null);
   }
 
   function handleCancelEditingGeofence(geofence: Geofence) {
+    if (editingGeofenceSnapshot) {
+      setGeofences((current) =>
+        current.map((item) =>
+          item.id === geofence.id
+            ? {
+                ...item,
+                coordinates: editingGeofenceSnapshot.map((point) => ({ ...point })),
+              }
+            : item,
+        ),
+      );
+    }
+
+    setEditingGeofenceSnapshot(null);
     setEditingGeofenceId((current) => (current === geofence.id ? null : current));
+    setRenamingGeofenceId((current) => (current === geofence.id ? null : current));
     setGeofenceDraftName(geofence.name);
   }
 
   function handleDeleteGeofence(id: number) {
     setGeofences((current) => current.filter((geofence) => geofence.id !== id));
     setEditingGeofenceId((current) => (current === id ? null : current));
+    setRenamingGeofenceId((current) => (current === id ? null : current));
+    setEditingGeofenceSnapshot((current) => (editingGeofenceId === id ? null : current));
     setEnteringGeofenceId((current) => (current === id ? null : current));
   }
 
@@ -268,11 +408,16 @@ export function AtlascopeShell() {
         geofences={geofences}
         drawingCoordinates={drawingGeofenceCoordinates}
         isDrawingGeofence={isDrawingGeofence}
+        editingGeofenceId={editingGeofenceId}
         activeLayers={activeLayers}
         selectedIncidentId={selectedIncident?.id ?? null}
         onSelectIncident={handleSelectIncident}
         onMapClick={handleAddGeofencePoint}
         onDrawingCoordinateUpdate={handleUpdateDrawingGeofencePoint}
+        onDrawingCoordinateRemove={handleRemoveDrawingGeofencePoint}
+        onEditingCoordinateAdd={handleAddEditingGeofencePoint}
+        onEditingCoordinateUpdate={handleUpdateEditingGeofencePoint}
+        onEditingCoordinateRemove={handleRemoveEditingGeofencePoint}
         theme={theme}
       />
 
@@ -452,6 +597,7 @@ export function AtlascopeShell() {
                   isDrawingGeofence={isDrawingGeofence}
                   drawingPointCount={drawingGeofenceCoordinates.length}
                   editingGeofenceId={editingGeofenceId}
+                  renamingGeofenceId={renamingGeofenceId}
                   draftName={geofenceDraftName}
                   enteringGeofenceId={enteringGeofenceId}
                   showRowActions={showGeofenceRowActions}
@@ -460,10 +606,21 @@ export function AtlascopeShell() {
                   onFinishDrawing={handleFinishDrawingGeofence}
                   onDraftNameChange={setGeofenceDraftName}
                   onStartEditing={handleStartEditingGeofence}
+                  onStartRenaming={handleStartRenamingGeofence}
                   onSaveEditing={handleSaveEditingGeofence}
                   onCancelEditing={handleCancelEditingGeofence}
                   onToggleRowActions={() =>
-                    setShowGeofenceRowActions((current) => !current)
+                    setShowGeofenceRowActions((current) => {
+                      const next = !current;
+
+                      if (!next) {
+                        setEditingGeofenceId(null);
+                        setRenamingGeofenceId(null);
+                        setEditingGeofenceSnapshot(null);
+                      }
+
+                      return next;
+                    })
                   }
                   onToggleEnabled={handleToggleGeofenceEnabled}
                   onRenameGeofence={handleRenameGeofence}

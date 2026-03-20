@@ -11,6 +11,7 @@ type GeofencePanelProps = {
   isDrawingGeofence: boolean;
   drawingPointCount: number;
   editingGeofenceId: number | null;
+  renamingGeofenceId: number | null;
   draftName: string;
   enteringGeofenceId: number | null;
   showRowActions: boolean;
@@ -19,6 +20,7 @@ type GeofencePanelProps = {
   onFinishDrawing: () => void;
   onDraftNameChange: (value: string) => void;
   onStartEditing: (geofence: Geofence) => void;
+  onStartRenaming: (geofence: Geofence) => void;
   onSaveEditing: (geofence: Geofence) => void;
   onCancelEditing: (geofence: Geofence) => void;
   onToggleRowActions: () => void;
@@ -33,6 +35,7 @@ export function GeofencePanel({
   isDrawingGeofence,
   drawingPointCount,
   editingGeofenceId,
+  renamingGeofenceId,
   draftName,
   enteringGeofenceId,
   showRowActions,
@@ -41,6 +44,7 @@ export function GeofencePanel({
   onFinishDrawing,
   onDraftNameChange,
   onStartEditing,
+  onStartRenaming,
   onSaveEditing,
   onCancelEditing,
   onToggleRowActions,
@@ -100,6 +104,9 @@ export function GeofencePanel({
     }, 180);
   }
 
+  const activeActionGeofenceId =
+    confirmingDeleteId ?? renamingGeofenceId ?? editingGeofenceId;
+
   return (
     <aside
       className={themeClasses(theme, {
@@ -157,15 +164,20 @@ export function GeofencePanel({
                 key={geofence.id}
                 theme={theme}
                 geofence={geofence}
-                isEditing={editingGeofenceId === geofence.id}
+                isEditing={renamingGeofenceId === geofence.id}
+                isSelectedForEditing={editingGeofenceId === geofence.id}
                 draftName={draftName}
                 isConfirmingDelete={confirmingDeleteId === geofence.id}
                 isEntering={enteringGeofenceId === geofence.id}
                 isExiting={exitingId === geofence.id}
-                showActions={showRowActions}
+                showActions={
+                  showRowActions &&
+                  (activeActionGeofenceId === null || activeActionGeofenceId === geofence.id)
+                }
                 onDraftNameChange={onDraftNameChange}
                 onToggleEnabled={() => onToggleEnabled(geofence.id)}
                 onStartEditing={() => handleStartEditing(geofence)}
+                onStartRenaming={() => onStartRenaming(geofence)}
                 onSaveEditing={() => handleSaveEditing(geofence)}
                 onCancelEditing={() => handleCancelEditing(geofence)}
                 onToggleDeleteConfirm={() =>
@@ -301,6 +313,7 @@ function GeofenceItem({
   theme,
   geofence,
   isEditing,
+  isSelectedForEditing,
   draftName,
   isConfirmingDelete,
   isEntering,
@@ -309,6 +322,7 @@ function GeofenceItem({
   onDraftNameChange,
   onToggleEnabled,
   onStartEditing,
+  onStartRenaming,
   onSaveEditing,
   onCancelEditing,
   onToggleDeleteConfirm,
@@ -318,6 +332,7 @@ function GeofenceItem({
   theme: ThemeMode;
   geofence: Geofence;
   isEditing: boolean;
+  isSelectedForEditing: boolean;
   draftName: string;
   isConfirmingDelete: boolean;
   isEntering: boolean;
@@ -326,6 +341,7 @@ function GeofenceItem({
   onDraftNameChange: (value: string) => void;
   onToggleEnabled: () => void;
   onStartEditing: () => void;
+  onStartRenaming: () => void;
   onSaveEditing: () => void;
   onCancelEditing: () => void;
   onToggleDeleteConfirm: () => void;
@@ -367,13 +383,19 @@ function GeofenceItem({
     };
   }, [isConfirmingDelete, onCancelDelete, onConfirmDelete]);
 
+  const isSaveCancelMode = isEditing || isConfirmingDelete || isSelectedForEditing;
+
   return (
     <div
       className={`${themeClasses(theme, {
         dark:
-          "overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out",
+          isSelectedForEditing
+            ? "overflow-hidden rounded-2xl border border-[#5BD3F5]/28 bg-[#5BD3F5]/[0.08] px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out"
+            : "overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out",
         light:
-          "overflow-hidden rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out",
+          isSelectedForEditing
+            ? "overflow-hidden rounded-2xl border border-[#1E63D5]/24 bg-[#1E63D5]/[0.08] px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out"
+            : "overflow-hidden rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3 transition-[background-color,border-color,transform,opacity] duration-200 ease-out",
       })} ${
         isEntering ? "atlascope-panel-item-enter" : ""
       } ${isExiting ? "atlascope-panel-item-exit pointer-events-none" : ""}`}
@@ -405,6 +427,24 @@ function GeofenceItem({
                   "h-10 w-full rounded-xl border border-[#3D464C]/12 bg-white/85 px-3 text-sm font-semibold text-[#1F2A30] outline-none placeholder:text-[#7A8790]",
               })}
             />
+          ) : showActions ? (
+            <button
+              type="button"
+              onClick={onStartRenaming}
+              aria-label={`Rename ${geofence.name}`}
+              className="flex min-h-10 w-full cursor-text select-text items-center px-1 text-left"
+            >
+              <span
+                className={themeClasses(theme, {
+                  dark:
+                    "truncate text-sm font-semibold text-white/86 transition-colors duration-200 hover:text-white",
+                  light:
+                    "truncate text-sm font-semibold text-[#1F2A30] transition-colors duration-200 hover:text-[#11191E]",
+                })}
+              >
+                {geofence.name}
+              </span>
+            </button>
           ) : (
             <div className="flex min-h-10 w-full items-center px-1 text-left">
               <span
@@ -421,20 +461,22 @@ function GeofenceItem({
 
         <div
           className={`origin-right overflow-hidden flex shrink-0 items-center gap-0.5 transition-[opacity,transform,max-width] duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            isEditing || isConfirmingDelete || showActions
+            isSaveCancelMode || showActions
               ? "max-w-[112px] translate-x-0 scale-100 opacity-100"
               : "pointer-events-none max-w-0 translate-x-0 scale-90 opacity-0"
           }`}
         >
-          {isEditing || isConfirmingDelete ? (
+          {isSaveCancelMode ? (
             <>
               <button
                 type="button"
-                onClick={isConfirmingDelete ? onConfirmDelete : onSaveEditing}
+                onClick={isConfirmingDelete || isSelectedForEditing ? onSaveEditing : onSaveEditing}
                 aria-label={
                   isConfirmingDelete
                     ? `Confirm delete ${geofence.name}`
-                    : `Save ${geofence.name}`
+                    : isSelectedForEditing && !isEditing
+                      ? `Save ${geofence.name} edits`
+                      : `Save ${geofence.name}`
                 }
                 className={themeClasses(theme, {
                   dark:
@@ -451,7 +493,9 @@ function GeofenceItem({
                 aria-label={
                   isConfirmingDelete
                     ? `Cancel delete ${geofence.name}`
-                    : `Cancel editing ${geofence.name}`
+                    : isSelectedForEditing && !isEditing
+                      ? `Cancel ${geofence.name} edits`
+                      : `Cancel editing ${geofence.name}`
                 }
                 className={themeClasses(theme, {
                   dark:
@@ -487,12 +531,16 @@ function GeofenceItem({
               <button
                 type="button"
                 onClick={onStartEditing}
-                aria-label={`Rename ${geofence.name}`}
+                aria-label={`${isSelectedForEditing ? "Stop editing" : "Edit"} ${geofence.name}`}
                 className={themeClasses(theme, {
                   dark:
-                    "flex size-7 items-center justify-center text-white/52 transition-colors duration-300 hover:text-white",
+                    isSelectedForEditing
+                      ? "flex size-7 items-center justify-center text-[#5BD3F5] transition-colors duration-300 hover:text-[#83E0FA]"
+                      : "flex size-7 items-center justify-center text-white/52 transition-colors duration-300 hover:text-white",
                   light:
-                    "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
+                    isSelectedForEditing
+                      ? "flex size-7 items-center justify-center text-[#1E63D5] transition-colors duration-300 hover:text-[#2E75EB]"
+                      : "flex size-7 items-center justify-center text-[#536068] transition-colors duration-300 hover:text-[#1F2A30]",
                 })}
               >
                 <RenamePenIcon />

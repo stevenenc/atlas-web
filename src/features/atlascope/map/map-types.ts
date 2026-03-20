@@ -43,6 +43,8 @@ export type MapContainerProps = {
   geofences: MapGeofenceData[];
   drawingCoordinates: MapCoordinates[];
   isDrawingGeofence: boolean;
+  editingCoordinates: MapCoordinates[];
+  isEditingGeofence: boolean;
   activeLayers: HazardLayerVisibility;
   selectedMarkerId: string | null;
   viewport: MapViewportState;
@@ -51,4 +53,8 @@ export type MapContainerProps = {
   onMarkerClick: (marker: MapMarkerData) => void;
   onMapClick: (coordinates: MapCoordinates) => void;
   onDrawingCoordinateUpdate: (index: number, coordinates: MapCoordinates) => void;
+  onDrawingCoordinateRemove: (index: number) => void;
+  onEditingCoordinateAdd: (coordinates: MapCoordinates) => void;
+  onEditingCoordinateUpdate: (index: number, coordinates: MapCoordinates) => void;
+  onEditingCoordinateRemove: (index: number) => void;
 };

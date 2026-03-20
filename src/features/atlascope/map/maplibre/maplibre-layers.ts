@@ -137,7 +137,7 @@ export function createGeofenceSourceData(
 
 export function createGeofenceLayers(theme: ThemeMode): LayerProps[] {
   const fillColor =
-    theme === "dark" ? "rgba(95, 211, 245, 0.14)" : "rgba(29, 140, 255, 0.12)";
+    theme === "dark" ? "rgba(95, 211, 245, 0.08)" : "rgba(29, 140, 255, 0.06)";
   const strokeColor = theme === "dark" ? "#5BD3F5" : "#1E63D5";
 
   return [
@@ -153,8 +153,8 @@ export function createGeofenceLayers(theme: ThemeMode): LayerProps[] {
       type: "line",
       paint: {
         "line-color": strokeColor,
-        "line-width": 2,
-        "line-opacity": 0.95,
+        "line-width": 1.3,
+        "line-opacity": theme === "dark" ? 0.62 : 0.5,
       },
     },
   ];
@@ -162,7 +162,17 @@ export function createGeofenceLayers(theme: ThemeMode): LayerProps[] {
 
 export function createDraftGeofenceLineSourceData(
   coordinates: MapGeofenceData["coordinates"],
+  closePath = false,
 ): FeatureCollection<LineString> {
+  const lineCoordinates = coordinates.map((coordinate) => [
+    coordinate.longitude,
+    coordinate.latitude,
+  ]);
+  const closedLineCoordinates =
+    closePath && lineCoordinates.length >= 3
+      ? [...lineCoordinates, lineCoordinates[0] as [number, number]]
+      : lineCoordinates;
+
   return {
     type: "FeatureCollection",
     features: coordinates.length >= 2
@@ -171,10 +181,7 @@ export function createDraftGeofenceLineSourceData(
             type: "Feature",
             geometry: {
               type: "LineString",
-              coordinates: coordinates.map((coordinate) => [
-                coordinate.longitude,
-                coordinate.latitude,
-              ]),
+              coordinates: closedLineCoordinates,
             },
             properties: {},
           },
