@@ -1,6 +1,5 @@
-import type { ThemeMode } from "@/features/atlascope/config/theme";
+import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import { getMapTheme } from "@/features/atlascope/map/map-theme";
 import { getZoomInterpolatedNumber } from "@/features/atlascope/map/map-style-config";
 import { roadClassFilters } from "@/features/atlascope/map/map-roads";
 import type { MapLayerDefinition } from "@/features/atlascope/map/map-provider";
@@ -42,7 +41,7 @@ export function createRoadLabelLayerDefinitions(
       paint: {
         "text-color": colors.roads.majorLabel,
         "text-halo-color": colors.roads.halo,
-        "text-halo-width": theme === "dark" ? 1.15 : 1.3,
+        "text-halo-width": theme === "dark" ? 1.15 : 0.92,
         "text-opacity": getZoomInterpolatedNumber(zoom.labels.majorRoadOpacity),
       },
     },
@@ -74,7 +73,7 @@ export function createRoadLabelLayerDefinitions(
       paint: {
         "text-color": colors.roads.localLabel,
         "text-halo-color": colors.roads.halo,
-        "text-halo-width": theme === "dark" ? 1.05 : 1.2,
+        "text-halo-width": theme === "dark" ? 1.05 : 0.84,
         "text-opacity": getZoomInterpolatedNumber(zoom.labels.localRoadOpacity),
       },
     },

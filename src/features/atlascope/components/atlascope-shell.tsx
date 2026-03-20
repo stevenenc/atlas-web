@@ -8,7 +8,12 @@ import {
   PanelHeader,
   usePanelManager,
 } from "@/features/atlascope/components/panel-system";
-import { themeClasses, type ThemeMode } from "@/features/atlascope/config/theme";
+import {
+  atlasUi,
+  cx,
+  layerRows,
+  type ThemeMode,
+} from "@/features/atlascope/config/theme";
 import { TimelineControlBar } from "@/features/atlascope/components/timeline-control-bar";
 import { mockGeofences } from "@/features/atlascope/data/mock-geofences";
 import { incidents } from "@/features/atlascope/data/mock-incidents";
@@ -31,16 +36,6 @@ const initialLayers: Record<IncidentType, boolean> = {
   wildfire: true,
   air_quality: true,
 };
-
-const layerRows: Array<{
-  id: IncidentType;
-  label: string;
-  color: string;
-}> = [
-  { id: "earthquake", label: "Earthquake", color: "#F97316" },
-  { id: "wildfire", label: "Wildfire", color: "#EF4444" },
-  { id: "air_quality", label: "Air Quality", color: "#D8B11E" },
-];
 
 type OverlayPanelId = "search" | "user" | "layers" | "geofences";
 const PLAYBACK_DURATION_MS = 18_000;
@@ -632,12 +627,8 @@ export function AtlascopeShell() {
 
   return (
     <main
-      className={themeClasses(theme, {
-        dark:
-          "relative min-h-screen overflow-hidden bg-[#12171A] text-white transition-colors duration-500 ease-out",
-        light:
-          "relative min-h-screen overflow-hidden bg-[#D9DEE0] text-[#1F2A30] transition-colors duration-500 ease-out",
-      })}
+      data-atlascope-theme={theme}
+      className={atlasUi.layout.shell}
     >
       <MapView
         incidents={incidents}
@@ -669,126 +660,64 @@ export function AtlascopeShell() {
           >
             <div className="relative min-h-[192px] w-[320px]">
               <BasePanel
-                theme={theme}
                 isOpen={isPanelOpen("search")}
                 ariaLabel="Search panel"
                 variant="compact"
                 widthClassName="w-[272px]"
               >
-                <PanelHeader theme={theme} eyebrow="Search" />
+                <PanelHeader eyebrow="Search" />
 
-                <div
-                  className={themeClasses(theme, {
-                    dark:
-                      "mt-5 flex w-full items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3",
-                    light:
-                      "mt-5 flex w-full items-center gap-3 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3",
-                  })}
-                >
-                  <div
-                    className={themeClasses(theme, {
-                      dark: "flex size-5 items-center justify-center text-white/56",
-                      light: "flex size-5 items-center justify-center text-[#607078]",
-                    })}
-                  >
+                <div className={cx("mt-5 flex w-full items-center gap-3 px-4 py-3", atlasUi.surfaces.card)}>
+                  <div className="flex size-5 items-center justify-center text-atlas-muted">
                     <SearchIcon />
                   </div>
                   <input
                     type="text"
                     placeholder="Search region or hazard"
-                    className={themeClasses(theme, {
-                      dark:
-                        "w-full bg-transparent text-sm text-white/78 outline-none placeholder:text-white/42",
-                      light:
-                        "w-full bg-transparent text-sm text-[#536068] outline-none placeholder:text-[#7A8790]",
-                    })}
+                    className="w-full bg-transparent text-sm text-atlas-ink outline-none placeholder:text-atlas-soft"
                   />
                 </div>
               </BasePanel>
 
-              <BasePanel theme={theme} isOpen={isPanelOpen("user")} ariaLabel="User panel">
-                <Section title="User" theme={theme}>
+              <BasePanel isOpen={isPanelOpen("user")} ariaLabel="User panel">
+                <Section title="User">
                   <ControlRow
-                    theme={theme}
                     label="Steven Encarnacion"
                     detail="Premium account"
-                    control={
-                      <span
-                        className={themeClasses(theme, {
-                          dark:
-                            "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2F3C47] to-[#121A20] text-sm font-semibold text-white",
-                          light:
-                            "flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#36454F] to-[#11181D] text-sm font-semibold text-white",
-                        })}
-                      >
-                        SE
-                      </span>
-                    }
+                    control={<span className={atlasUi.chips.avatar}>SE</span>}
                   />
                 </Section>
 
-                <Section title="Utilities" theme={theme} className="mt-5">
+                <Section title="Utilities" className="mt-5">
                   <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      className={themeClasses(theme, {
-                        dark:
-                          "flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
-                        light:
-                          "flex items-center justify-center gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-3 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
-                      })}
-                    >
-                      <span
-                        className={themeClasses(theme, {
-                          dark:
-                            "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
-                          light:
-                            "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
-                        })}
-                      >
+                    <button type="button" className={atlasUi.buttons.utility}>
+                      <span className={atlasUi.chips.icon}>
                         <ToolIcon />
                       </span>
-                      <span className="text-xs font-semibold uppercase tracking-[0.14em]">
-                        Settings
-                      </span>
+                      <span className={atlasUi.text.controlLabel}>Settings</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-                      className={themeClasses(theme, {
-                        dark:
-                          "flex items-center justify-start gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-white/78 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white",
-                        light:
-                          "flex items-center justify-start gap-2 rounded-2xl border border-[#3D464C]/10 bg-white/70 px-5 py-3 text-[#536068] transition-colors duration-300 hover:bg-white hover:text-[#1F2A30]",
-                      })}
+                      className={atlasUi.buttons.utilityStart}
                     >
-                      <span
-                        className={themeClasses(theme, {
-                          dark:
-                            "flex size-8 items-center justify-center rounded-xl bg-[#E7ECF0] text-[#152026]",
-                          light:
-                            "flex size-8 items-center justify-center rounded-xl bg-[#1D2830] text-[#F2F5F7]",
-                        })}
-                      >
+                      <span className={atlasUi.chips.icon}>
                         {theme === "dark" ? <MoonIcon /> : <SunIcon />}
                       </span>
-                      <span className="text-xs font-semibold uppercase tracking-[0.14em]">
-                        {theme}
-                      </span>
+                      <span className={atlasUi.text.controlLabel}>{theme}</span>
                     </button>
                   </div>
                 </Section>
               </BasePanel>
 
-              <BasePanel theme={theme} isOpen={isPanelOpen("layers")} ariaLabel="Layers panel">
-                <PanelHeader theme={theme} eyebrow="Hazard Layers" />
+              <BasePanel isOpen={isPanelOpen("layers")} ariaLabel="Layers panel">
+                <PanelHeader eyebrow="Hazard Layers" />
 
                 <div className="mt-5 space-y-2">
                   {layerRows.map((layer) => (
                     <LayerRow
                       key={layer.id}
-                      theme={theme}
                       label={layer.label}
                       color={layer.color}
                       active={activeLayers[layer.id]}
@@ -799,7 +728,6 @@ export function AtlascopeShell() {
               </BasePanel>
 
               <GeofencePanel
-                theme={theme}
                 isOpen={isPanelOpen("geofences")}
                 geofences={geofences}
                 selectedGeofenceId={selectedGeofenceId}
@@ -840,7 +768,6 @@ export function AtlascopeShell() {
 
             <div className="flex flex-col items-end gap-3">
               <OverlayRailButton
-                theme={theme}
                 isPressed={isPanelOpen("search")}
                 onClick={() => togglePanel("search")}
                 ariaLabel="Open search panel"
@@ -849,7 +776,6 @@ export function AtlascopeShell() {
               </OverlayRailButton>
 
               <OverlayRailButton
-                theme={theme}
                 isPressed={isPanelOpen("user")}
                 onClick={() => togglePanel("user")}
                 ariaLabel="Open user panel"
@@ -858,7 +784,6 @@ export function AtlascopeShell() {
               </OverlayRailButton>
 
               <OverlayRailButton
-                theme={theme}
                 isPressed={isPanelOpen("layers")}
                 onClick={() => togglePanel("layers")}
                 ariaLabel="Open hazard layers"
@@ -866,11 +791,13 @@ export function AtlascopeShell() {
                 <LayersIcon />
               </OverlayRailButton>
 
-              <GeofenceButton
-                theme={theme}
+              <OverlayRailButton
                 isPressed={isPanelOpen("geofences")}
                 onClick={() => togglePanel("geofences")}
-              />
+                ariaLabel="Open geofence panel"
+              >
+                <GeofenceIcon />
+              </OverlayRailButton>
             </div>
           </div>
         </div>
@@ -880,13 +807,12 @@ export function AtlascopeShell() {
             incident={visibleSelectedIncident}
             isLoading={isPanelLoading}
             onClose={handleClosePanel}
-            theme={theme}
           />
         </div>
 
         <div
-          className={`absolute bottom-6 left-6 right-6 z-30 flex justify-center transition-[padding] duration-300 ease-out ${
-            shouldOffsetTimeline ? "lg:pr-[25rem]" : ""
+          className={`absolute bottom-6 left-6 right-6 z-30 flex justify-center atlas-transition-panel ${
+            shouldOffsetTimeline ? atlasUi.layout.timelineOffset : ""
           }`}
         >
           <TimelineControlBar
@@ -900,7 +826,6 @@ export function AtlascopeShell() {
             onPlayPause={handleTimelinePlayPause}
             onTimeChange={handleTimelineTimeChange}
             onInteractionChange={setIsTimelineInteracting}
-            theme={theme}
           />
         </div>
       </div>
@@ -910,38 +835,27 @@ export function AtlascopeShell() {
 
 function Section({
   title,
-  theme,
   className,
   children,
 }: {
   title: string;
-  theme: ThemeMode;
   className?: string;
   children: ReactNode;
 }) {
   return (
     <section className={className}>
-      <p
-        className={themeClasses(theme, {
-          dark: "px-1 text-[10px] font-semibold tracking-[0.24em] text-white/30 uppercase",
-          light: "px-1 text-[10px] font-semibold tracking-[0.24em] text-[#607078] uppercase",
-        })}
-      >
-        {title}
-      </p>
+      <p className={cx("px-1", atlasUi.text.eyebrow)}>{title}</p>
       <div className="mt-2 space-y-2">{children}</div>
     </section>
   );
 }
 
 function ControlRow({
-  theme,
   label,
   detail,
   control,
   onClick,
 }: {
-  theme: ThemeMode;
   label: string;
   detail: string;
   control: ReactNode;
@@ -951,30 +865,15 @@ function ControlRow({
     <button
       type="button"
       onClick={onClick}
-      className={themeClasses(theme, {
-        dark:
-          "flex min-h-[88px] w-full items-center justify-between gap-4 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left transition-colors duration-300 hover:bg-white/[0.05]",
-        light:
-          "flex min-h-[88px] w-full items-center justify-between gap-4 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-3 text-left transition-colors duration-300 hover:bg-white/72",
-      })}
+      className={cx(
+        "flex min-h-[88px] w-full items-center justify-between gap-4 px-4 py-3 text-left",
+        atlasUi.surfaces.interactiveCard,
+        atlasUi.surfaces.interactiveCardHover,
+      )}
     >
       <div className="min-w-0">
-        <p
-          className={themeClasses(theme, {
-            dark: "text-sm font-semibold text-white/86",
-            light: "text-sm font-semibold text-[#1F2A30]",
-          })}
-        >
-          {label}
-        </p>
-        <p
-          className={themeClasses(theme, {
-            dark: "mt-1 text-xs leading-5 text-white/46",
-            light: "mt-1 text-xs leading-5 text-[#607078]",
-          })}
-        >
-          {detail}
-        </p>
+        <p className={atlasUi.text.label}>{label}</p>
+        <p className={cx("mt-1", atlasUi.text.meta)}>{detail}</p>
       </div>
       <div className="shrink-0">{control}</div>
     </button>
@@ -982,13 +881,11 @@ function ControlRow({
 }
 
 function LayerRow({
-  theme,
   label,
   color,
   active,
   onClick,
 }: {
-  theme: ThemeMode;
   label: string;
   color: string;
   active: boolean;
@@ -998,12 +895,11 @@ function LayerRow({
     <button
       type="button"
       onClick={onClick}
-      className={themeClasses(theme, {
-        dark:
-          "grid w-full grid-cols-[minmax(0,1fr)_76px] items-center gap-4 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-2.5 text-left outline-none transition-[background-color,border-color,transform,box-shadow] duration-300 ease-out hover:bg-white/[0.05] active:scale-[0.995]",
-        light:
-          "grid w-full grid-cols-[minmax(0,1fr)_76px] items-center gap-4 rounded-2xl border border-[#3D464C]/10 bg-white/44 px-4 py-2.5 text-left outline-none transition-[background-color,border-color,transform,box-shadow] duration-300 ease-out hover:bg-white/72 active:scale-[0.995]",
-      })}
+      className={cx(
+        "grid w-full grid-cols-[minmax(0,1fr)_76px] items-center gap-4 px-4 py-2.5 text-left outline-none active:scale-[0.995]",
+        atlasUi.surfaces.interactiveCard,
+        atlasUi.surfaces.interactiveCardHover,
+      )}
     >
       <div className="flex min-w-0 items-center gap-3">
         <span
@@ -1014,36 +910,25 @@ function LayerRow({
             opacity: active ? 1 : 0.35,
           }}
         />
-        <span
-          className={themeClasses(theme, {
-            dark: "text-sm font-semibold text-white/86",
-            light: "text-sm font-semibold text-[#1F2A30]",
-          })}
-        >
-          {label}
-        </span>
+        <span className={atlasUi.text.label}>{label}</span>
       </div>
       <div className="flex h-full min-h-[52px] w-[76px] items-center justify-center">
         <span
-          className="relative inline-flex h-7 w-12 items-center rounded-full border px-0.5 transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          className="relative inline-flex h-7 w-12 items-center rounded-full border px-0.5 atlas-transition-quick"
           style={{
             borderColor: active
               ? `${color}88`
-              : theme === "dark"
-                ? "rgba(255,255,255,0.08)"
-                : "rgba(61,70,76,0.16)",
+              : "var(--atlas-color-card-border)",
             backgroundColor: active
               ? `${color}24`
-              : theme === "dark"
-                ? "rgba(255,255,255,0.04)"
-                : "rgba(214,221,226,0.9)",
+              : "var(--atlas-color-timeline-play)",
           }}
         >
           <span
-            className="absolute left-0.5 top-0.5 size-5 rounded-full transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] transform-gpu"
+            className="absolute left-0.5 top-0.5 size-5 rounded-full transform-gpu atlas-transition-quick"
             style={{
               transform: `translateX(${active ? "20px" : "0px"})`,
-              backgroundColor: active ? color : theme === "dark" ? "#8F9AA1" : "#75818A",
+              backgroundColor: active ? color : "var(--atlas-color-muted)",
               boxShadow: active ? `0 0 12px ${color}44` : "none",
             }}
           />
@@ -1054,13 +939,11 @@ function LayerRow({
 }
 
 function OverlayRailButton({
-  theme,
   isPressed,
   onClick,
   ariaLabel,
   children,
 }: {
-  theme: ThemeMode;
   isPressed: boolean;
   onClick: () => void;
   ariaLabel: string;
@@ -1070,44 +953,17 @@ function OverlayRailButton({
     <button
       type="button"
       onClick={onClick}
-      className={`${themeClasses(theme, {
-        dark:
-          "flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-[rgba(11,16,19,0.82)] text-white/78 shadow-[0_20px_50px_rgba(0,0,0,0.24)] backdrop-blur-md outline-none ring-0 transition-colors duration-200 hover:bg-white/[0.08] hover:text-white focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
-        light:
-          "flex size-12 items-center justify-center rounded-2xl border border-[#3D464C]/12 bg-[rgba(243,245,246,0.9)] text-[#536068] shadow-[0_18px_40px_rgba(68,79,88,0.14)] backdrop-blur-md outline-none ring-0 transition-colors duration-200 hover:bg-white hover:text-[#1F2A30] focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
-      })} ${
-        isPressed
-          ? theme === "dark"
-            ? "border-white/18 bg-white/[0.12] text-white shadow-[0_16px_36px_rgba(0,0,0,0.28)]"
-            : "border-[#3D464C]/18 bg-white text-[#1F2A30] shadow-[0_14px_28px_rgba(68,79,88,0.18)]"
-          : ""
-      }`}
+      className={cx(
+        "flex size-12 items-center justify-center outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
+        atlasUi.surfaces.rail,
+        isPressed &&
+          "border-atlas-rail-active-border bg-atlas-rail-active text-atlas-ink shadow-atlas-rail-active",
+      )}
       aria-label={ariaLabel}
       aria-pressed={isPressed}
     >
       {children}
     </button>
-  );
-}
-
-function GeofenceButton({
-  theme,
-  isPressed,
-  onClick,
-}: {
-  theme: ThemeMode;
-  isPressed: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <OverlayRailButton
-      theme={theme}
-      isPressed={isPressed}
-      onClick={onClick}
-      ariaLabel="Open geofence panel"
-    >
-      <GeofenceIcon />
-    </OverlayRailButton>
   );
 }
 

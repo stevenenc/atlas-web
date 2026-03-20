@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { atlasUi } from "@/features/atlascope/config/theme";
+
 type GeoFenceCardProps = {
   id: string;
   name: string;
@@ -16,13 +18,13 @@ export function GeoFenceCard({
   return (
     <Link
       href={`/geofences/${id}`}
-      className="block rounded-2xl border p-4 hover:bg-gray-50"
+      className={atlasUi.page.linkCard}
     >
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">{name}</h3>
-        <p className="text-sm text-gray-600">ID: {id}</p>
-        <p className="text-sm text-gray-600">User: {userId}</p>
-        <p className="text-sm text-gray-600">Updated: {updatedAtUtc}</p>
+        <h3 className={atlasUi.text.heading}>{name}</h3>
+        <p className={atlasUi.text.muted}>ID: {id}</p>
+        <p className={atlasUi.text.muted}>User: {userId}</p>
+        <p className={atlasUi.text.muted}>Updated: {updatedAtUtc}</p>
       </div>
     </Link>
   );

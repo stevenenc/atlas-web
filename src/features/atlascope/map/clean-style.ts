@@ -1,6 +1,5 @@
-import type { ThemeMode } from "@/features/atlascope/config/theme";
+import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import { getMapTheme } from "@/features/atlascope/map/map-theme";
 import {
   getZoomInterpolatedColor,
   getZoomInterpolatedNumber,
@@ -92,7 +91,7 @@ function restyleBaseLayer(layer: MapLayerDefinition, theme: ThemeMode): MapLayer
           "raster-opacity":
             theme === "dark"
               ? ["interpolate", ["linear"], ["zoom"], 0, 0.04, 6, 0.02]
-              : ["interpolate", ["linear"], ["zoom"], 0, 0.03, 6, 0.015],
+              : ["interpolate", ["linear"], ["zoom"], 0, 0.018, 6, 0.008],
         },
       };
     case "water":

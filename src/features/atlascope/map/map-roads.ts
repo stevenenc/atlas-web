@@ -1,6 +1,5 @@
-import type { ThemeMode } from "@/features/atlascope/config/theme";
+import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import { getMapTheme } from "@/features/atlascope/map/map-theme";
 import { getZoomInterpolatedNumber } from "@/features/atlascope/map/map-style-config";
 import type { MapLayerDefinition } from "@/features/atlascope/map/map-provider";
 

@@ -1,13 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { themeClasses, type ThemeMode } from "@/features/atlascope/config/theme";
+import { atlasUi, cx } from "@/features/atlascope/config/theme";
 import { formatTimelineTime } from "@/features/atlascope/lib/incident-timeline";
 
 type TimelineControlBarProps = {
@@ -34,8 +29,7 @@ export function TimelineControlBar({
   onPlayPause,
   onTimeChange,
   onInteractionChange,
-  theme,
-}: TimelineControlBarProps & { theme: ThemeMode }) {
+}: TimelineControlBarProps) {
   const bubbleWidth = 92;
   const bubbleSidePadding = 12;
   const bubbleArrowInset = 12;
@@ -137,12 +131,10 @@ export function TimelineControlBar({
 
   return (
     <div
-      className={themeClasses(theme, {
-        dark:
-          "pointer-events-auto w-full max-w-[840px] rounded-[28px] border border-white/10 bg-[rgba(10,15,19,0.72)] px-3 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:px-4",
-        light:
-          "pointer-events-auto w-full max-w-[840px] rounded-[28px] border border-[#3D464C]/12 bg-[rgba(244,247,248,0.74)] px-3 py-3 shadow-[0_18px_42px_rgba(68,79,88,0.16)] backdrop-blur-xl sm:px-4",
-      })}
+      className={cx(
+        "pointer-events-auto w-full max-w-[840px] px-3 py-3 sm:px-4",
+        atlasUi.surfaces.timeline,
+      )}
     >
       <div className="flex flex-col gap-2.5">
         <div
@@ -216,17 +208,12 @@ export function TimelineControlBar({
             <div className="flex items-start pt-1">
               <div
                 aria-hidden="true"
-                className={themeClasses(theme, {
-                  dark:
-                    "relative flex h-[38px] w-[92px] items-center justify-center rounded-[16px] border border-[#7EDCFA]/35 bg-[#5BD3F5] px-2.5 text-center text-[8px] font-semibold tracking-[0.12em] text-[#08202B] uppercase shadow-[0_8px_20px_rgba(17,97,124,0.24)]",
-                  light:
-                    "relative flex h-[38px] w-[92px] items-center justify-center rounded-[16px] border border-[#4EBEDC]/28 bg-[#5BD3F5] px-2.5 text-center text-[8px] font-semibold tracking-[0.12em] text-[#08303D] uppercase shadow-[0_8px_18px_rgba(48,127,152,0.16)]",
-                })}
+                className="relative flex h-[38px] w-[92px] items-center justify-center rounded-[16px] border border-atlas-primary bg-atlas-primary px-2.5 text-center text-[8px] font-semibold tracking-[0.12em] text-atlas-primary-strong-ink shadow-atlas-bubble"
               >
                 <span className="whitespace-nowrap leading-none">{formatTimelineTime(currentTimeMs)}</span>
                 <span
                   style={bubbleArrowStyle}
-                  className="absolute top-full size-3 -translate-x-1/2 -translate-y-[70%] rotate-45 border-b border-r border-[#4EBEDC]/28 bg-[#5BD3F5]"
+                  className="absolute top-full size-3 -translate-x-1/2 -translate-y-[70%] rotate-45 border-b border-r border-atlas-primary bg-atlas-primary"
                 />
               </div>
             </div>
@@ -234,10 +221,7 @@ export function TimelineControlBar({
 
           <div
             ref={trackRef}
-            className={themeClasses(theme, {
-              dark: "absolute top-[52px] h-1.5 rounded-full bg-[#B9EAF8]/24",
-              light: "absolute top-[52px] h-1.5 rounded-full bg-[#B9EAF8]/72",
-            })}
+            className="absolute top-[52px] h-1.5 rounded-full bg-atlas-timeline-track"
             style={{
               left: `${thumbSafeInset}px`,
               right: `${thumbSafeInset}px`,
@@ -258,31 +242,16 @@ export function TimelineControlBar({
             type="button"
             onClick={onPlayPause}
             aria-label={isPlaying ? "Pause timeline playback" : "Start timeline playback"}
-            className={themeClasses(theme, {
-              dark:
-                "flex size-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-white/84 transition-colors duration-200 hover:bg-white/[0.1] hover:text-white",
-              light:
-                "flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[#3D464C]/10 bg-white/70 text-[#233038] transition-colors duration-200 hover:bg-white hover:text-[#11191E]",
-            })}
+            className={atlasUi.buttons.timelinePlay}
           >
             {isPlaying ? <PauseIcon /> : <PlayIcon />}
           </button>
 
           <div className="min-w-0 flex-1 text-right">
-            <p
-              className={themeClasses(theme, {
-                dark: "text-[11px] font-semibold tracking-[0.16em] text-white/56 uppercase",
-                light: "text-[11px] font-semibold tracking-[0.16em] text-[#53636C] uppercase",
-              })}
-            >
+            <p className="text-[11px] font-semibold tracking-[0.16em] text-atlas-muted uppercase">
               {activeIncidentCount} active <span className="mx-1 text-current/60">•</span> {trackedIncidentCount} tracked
             </p>
-            <p
-              className={themeClasses(theme, {
-                dark: "mt-1 text-sm font-medium text-white/82",
-                light: "mt-1 text-sm font-medium text-[#223038]",
-              })}
-            >
+            <p className="mt-1 text-sm font-medium text-atlas-ink">
               {currentDateLabel}
             </p>
           </div>

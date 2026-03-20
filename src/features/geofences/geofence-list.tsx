@@ -1,4 +1,5 @@
 import { GeoFenceCard } from "@/shared/components/geofence-card";
+import { atlasUi } from "@/features/atlascope/config/theme";
 import type { GeoFenceDto } from "@/lib/api";
 
 type GeoFenceListProps = {
@@ -8,7 +9,7 @@ type GeoFenceListProps = {
 export function GeoFenceList({ geofences }: GeoFenceListProps) {
   if (geofences.length === 0) {
     return (
-      <div className="rounded-2xl border p-6 text-sm text-gray-600">
+      <div className={atlasUi.page.empty}>
         No geofences found.
       </div>
     );

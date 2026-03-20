@@ -1,8 +1,11 @@
 import type { FeatureCollection, LineString, Point, Polygon } from "geojson";
 import type { LayerProps } from "react-map-gl/maplibre";
 
-import type { ThemeMode } from "@/features/atlascope/config/theme";
-import { getMapTheme } from "@/features/atlascope/map/map-theme";
+import {
+  getHazardTheme,
+  getMapTheme,
+  type ThemeMode,
+} from "@/features/atlascope/config/theme";
 import type {
   HazardLayerType,
   MapGeofenceData,
@@ -18,22 +21,6 @@ type HazardFeatureProperties = {
 type GeofenceFeatureProperties = {
   id: string;
   title: string;
-};
-
-const layerColors: Record<
-  ThemeMode,
-  Record<HazardLayerType, { glow: string; core: string }>
-> = {
-  dark: {
-    earthquake: { glow: "rgba(249, 115, 22, 0.18)", core: "#F97316" },
-    wildfire: { glow: "rgba(239, 68, 68, 0.18)", core: "#EF4444" },
-    air_quality: { glow: "rgba(234, 179, 8, 0.18)", core: "#EAB308" },
-  },
-  light: {
-    earthquake: { glow: "rgba(249, 115, 22, 0.12)", core: "#F97316" },
-    wildfire: { glow: "rgba(239, 68, 68, 0.12)", core: "#EF4444" },
-    air_quality: { glow: "rgba(234, 179, 8, 0.12)", core: "#EAB308" },
-  },
 };
 
 export function createHazardSourceData(
@@ -57,9 +44,9 @@ export function createHazardSourceData(
 }
 
 export function createHazardLayers(theme: ThemeMode): LayerProps[] {
-  return (Object.keys(layerColors[theme]) as HazardLayerType[]).flatMap(
+  return (["earthquake", "wildfire", "air_quality"] as HazardLayerType[]).flatMap(
     (layerType) => {
-      const palette = layerColors[theme][layerType];
+      const palette = getHazardTheme(layerType);
       const filter: ["==", ["get", "layerType"], HazardLayerType] = [
         "==",
         ["get", "layerType"],
@@ -73,7 +60,7 @@ export function createHazardLayers(theme: ThemeMode): LayerProps[] {
           filter,
           paint: {
             "circle-radius": 28,
-            "circle-color": palette.glow,
+            "circle-color": palette.glow[theme],
             "circle-blur": 0.72,
           },
         },
@@ -83,7 +70,7 @@ export function createHazardLayers(theme: ThemeMode): LayerProps[] {
           filter,
           paint: {
             "circle-radius": 9,
-            "circle-color": palette.core,
+            "circle-color": palette.accent,
             "circle-stroke-width": 1.5,
             "circle-stroke-color":
               theme === "dark" ? "rgba(255,255,255,0.22)" : "rgba(43,37,28,0.12)",

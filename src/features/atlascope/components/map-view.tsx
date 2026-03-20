@@ -2,12 +2,10 @@
 
 import { useMemo, useState } from "react";
 
-import { themeClasses } from "@/features/atlascope/config/theme";
-import type { ThemeMode } from "@/features/atlascope/config/theme";
+import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { isIncidentActiveAtTime } from "@/features/atlascope/lib/incident-timeline";
 import { resolveMapAdapter } from "@/features/atlascope/map/map-adapter";
 import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import { getMapTheme } from "@/features/atlascope/map/map-theme";
 import type { MapGeofenceData, MapMarkerData } from "@/features/atlascope/map/map-types";
 import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 import type { Incident, IncidentType } from "@/features/atlascope/types/atlascope";
@@ -110,10 +108,7 @@ export function MapView({
 
   return (
     <div
-      className={themeClasses(theme, {
-        dark: "relative h-screen w-full overflow-hidden transition-colors duration-500 ease-out",
-        light: "relative h-screen w-full overflow-hidden transition-colors duration-500 ease-out",
-      })}
+      className="relative h-screen w-full overflow-hidden atlas-transition-theme"
       style={{ backgroundColor: mapTheme.overlays.containerSurface }}
     >
       <div className="absolute inset-0">

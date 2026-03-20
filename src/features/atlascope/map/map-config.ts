@@ -1,51 +1,37 @@
-import type { ThemeMode } from "@/features/atlascope/config/theme";
+import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 
 import {
   MAP_PROVIDER,
   type MapStyleDefinition,
   type MapProviderId,
 } from "@/features/atlascope/map/map-provider";
-import { getMapTheme } from "@/features/atlascope/map/map-theme";
 import type { MapStyleConfig, MapViewportState } from "@/features/atlascope/map/map-types";
 
 const darkTheme = getMapTheme("dark").colors;
 const lightTheme = getMapTheme("light").colors;
 
-const darkFallbackStyle: MapStyleDefinition = {
-  version: 8,
-  transition: {
-    duration: 280,
-    delay: 0,
-  },
-  sources: {},
-  layers: [
-    {
+function createFallbackStyle(backgroundColor: string): MapStyleDefinition {
+  return {
+    version: 8,
+    transition: {
+      duration: 280,
+      delay: 0,
+    },
+    sources: {},
+    layers: [
+      {
         id: "atlascope-background",
         type: "background",
         paint: {
-          "background-color": darkTheme.land.zoomedOut,
+          "background-color": backgroundColor,
         },
       },
     ],
-};
+  };
+}
 
-const lightFallbackStyle: MapStyleDefinition = {
-  version: 8,
-  transition: {
-    duration: 280,
-    delay: 0,
-  },
-  sources: {},
-  layers: [
-    {
-        id: "atlascope-background",
-        type: "background",
-        paint: {
-          "background-color": lightTheme.land.zoomedOut,
-        },
-      },
-    ],
-};
+const darkFallbackStyle = createFallbackStyle(darkTheme.land.zoomedOut);
+const lightFallbackStyle = createFallbackStyle(lightTheme.land.zoomedOut);
 
 export const OPEN_FREEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 

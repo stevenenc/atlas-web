@@ -808,7 +808,6 @@ export const MapLibreMap = memo(function MapLibreMap({
             isVisible={activeLayers[marker.layerType]}
             isInteractive={!hasActiveGeofenceEdit}
             onClick={onMarkerClick}
-            theme={theme}
           />
         ))}
       </Map>
@@ -817,14 +816,10 @@ export const MapLibreMap = memo(function MapLibreMap({
         <div className="pointer-events-none absolute inset-x-0 bottom-28 flex justify-center">
           <div
             ref={trashTargetRef}
-            className={`flex size-[72px] items-center justify-center rounded-[28px] border transition-all duration-200 ${
+            className={`flex size-[72px] items-center justify-center rounded-atlas-compact border atlas-transition-quick ${
               isTrashTargetActive
-                ? theme === "dark"
-                  ? "scale-110 border-[#FF7C66]/60 bg-[rgba(132,26,14,0.88)] text-[#FFD9D2] shadow-[0_18px_40px_rgba(132,26,14,0.36)]"
-                  : "scale-110 border-[#D44A34]/34 bg-[rgba(160,34,12,0.92)] text-[#FFF1ED] shadow-[0_18px_40px_rgba(148,45,24,0.26)]"
-                : theme === "dark"
-                  ? "border-white/12 bg-[rgba(11,16,19,0.82)] text-white/62 shadow-[0_18px_40px_rgba(0,0,0,0.24)]"
-                  : "border-[#3D464C]/12 bg-[rgba(243,245,246,0.88)] text-[#5A6972] shadow-[0_18px_40px_rgba(68,79,88,0.16)]"
+                ? "scale-110 border-atlas-trash-active-border bg-atlas-trash-active text-atlas-trash-active-ink shadow-atlas-trash-active"
+                : "border-atlas-trash-border bg-atlas-trash text-atlas-trash-ink shadow-atlas-trash"
             } ${isDraggingPoint ? "opacity-100" : "opacity-78"}`}
           >
             <TrashTargetIcon />

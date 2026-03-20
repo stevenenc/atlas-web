@@ -1,15 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0b0f14;
-  --foreground: #f3f4f6;
+  --background: var(--atlas-background);
+  --foreground: var(--atlas-foreground);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
-  --font-mono: "SFMono-Regular", "SF Mono", "Consolas", monospace;
+  --color-background: var(--atlas-background);
+  --color-foreground: var(--atlas-foreground);
+  --color-atlas-shell: var(--atlas-color-shell);
+  --color-atlas-ink: var(--atlas-color-ink);
+  --color-atlas-muted: var(--atlas-color-muted);
+  --color-atlas-soft: var(--atlas-color-soft);
+  --color-atlas-eyebrow: var(--atlas-color-eyebrow);
+  --color-atlas-panel: var(--atlas-color-panel);
+  --color-atlas-panel-border: var(--atlas-color-panel-border);
+  --color-atlas-detail-panel: var(--atlas-color-detail-panel);
+  --color-atlas-detail-panel-border: var(--atlas-color-detail-panel-border);
+  --color-atlas-card: var(--atlas-color-card);
+  --color-atlas-card-border: var(--atlas-color-card-border);
+  --color-atlas-card-hover: var(--atlas-color-card-hover);
+  --color-atlas-card-strong: var(--atlas-color-card-strong);
+  --color-atlas-card-strong-border: var(--atlas-color-card-strong-border);
+  --color-atlas-input: var(--atlas-color-input);
+  --color-atlas-input-border: var(--atlas-color-input-border);
+  --color-atlas-rail: var(--atlas-color-rail);
+  --color-atlas-rail-border: var(--atlas-color-rail-border);
+  --color-atlas-rail-hover: var(--atlas-color-rail-hover);
+  --color-atlas-rail-active: var(--atlas-color-rail-active);
+  --color-atlas-rail-active-border: var(--atlas-color-rail-active-border);
+  --color-atlas-rail-ink: var(--atlas-color-rail-ink);
+  --color-atlas-primary: var(--atlas-color-primary);
+  --color-atlas-primary-soft: var(--atlas-color-primary-soft);
+  --color-atlas-primary-strong: var(--atlas-color-primary-strong);
+  --color-atlas-primary-strong-hover: var(--atlas-color-primary-strong-hover);
+  --color-atlas-primary-strong-ink: var(--atlas-color-primary-strong-ink);
+  --color-atlas-secondary: var(--atlas-color-secondary);
+  --color-atlas-secondary-border: var(--atlas-color-secondary-border);
+  --color-atlas-secondary-hover: var(--atlas-color-secondary-hover);
+  --color-atlas-secondary-ink: var(--atlas-color-secondary-ink);
+  --color-atlas-avatar: var(--atlas-color-avatar);
+  --color-atlas-avatar-ink: var(--atlas-color-avatar-ink);
+  --color-atlas-timeline: var(--atlas-color-timeline);
+  --color-atlas-timeline-border: var(--atlas-color-timeline-border);
+  --color-atlas-timeline-track: var(--atlas-color-timeline-track);
+  --color-atlas-timeline-play: var(--atlas-color-timeline-play);
+  --color-atlas-timeline-play-border: var(--atlas-color-timeline-play-border);
+  --color-atlas-timeline-play-hover: var(--atlas-color-timeline-play-hover);
+  --color-atlas-tooltip: var(--atlas-color-tooltip);
+  --color-atlas-tooltip-border: var(--atlas-color-tooltip-border);
+  --color-atlas-tooltip-ink: var(--atlas-color-tooltip-ink);
+  --color-atlas-marker-shell: var(--atlas-color-marker-shell);
+  --color-atlas-marker-border: var(--atlas-color-marker-border);
+  --color-atlas-trash: var(--atlas-color-trash);
+  --color-atlas-trash-border: var(--atlas-color-trash-border);
+  --color-atlas-trash-ink: var(--atlas-color-trash-ink);
+  --color-atlas-trash-active: var(--atlas-color-trash-active);
+  --color-atlas-trash-active-border: var(--atlas-color-trash-active-border);
+  --color-atlas-trash-active-ink: var(--atlas-color-trash-active-ink);
+  --color-atlas-page-card: var(--atlas-color-page-card);
+  --color-atlas-page-card-border: var(--atlas-color-page-card-border);
+  --color-atlas-page-card-hover: var(--atlas-color-page-card-hover);
+  --color-atlas-disabled: var(--atlas-color-disabled);
+  --font-sans: var(--atlas-font-sans);
+  --font-mono: var(--atlas-font-mono);
+  --radius-atlas-panel: var(--atlas-radius-panel);
+  --radius-atlas-compact: var(--atlas-radius-compact);
+  --radius-atlas-card: var(--atlas-radius-card);
+  --radius-atlas-field: var(--atlas-radius-field);
+  --radius-atlas-detail: var(--atlas-radius-detail);
+  --shadow-atlas-panel: var(--atlas-shadow-panel);
+  --shadow-atlas-compact: var(--atlas-shadow-compact);
+  --shadow-atlas-detail: var(--atlas-shadow-detail);
+  --shadow-atlas-rail: var(--atlas-shadow-rail);
+  --shadow-atlas-rail-active: var(--atlas-shadow-rail-active);
+  --shadow-atlas-timeline: var(--atlas-shadow-timeline);
+  --shadow-atlas-bubble: var(--atlas-shadow-bubble);
+  --shadow-atlas-tooltip: var(--atlas-shadow-tooltip);
+  --shadow-atlas-marker: var(--atlas-shadow-marker);
+  --shadow-atlas-trash: var(--atlas-shadow-trash);
+  --shadow-atlas-trash-active: var(--atlas-shadow-trash-active);
+  --shadow-atlas-page-card: var(--atlas-shadow-page-card);
 }
 
 html {
