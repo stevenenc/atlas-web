@@ -16,19 +16,22 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   atlascopeMapConfig,
   getMapStyle,
-} from "@/features/atlascope/map/map-config";
+} from "@/features/atlascope/map/core/config";
 import type { ThemeMode } from "@/features/atlascope/config/theme";
 import {
   buildOperationalMapStyle,
   createOperationalThemeLayerUpdates,
   getOperationalFallbackStyle,
   loadBaseMapStyle,
-} from "@/features/atlascope/map/map-style";
-import type { MapStyleDefinition, VectorMapProvider } from "@/features/atlascope/map/map-provider";
+} from "@/features/atlascope/map/style/style";
+import type {
+  MapStyleDefinition,
+  VectorMapProvider,
+} from "@/features/atlascope/map/core/provider";
 import type {
   MapContainerProps,
   MapViewportState,
-} from "@/features/atlascope/map/map-types";
+} from "@/features/atlascope/map/core/types";
 import {
   createDraftGeofenceLayers,
   createDraftGeofenceLineSourceData,

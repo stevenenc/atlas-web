@@ -3,7 +3,7 @@
 import { Marker as MapLibreMarker } from "react-map-gl/maplibre";
 
 import { atlasUi, getHazardTheme, cx } from "@/features/atlascope/config/theme";
-import type { MapMarkerData } from "@/features/atlascope/map/map-types";
+import type { MapMarkerData } from "@/features/atlascope/map/core/types";
 
 type MapLibreMarkerProps = {
   marker: MapMarkerData;

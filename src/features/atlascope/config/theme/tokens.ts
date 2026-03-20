@@ -3,7 +3,7 @@ import type {
   HazardTone,
   MapColorTokens,
   ThemeMode,
-} from "@/features/atlascope/config/theme-types";
+} from "./types";
 
 const hazardPalette = {
   earthquake: {

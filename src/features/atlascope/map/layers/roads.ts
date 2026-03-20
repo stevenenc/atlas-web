@@ -1,7 +1,8 @@
 import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
-import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import { getZoomInterpolatedNumber } from "@/features/atlascope/map/map-style-config";
-import type { MapLayerDefinition } from "@/features/atlascope/map/map-provider";
+
+import { atlascopeMapConfig } from "../core/config";
+import type { MapLayerDefinition } from "../core/provider";
+import { getZoomInterpolatedNumber } from "../style/style-config";
 
 const TRANSPORTATION_SOURCE_LAYER = "transportation";
 

@@ -1,12 +1,12 @@
 import type { ComponentType } from "react";
 
-import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import { MapLibreMap } from "@/features/atlascope/map/providers/maplibre-map";
+import { MapLibreMap } from "../providers/maplibre-map";
+import { atlascopeMapConfig } from "./config";
 import {
   isImplementedMapProvider,
   type MapProviderId,
-} from "@/features/atlascope/map/map-provider";
-import type { MapContainerProps } from "@/features/atlascope/map/map-types";
+} from "./provider";
+import type { MapContainerProps } from "./types";
 
 type MapAdapterComponent = ComponentType<MapContainerProps>;
 type ImplementedMapProvider = "maplibre";
@@ -20,7 +20,7 @@ export function resolveMapAdapter(
 ) {
   if (!isImplementedMapProvider(provider)) {
     throw new Error(
-      `Map provider "${provider}" is not implemented yet. Add a provider adapter in src/features/atlascope/map/.`,
+      `Map provider "${provider}" is not implemented yet. Add a provider adapter in src/features/atlascope/map/providers/.`,
     );
   }
 

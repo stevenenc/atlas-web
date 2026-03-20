@@ -7,7 +7,7 @@ import type {
   MapSourceDefinition,
   MapStyleDefinition,
   VectorMapProvider,
-} from "@/features/atlascope/map/map-provider";
+} from "@/features/atlascope/map/core/provider";
 
 type MapLibreProviderState = {
   activeStyleSignature: string | null;

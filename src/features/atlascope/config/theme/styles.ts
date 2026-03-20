@@ -1,5 +1,5 @@
-import { atlasTheme } from "@/features/atlascope/config/theme-tokens";
-import type { ThemeMode } from "@/features/atlascope/config/theme-types";
+import { atlasTheme } from "./tokens";
+import type { ThemeMode } from "./types";
 
 function cssDeclarations(declarations: Record<string, string>) {
   return Object.entries(declarations)

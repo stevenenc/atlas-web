@@ -1,8 +1,9 @@
 import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
-import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import { getZoomInterpolatedNumber } from "@/features/atlascope/map/map-style-config";
-import { roadClassFilters } from "@/features/atlascope/map/map-roads";
-import type { MapLayerDefinition } from "@/features/atlascope/map/map-provider";
+
+import { atlascopeMapConfig } from "../core/config";
+import type { MapLayerDefinition } from "../core/provider";
+import { getZoomInterpolatedNumber } from "../style/style-config";
+import { roadClassFilters } from "./roads";
 
 const TRANSPORTATION_LABEL_SOURCE_LAYER = "transportation_name";
 

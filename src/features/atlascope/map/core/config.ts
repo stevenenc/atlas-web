@@ -4,8 +4,8 @@ import {
   MAP_PROVIDER,
   type MapStyleDefinition,
   type MapProviderId,
-} from "@/features/atlascope/map/map-provider";
-import type { MapStyleConfig, MapViewportState } from "@/features/atlascope/map/map-types";
+} from "./provider";
+import type { MapStyleConfig, MapViewportState } from "./types";
 
 const darkTheme = getMapTheme("dark").colors;
 const lightTheme = getMapTheme("light").colors;

@@ -4,9 +4,12 @@ import { useMemo, useState } from "react";
 
 import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { isIncidentActiveAtTime } from "@/features/atlascope/lib/incident-timeline";
-import { resolveMapAdapter } from "@/features/atlascope/map/map-adapter";
-import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import type { MapGeofenceData, MapMarkerData } from "@/features/atlascope/map/map-types";
+import { resolveMapAdapter } from "@/features/atlascope/map/core/adapter";
+import { atlascopeMapConfig } from "@/features/atlascope/map/core/config";
+import type {
+  MapGeofenceData,
+  MapMarkerData,
+} from "@/features/atlascope/map/core/types";
 import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 import type { Incident, IncidentType } from "@/features/atlascope/types/atlascope";
 

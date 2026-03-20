@@ -1,11 +1,12 @@
 import type { ThemeMode } from "@/features/atlascope/config/theme";
-import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
-import { createRoadLabelLayerDefinitions } from "@/features/atlascope/map/map-labels";
-import { createRoadLayerDefinitions } from "@/features/atlascope/map/map-roads";
+
 import type {
   MapLayerDefinition,
   VectorMapProvider,
-} from "@/features/atlascope/map/map-provider";
+} from "../core/provider";
+import { atlascopeMapConfig } from "../core/config";
+import { createRoadLabelLayerDefinitions } from "./labels";
+import { createRoadLayerDefinitions } from "./roads";
 
 export function createStreetLayerDefinitions(
   theme: ThemeMode,

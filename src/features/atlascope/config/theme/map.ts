@@ -1,6 +1,7 @@
-import { atlasTheme } from "@/features/atlascope/config/theme-tokens";
-import type { MapColorTokens, ThemeMode } from "@/features/atlascope/config/theme-types";
-import { mapZoomTokens } from "@/features/atlascope/map/map-zoom-tokens";
+import { mapZoomTokens } from "@/features/atlascope/map/style/zoom-tokens";
+
+import { atlasTheme } from "./tokens";
+import type { MapColorTokens, ThemeMode } from "./types";
 
 type MapThemeTokens = {
   colors: MapColorTokens;

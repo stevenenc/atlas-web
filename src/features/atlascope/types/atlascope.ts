@@ -1,7 +1,7 @@
 import type {
   HazardLayerType,
   MapCoordinates,
-} from "@/features/atlascope/map/map-types";
+} from "@/features/atlascope/map/core/types";
 
 export type IncidentType = HazardLayerType;
 

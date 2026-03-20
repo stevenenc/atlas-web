@@ -1,4 +1,4 @@
-import type { MapCoordinates } from "@/features/atlascope/map/map-types";
+import type { MapCoordinates } from "@/features/atlascope/map/core/types";
 
 export type AtlascopeGeofence = {
   id: number;

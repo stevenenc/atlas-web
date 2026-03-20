@@ -1,5 +1,6 @@
 import type { ThemeMode } from "@/features/atlascope/config/theme";
-import type { MapStyleDefinition } from "@/features/atlascope/map/map-provider";
+
+import type { MapStyleDefinition } from "./provider";
 
 export type HazardLayerType = "earthquake" | "wildfire" | "air_quality";
 

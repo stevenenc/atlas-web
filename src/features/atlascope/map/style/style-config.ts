@@ -1,7 +1,6 @@
-import {
-  type MapColorRamp,
-} from "@/features/atlascope/config/theme";
-import { mapZoomTokens, type ZoomWidthStops } from "@/features/atlascope/map/map-zoom-tokens";
+import type { MapColorRamp } from "@/features/atlascope/config/theme";
+
+import { mapZoomTokens, type ZoomWidthStops } from "./zoom-tokens";
 
 type InterpolateExpression = readonly unknown[];
 

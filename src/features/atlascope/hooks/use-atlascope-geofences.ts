@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { MapCoordinates } from "@/features/atlascope/map/map-types";
+import type { MapCoordinates } from "@/features/atlascope/map/core/types";
 import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 
 type FocusedGeofenceRequest = {

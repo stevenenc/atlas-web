@@ -1,11 +1,12 @@
 import type { ThemeMode } from "@/features/atlascope/config/theme";
-import { getFallbackMapStyle } from "@/features/atlascope/map/map-config";
-import { cleanStyle } from "@/features/atlascope/map/clean-style";
+
 import type {
   MapLayerStyleUpdate,
   MapStyleDefinition,
-} from "@/features/atlascope/map/map-provider";
-import { createStreetLayerDefinitions } from "@/features/atlascope/map/street-layers";
+} from "../core/provider";
+import { getFallbackMapStyle } from "../core/config";
+import { createStreetLayerDefinitions } from "../layers/street-layers";
+import { cleanStyle } from "./clean-style";
 
 const styleCache = new Map<string, Promise<MapStyleDefinition>>();
 const THEME_STYLE_TRANSITION = {

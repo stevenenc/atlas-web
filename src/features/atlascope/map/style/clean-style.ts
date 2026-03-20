@@ -1,14 +1,15 @@
 import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
-import { atlascopeMapConfig } from "@/features/atlascope/map/map-config";
+
 import {
   getZoomInterpolatedColor,
   getZoomInterpolatedNumber,
-} from "@/features/atlascope/map/map-style-config";
+} from "./style-config";
 import type {
   MapLayerDefinition,
   MapSourceDefinition,
   MapStyleDefinition,
-} from "@/features/atlascope/map/map-provider";
+} from "../core/provider";
+import { atlascopeMapConfig } from "../core/config";
 
 const operationalLayerOrder = [
   "natural_earth",

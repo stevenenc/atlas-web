@@ -10,7 +10,7 @@ import type {
   HazardLayerType,
   MapGeofenceData,
   MapMarkerData,
-} from "@/features/atlascope/map/map-types";
+} from "@/features/atlascope/map/core/types";
 
 type HazardFeatureProperties = {
   id: string;
