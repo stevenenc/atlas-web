@@ -11,8 +11,13 @@ export function SearchIcon({ className, ...props }: AtlascopeIconProps) {
       className={cx("size-4 fill-none stroke-current", className)}
       {...props}
     >
-      <circle cx="11" cy="11" r="7" strokeWidth="1.8" />
-      <path d="m20 20-3.5-3.5" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="10.5" cy="10.5" r="5.75" strokeWidth="2" />
+      <path
+        d="m15.25 15.25 4 4"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
