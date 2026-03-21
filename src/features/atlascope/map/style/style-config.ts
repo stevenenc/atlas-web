@@ -32,3 +32,7 @@ export function getZoomInterpolatedColor(ramp: MapColorRamp, zoomInAt?: number) 
 export function getZoomInterpolatedNumber(stops: ZoomWidthStops) {
   return createLinearZoomExpression(stops);
 }
+
+export function scaleZoomStops(stops: ZoomWidthStops, multiplier: number): ZoomWidthStops {
+  return stops.map(([zoom, value]) => [zoom, value * multiplier]) as ZoomWidthStops;
+}

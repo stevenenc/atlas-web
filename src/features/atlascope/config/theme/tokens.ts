@@ -339,6 +339,25 @@ export const atlasTheme = {
         localLabel: "#3E5360",
         halo: "rgba(250, 250, 248, 0.92)",
       },
+      landuse: {
+        park: "rgba(166, 191, 146, 0.56)",
+        wood: "rgba(145, 183, 128, 0.42)",
+        grass: "rgba(182, 204, 160, 0.34)",
+        residential: "rgba(205, 198, 188, 0.28)",
+        civic: "rgba(217, 211, 170, 0.3)",
+        sand: "rgba(233, 223, 177, 0.34)",
+        wetland: "rgba(151, 184, 170, 0.38)",
+      },
+      poi: {
+        emergency: "#8C4E2A",
+        civic: "#556A43",
+        transport: "#355E84",
+        halo: "rgba(250, 250, 248, 0.94)",
+      },
+      waterLabels: {
+        text: "#38576C",
+        halo: "rgba(248, 250, 252, 0.92)",
+      },
       geofence: {
         fill: "rgba(29, 99, 213, 0.055)",
         stroke: "#1E63D5",
@@ -347,7 +366,27 @@ export const atlasTheme = {
         draftHandleFill: "#F8FBFF",
       },
       detailContext: {
-        outsideMask: "rgba(238, 244, 248, 0.38)",
+        ambient: {
+          lineOpacityMultiplier: 0.82,
+          lineWidthMultiplier: 0.94,
+          labelOpacityMultiplier: 0.78,
+          fillOpacityMultiplier: 0.78,
+          boundaryOpacityMultiplier: 0.76,
+          poiOpacityMultiplier: 0.72,
+        },
+        focused: {
+          lineOpacityMultiplier: 1,
+          lineWidthMultiplier: 1,
+          labelOpacityMultiplier: 1,
+          fillOpacityMultiplier: 1,
+          boundaryOpacityMultiplier: 1,
+          boundaryWidthMultiplier: 1.08,
+          poiOpacityMultiplier: 1,
+        },
+        mask: {
+          outsideFill: "#EEF4F8",
+          outsideOpacity: 0.38,
+        },
       },
       overlays: {
         surface: "#D4DBDF",
@@ -389,6 +428,25 @@ export const atlasTheme = {
         localLabel: "#728896",
         halo: "rgba(5, 10, 16, 0.82)",
       },
+      landuse: {
+        park: "rgba(54, 86, 63, 0.58)",
+        wood: "rgba(42, 71, 55, 0.44)",
+        grass: "rgba(46, 72, 59, 0.34)",
+        residential: "rgba(41, 56, 68, 0.28)",
+        civic: "rgba(66, 72, 47, 0.32)",
+        sand: "rgba(88, 77, 51, 0.28)",
+        wetland: "rgba(33, 66, 74, 0.4)",
+      },
+      poi: {
+        emergency: "#E7B08B",
+        civic: "#B8D296",
+        transport: "#89C1E8",
+        halo: "rgba(5, 10, 16, 0.84)",
+      },
+      waterLabels: {
+        text: "#7FA3BA",
+        halo: "rgba(5, 10, 16, 0.84)",
+      },
       geofence: {
         fill: "rgba(91, 211, 245, 0.075)",
         stroke: "#5BD3F5",
@@ -397,7 +455,27 @@ export const atlasTheme = {
         draftHandleFill: "#D9F8FF",
       },
       detailContext: {
-        outsideMask: "rgba(4, 10, 16, 0.34)",
+        ambient: {
+          lineOpacityMultiplier: 0.8,
+          lineWidthMultiplier: 0.94,
+          labelOpacityMultiplier: 0.76,
+          fillOpacityMultiplier: 0.8,
+          boundaryOpacityMultiplier: 0.74,
+          poiOpacityMultiplier: 0.7,
+        },
+        focused: {
+          lineOpacityMultiplier: 1,
+          lineWidthMultiplier: 1.04,
+          labelOpacityMultiplier: 1,
+          fillOpacityMultiplier: 1,
+          boundaryOpacityMultiplier: 1,
+          boundaryWidthMultiplier: 1.1,
+          poiOpacityMultiplier: 1,
+        },
+        mask: {
+          outsideFill: "#040A10",
+          outsideOpacity: 0.34,
+        },
       },
       overlays: {
         surface: "#121920",

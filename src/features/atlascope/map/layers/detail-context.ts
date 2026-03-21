@@ -1,63 +1,58 @@
-import type {
-  MapDetailContext,
-} from "@/features/atlascope/map/core/types";
+import type { MapVisibility } from "@/features/atlascope/map/core/provider";
+import type { MapDetailContext } from "@/features/atlascope/map/core/types";
 
 import { createPolygonGeometry } from "../lib/geojson";
 import type { MapLayerDefinition } from "../core/provider";
 
-export type StreetDetailProfile = "ambient" | "focused";
-export type StreetDetailScope = "global" | "context";
+export type DetailProfile = "ambient" | "focused";
 
-const NO_MATCH_FILTER = ["==", 1, 0] as const;
+export const detailProfiles: DetailProfile[] = ["ambient", "focused"];
 
-export function createStreetLayerId(
-  baseId: string,
-  profile: StreetDetailProfile,
-  scope: StreetDetailScope,
-) {
-  return `${baseId}-${profile}-${scope}`;
+const NO_MATCH_FILTER = [
+  "==",
+  ["get", "__atlascope_detail_context__"],
+  "__atlascope_no_match__",
+] as const;
+
+export function createDetailLayerId(baseId: string, profile: DetailProfile) {
+  return `${baseId}-${profile}`;
 }
 
-export function getStreetLayerVisibility(
+export function getDetailProfileVisibility(
   detailContext: MapDetailContext,
-  profile: StreetDetailProfile,
-  scope: StreetDetailScope,
-) {
-  if (detailContext.mode === "focused-geofence") {
-    if (scope === "context") {
-      return profile === "focused" ? "visible" : "none";
-    }
-
-    return profile === "ambient" ? "visible" : "none";
+  profile: DetailProfile,
+): MapVisibility {
+  if (!hasDetailFocusGeometry(detailContext)) {
+    return profile === "focused" ? "visible" : "none";
   }
 
-  if (scope === "context") {
-    return "none";
-  }
-
-  return profile === "focused" ? "visible" : "none";
+  return "visible";
 }
 
-export function createScopedLayerFilter(
+export function createDetailProfileFilter(
   baseFilter: MapLayerDefinition["filter"],
   detailContext: MapDetailContext,
-  scope: StreetDetailScope,
+  profile: DetailProfile,
 ) {
-  if (scope === "global") {
-    return baseFilter;
+  if (!hasDetailFocusGeometry(detailContext)) {
+    return profile === "focused" ? baseFilter : combineLayerFilters(baseFilter, NO_MATCH_FILTER);
   }
 
-  if (
-    detailContext.mode !== "focused-geofence" ||
-    !detailContext.focusGeometry ||
-    detailContext.focusGeometry.length < 3
-  ) {
-    return combineLayerFilters(baseFilter, NO_MATCH_FILTER);
-  }
+  // Focused layers are clipped to the active geofence while ambient layers are
+  // explicitly pushed outside it, which avoids double rendering when context mode is active.
+  const focusGeometry = createPolygonGeometry(detailContext.focusGeometry!);
+  const focusFilter =
+    profile === "focused"
+      ? (["within", focusGeometry] as const)
+      : (["!", ["within", focusGeometry]] as const);
 
-  return combineLayerFilters(
-    baseFilter,
-    ["within", createPolygonGeometry(detailContext.focusGeometry)],
+  return combineLayerFilters(baseFilter, focusFilter);
+}
+
+export function hasDetailFocusGeometry(detailContext: MapDetailContext) {
+  return (
+    detailContext.mode === "geofence-focus" &&
+    Boolean(detailContext.focusGeometry && detailContext.focusGeometry.length >= 3)
   );
 }
 

@@ -3,13 +3,12 @@ import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { DEFAULT_MAP_DETAIL_CONTEXT, type MapDetailContext } from "../core/types";
 import { atlascopeMapConfig } from "../core/config";
 import type { MapLayerDefinition } from "../core/provider";
-import { getZoomInterpolatedNumber } from "../style/style-config";
+import { getZoomInterpolatedNumber, scaleZoomStops } from "../style/style-config";
 import {
-  createScopedLayerFilter,
-  createStreetLayerId,
-  getStreetLayerVisibility,
-  type StreetDetailProfile,
-  type StreetDetailScope,
+  createDetailLayerId,
+  createDetailProfileFilter,
+  detailProfiles,
+  getDetailProfileVisibility,
 } from "./detail-context";
 import { roadClassFilters } from "./roads";
 
@@ -61,9 +60,6 @@ const roadLabelConfigs: RoadLabelConfig[] = [
   },
 ];
 
-const streetLayerScopes: StreetDetailScope[] = ["global", "context"];
-const streetLayerProfiles: StreetDetailProfile[] = ["ambient", "focused"];
-
 function createRoadLabelFilter(classes: readonly string[]) {
   return [
     "match",
@@ -81,40 +77,42 @@ export function createRoadLabelLayerDefinitions(
 ): MapLayerDefinition[] {
   const { colors, zoom } = getMapTheme(theme);
 
-  return streetLayerProfiles.flatMap((profile) =>
-    streetLayerScopes.flatMap((scope) =>
-      roadLabelConfigs.map((config) => {
-        const profileZoom = zoom.streetDetailProfiles[profile].labels;
-        const baseFilter = createRoadLabelFilter(config.classes);
-        const isVisible = getStreetLayerVisibility(detailContext, profile, scope);
+  return detailProfiles.flatMap((profile) =>
+    roadLabelConfigs.map((config) => {
+      const profileZoom = zoom.detailProfiles[profile].roadLabels;
+      const baseFilter = createRoadLabelFilter(config.classes);
 
-        return {
-          id: createStreetLayerId(config.baseId, profile, scope),
-          type: "symbol",
-          source: vectorSourceId,
-          "source-layer": TRANSPORTATION_LABEL_SOURCE_LAYER,
-          minzoom: profileZoom[config.minZoomKey],
-          filter: createScopedLayerFilter(baseFilter, detailContext, scope),
-          layout: {
-            "symbol-placement": "line",
-            "text-field": ["coalesce", ["get", "name_en"], ["get", "name"]],
-            "text-font": ["Noto Sans Regular"],
-            "text-letter-spacing": config.letterSpacing,
-            "text-size": config.textSize,
-            "text-max-angle": 40,
-            "text-rotation-alignment": "map",
-            "symbol-spacing": config.symbolSpacing,
-            "text-keep-upright": true,
-            visibility: isVisible,
-          },
-          paint: {
-            "text-color": colors.roads[config.colorKey],
-            "text-halo-color": colors.roads.halo,
-            "text-halo-width": config.textHaloWidth[theme],
-            "text-opacity": getZoomInterpolatedNumber(profileZoom[config.opacityKey]),
-          },
-        };
-      }),
-    ),
+      return {
+        id: createDetailLayerId(config.baseId, profile),
+        type: "symbol",
+        source: vectorSourceId,
+        "source-layer": TRANSPORTATION_LABEL_SOURCE_LAYER,
+        minzoom: profileZoom[config.minZoomKey],
+        filter: createDetailProfileFilter(baseFilter, detailContext, profile),
+        layout: {
+          "symbol-placement": "line",
+          "text-field": ["coalesce", ["get", "name_en"], ["get", "name"]],
+          "text-font": ["Noto Sans Regular"],
+          "text-letter-spacing": config.letterSpacing,
+          "text-size": config.textSize,
+          "text-max-angle": 40,
+          "text-rotation-alignment": "map",
+          "symbol-spacing": config.symbolSpacing,
+          "text-keep-upright": true,
+          visibility: getDetailProfileVisibility(detailContext, profile),
+        },
+        paint: {
+          "text-color": colors.roads[config.colorKey],
+          "text-halo-color": colors.roads.halo,
+          "text-halo-width": config.textHaloWidth[theme],
+          "text-opacity": getZoomInterpolatedNumber(
+            scaleZoomStops(
+              profileZoom[config.opacityKey],
+              colors.detailContext[profile].labelOpacityMultiplier,
+            ),
+          ),
+        },
+      };
+    }),
   );
 }

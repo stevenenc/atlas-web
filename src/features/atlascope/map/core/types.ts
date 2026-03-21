@@ -35,18 +35,20 @@ export type MapGeofenceData = {
 
 export type MapStyleConfig = string | MapStyleDefinition;
 
-export type MapDetailContextMode = "global" | "focused-geofence";
+export type MapDetailContextMode = "overview" | "geofence-focus";
 
 export type MapDetailContext = {
   mode: MapDetailContextMode;
   focusFeatureId: string | null;
+  focusFeatureIds: string[];
   focusGeometry: MapCoordinates[] | null;
   version: number;
 };
 
 export const DEFAULT_MAP_DETAIL_CONTEXT: MapDetailContext = {
-  mode: "global",
+  mode: "overview",
   focusFeatureId: null,
+  focusFeatureIds: [],
   focusGeometry: null,
   version: 0,
 };

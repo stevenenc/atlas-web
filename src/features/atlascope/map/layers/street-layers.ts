@@ -10,26 +10,34 @@ import {
   DEFAULT_MAP_DETAIL_CONTEXT,
   type MapDetailContext,
 } from "../core/types";
+import { createBoundaryLayerDefinitions } from "./boundaries";
 import { createRoadLabelLayerDefinitions } from "./labels";
+import { createLanduseLayerDefinitions } from "./landuse";
+import { createPoiLayerDefinitions } from "./poi";
 import { createRoadLayerDefinitions } from "./roads";
+import { createWaterLabelLayerDefinitions } from "./water-labels";
 
-export function createStreetLayerDefinitions(
+export function createDetailLayerDefinitions(
   theme: ThemeMode,
   vectorSourceId = atlascopeMapConfig.basemap.vectorSourceId,
   detailContext: MapDetailContext = DEFAULT_MAP_DETAIL_CONTEXT,
 ): MapLayerDefinition[] {
   return [
+    ...createLanduseLayerDefinitions(theme, vectorSourceId, detailContext),
+    ...createBoundaryLayerDefinitions(theme, vectorSourceId, detailContext),
     ...createRoadLayerDefinitions(theme, vectorSourceId, detailContext),
+    ...createWaterLabelLayerDefinitions(theme, vectorSourceId, detailContext),
     ...createRoadLabelLayerDefinitions(theme, vectorSourceId, detailContext),
+    ...createPoiLayerDefinitions(theme, vectorSourceId, detailContext),
   ];
 }
 
-export function createStreetLayerStyleUpdates(
+export function createDetailLayerStyleUpdates(
   theme: ThemeMode,
   detailContext: MapDetailContext = DEFAULT_MAP_DETAIL_CONTEXT,
   vectorSourceId = atlascopeMapConfig.basemap.vectorSourceId,
 ) {
-  return createStreetLayerDefinitions(theme, vectorSourceId, detailContext).map((layer) => ({
+  return createDetailLayerDefinitions(theme, vectorSourceId, detailContext).map((layer) => ({
     id: layer.id,
     definition: layer,
     style: {
@@ -42,13 +50,17 @@ export function createStreetLayerStyleUpdates(
   }));
 }
 
-export function addStreetLayers(
+export function addDetailLayers(
   provider: VectorMapProvider,
   theme: ThemeMode,
   vectorSourceId = atlascopeMapConfig.basemap.vectorSourceId,
   detailContext: MapDetailContext = DEFAULT_MAP_DETAIL_CONTEXT,
 ) {
-  createStreetLayerDefinitions(theme, vectorSourceId, detailContext).forEach((layer) => {
+  createDetailLayerDefinitions(theme, vectorSourceId, detailContext).forEach((layer) => {
     provider.addLayer(layer);
   });
 }
+
+export const createStreetLayerDefinitions = createDetailLayerDefinitions;
+export const createStreetLayerStyleUpdates = createDetailLayerStyleUpdates;
+export const addStreetLayers = addDetailLayers;

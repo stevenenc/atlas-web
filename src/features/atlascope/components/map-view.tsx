@@ -86,8 +86,9 @@ export function MapView({
   const focusedGeofence = geofences.find((geofence) => geofence.id === focusedGeofenceId) ?? null;
   const detailContext = useMemo<MapDetailContext>(
     () => ({
-      mode: focusedGeofence ? "focused-geofence" : "global",
+      mode: focusedGeofence ? "geofence-focus" : "overview",
       focusFeatureId: focusedGeofence ? String(focusedGeofence.id) : null,
+      focusFeatureIds: focusedGeofence ? [String(focusedGeofence.id)] : [],
       focusGeometry: focusedGeofence?.coordinates ?? null,
       version: focusedGeofenceNonce,
     }),

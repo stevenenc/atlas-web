@@ -41,6 +41,25 @@ export type MapColorTokens = {
     localLabel: string;
     halo: string;
   };
+  landuse: {
+    park: string;
+    wood: string;
+    grass: string;
+    residential: string;
+    civic: string;
+    sand: string;
+    wetland: string;
+  };
+  poi: {
+    emergency: string;
+    civic: string;
+    transport: string;
+    halo: string;
+  };
+  waterLabels: {
+    text: string;
+    halo: string;
+  };
   geofence: {
     fill: string;
     stroke: string;
@@ -49,7 +68,27 @@ export type MapColorTokens = {
     draftHandleFill: string;
   };
   detailContext: {
-    outsideMask: string;
+    ambient: {
+      lineOpacityMultiplier: number;
+      lineWidthMultiplier: number;
+      labelOpacityMultiplier: number;
+      fillOpacityMultiplier: number;
+      boundaryOpacityMultiplier: number;
+      poiOpacityMultiplier: number;
+    };
+    focused: {
+      lineOpacityMultiplier: number;
+      lineWidthMultiplier: number;
+      labelOpacityMultiplier: number;
+      fillOpacityMultiplier: number;
+      boundaryOpacityMultiplier: number;
+      boundaryWidthMultiplier: number;
+      poiOpacityMultiplier: number;
+    };
+    mask: {
+      outsideFill: string;
+      outsideOpacity: number;
+    };
   };
   overlays: MapOverlayTokens;
 };

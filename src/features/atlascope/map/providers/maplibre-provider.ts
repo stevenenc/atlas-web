@@ -2,6 +2,8 @@ import type { GeoJSON } from "geojson";
 import type { GeoJSONSource, Map as MapLibreMapInstance } from "maplibre-gl";
 
 import type {
+  MapFeatureState,
+  MapFeatureTarget,
   MapLayerDefinition,
   MapLayerStyleUpdate,
   MapSourceDefinition,
@@ -80,6 +82,18 @@ export function createMapLibreProvider(map: MapLibreMapInstance): VectorMapProvi
 
       source?.setData(data);
     },
+    setFeatureState(target, state) {
+      map.setFeatureState(
+        target as Parameters<MapLibreMapInstance["setFeatureState"]>[0],
+        state as Parameters<MapLibreMapInstance["setFeatureState"]>[1],
+      );
+    },
+    removeFeatureState(target, key) {
+      map.removeFeatureState(
+        target as Parameters<MapLibreMapInstance["removeFeatureState"]>[0],
+        key,
+      );
+    },
   };
 }
 
@@ -123,10 +137,10 @@ function applyLayerDefinitionUpdate(
     return;
   }
 
-  if (style.filter) {
+  if (style.filter !== undefined || targetLayer.filter !== undefined) {
     map.setFilter(
       layerId,
-      style.filter as Parameters<MapLibreMapInstance["setFilter"]>[1],
+      (style.filter ?? null) as Parameters<MapLibreMapInstance["setFilter"]>[1],
     );
   }
 
@@ -151,4 +165,11 @@ function getStyleSignature(style: string | MapStyleDefinition) {
   return typeof style === "string" ? style : JSON.stringify(style);
 }
 
-export type { GeoJSON, MapLayerDefinition, MapSourceDefinition, MapStyleDefinition };
+export type {
+  GeoJSON,
+  MapFeatureState,
+  MapFeatureTarget,
+  MapLayerDefinition,
+  MapSourceDefinition,
+  MapStyleDefinition,
+};

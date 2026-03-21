@@ -41,6 +41,14 @@ export type MapLayerStyleUpdate = {
   filter?: unknown;
 };
 
+export type MapFeatureTarget = {
+  source: string;
+  sourceLayer?: string;
+  id: string | number;
+};
+
+export type MapFeatureState = Record<string, unknown>;
+
 export type MapProviderInitializationOptions = {
   style?: string | MapStyleDefinition;
 };
@@ -63,6 +71,8 @@ export interface VectorMapProvider extends MapProvider {
   hasLayer(layerId: string): boolean;
   hasSource(sourceId: string): boolean;
   setGeoJsonSourceData(sourceId: string, data: GeoJSON): void;
+  setFeatureState(target: MapFeatureTarget, state: MapFeatureState): void;
+  removeFeatureState(target: MapFeatureTarget, key?: string): void;
 }
 
 export const MAP_PROVIDER = "maplibre" satisfies MapProviderId;

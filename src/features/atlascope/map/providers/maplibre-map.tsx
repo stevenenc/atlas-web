@@ -32,7 +32,7 @@ import type {
   MapContainerProps,
   MapViewportState,
 } from "@/features/atlascope/map/core/types";
-import { createStreetLayerStyleUpdates } from "@/features/atlascope/map/layers/street-layers";
+import { createDetailLayerStyleUpdates } from "@/features/atlascope/map/layers/street-layers";
 import {
   createDetailContextMaskLayer,
   createDetailContextMaskSourceData,
@@ -166,6 +166,7 @@ export const MapLibreMap = memo(function MapLibreMap({
   const styleUrl = getMapStyle(theme);
   const hasAppliedOperationalStyleRef = useRef(false);
   const lastAppliedThemeRef = useRef<ThemeMode | null>(null);
+  const appliedFocusFeatureIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -313,7 +314,7 @@ export const MapLibreMap = memo(function MapLibreMap({
       return;
     }
 
-    createStreetLayerStyleUpdates(theme, detailContext).forEach(({ id, definition, style }) => {
+    createDetailLayerStyleUpdates(theme, detailContext).forEach(({ id, definition, style }) => {
       if (mapProviderRef.current?.hasLayer(id)) {
         mapProviderRef.current.updateLayerStyle(id, style);
         return;
@@ -322,6 +323,51 @@ export const MapLibreMap = memo(function MapLibreMap({
       mapProviderRef.current?.addLayer(definition);
     });
   }, [baseMapStyle, detailContext, hasMapStyleError, theme]);
+
+  const applyFocusedGeofenceState = useCallback(() => {
+    const mapInstance = mapRef.current?.getMap();
+
+    if (
+      !mapProviderRef.current ||
+      !mapInstance ||
+      !mapInstance.getSource("atlascope-geofences")
+    ) {
+      appliedFocusFeatureIdsRef.current = [];
+      return;
+    }
+
+    const previousIds = new Set(appliedFocusFeatureIdsRef.current);
+    const nextFocusIds =
+      detailContext.focusFeatureIds.length > 0
+        ? detailContext.focusFeatureIds
+        : detailContext.focusFeatureId
+          ? [detailContext.focusFeatureId]
+          : [];
+    const nextIds = new Set(nextFocusIds);
+
+    previousIds.forEach((featureId) => {
+      if (!nextIds.has(featureId)) {
+        mapProviderRef.current?.removeFeatureState({
+          source: "atlascope-geofences",
+          id: featureId,
+        });
+      }
+    });
+
+    nextIds.forEach((featureId) => {
+      mapProviderRef.current?.setFeatureState(
+        {
+          source: "atlascope-geofences",
+          id: featureId,
+        },
+        {
+          focused: true,
+        },
+      );
+    });
+
+    appliedFocusFeatureIdsRef.current = [...nextIds];
+  }, [detailContext.focusFeatureId, detailContext.focusFeatureIds]);
 
   useEffect(() => {
     return () => {
@@ -332,6 +378,10 @@ export const MapLibreMap = memo(function MapLibreMap({
   useEffect(() => {
     applyDetailContextStyle();
   }, [applyDetailContextStyle]);
+
+  useEffect(() => {
+    applyFocusedGeofenceState();
+  }, [applyFocusedGeofenceState, geofences.length]);
 
   useEffect(() => {
     const focusedGeofenceCoordinates = detailContext.focusGeometry;
@@ -812,9 +862,11 @@ export const MapLibreMap = memo(function MapLibreMap({
         onLoad={() => {
           applyMapThemeStyle();
           applyDetailContextStyle();
+          applyFocusedGeofenceState();
         }}
         onStyleData={() => {
           applyDetailContextStyle();
+          applyFocusedGeofenceState();
         }}
         onError={() => {
           if (!baseMapStyle) {
@@ -822,7 +874,7 @@ export const MapLibreMap = memo(function MapLibreMap({
           }
         }}
       >
-        {detailContext.mode === "focused-geofence" ? (
+        {detailContext.mode === "geofence-focus" ? (
           <Source
             id="atlascope-detail-context-mask"
             type="geojson"
@@ -832,7 +884,12 @@ export const MapLibreMap = memo(function MapLibreMap({
           </Source>
         ) : null}
         {geofences.length ? (
-          <Source id="atlascope-geofences" type="geojson" data={geofenceSourceData}>
+          <Source
+            id="atlascope-geofences"
+            type="geojson"
+            data={geofenceSourceData}
+            promoteId="id"
+          >
             {geofenceLayers.map((layer) => (
               <Layer key={layer.id} {...layer} />
             ))}

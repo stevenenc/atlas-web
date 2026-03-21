@@ -16,8 +16,6 @@ const operationalLayerOrder = [
   "water",
   "atlascope-coastline-outline-base",
   "atlascope-coastline-outline-top",
-  "boundary_3",
-  "boundary_2",
   "label_state",
   "label_country_3",
   "label_country_2",
@@ -101,26 +99,6 @@ function restyleBaseLayer(layer: MapLayerDefinition, theme: ThemeMode): MapLayer
         paint: {
           ...layer.paint,
           "fill-color": getZoomInterpolatedColor(colors.water, zoom.detail.regional),
-        },
-      };
-    case "boundary_2":
-      return {
-        ...layer,
-        paint: {
-          ...layer.paint,
-          "line-color": colors.boundary.country,
-          "line-width": getZoomInterpolatedNumber(zoom.boundaries.countryWidth),
-          "line-opacity": getZoomInterpolatedNumber(zoom.boundaries.countryOpacity),
-        },
-      };
-    case "boundary_3":
-      return {
-        ...layer,
-        paint: {
-          ...layer.paint,
-          "line-color": colors.boundary.region,
-          "line-width": getZoomInterpolatedNumber(zoom.boundaries.regionWidth),
-          "line-opacity": getZoomInterpolatedNumber(zoom.boundaries.regionOpacity),
         },
       };
     default:

@@ -89,6 +89,7 @@ export function createGeofenceSourceData(
     type: "FeatureCollection",
     features: geofences.map((geofence) => ({
       type: "Feature",
+      id: geofence.id,
       geometry: {
         type: "Polygon",
         coordinates: [closePolygonRing(geofence.coordinates)],
@@ -149,15 +150,36 @@ export function createGeofenceLayers(theme: ThemeMode): LayerProps[] {
       type: "fill",
       paint: {
         "fill-color": geofence.fill,
+        "fill-opacity": [
+          "case",
+          ["boolean", ["feature-state", "focused"], false],
+          theme === "dark" ? 0.16 : 0.12,
+          theme === "dark" ? 0.1 : 0.075,
+        ],
       },
     },
     {
       id: "geofence-line",
       type: "line",
       paint: {
-        "line-color": geofence.stroke,
-        "line-width": 1.3,
-        "line-opacity": theme === "dark" ? 0.62 : 0.5,
+        "line-color": [
+          "case",
+          ["boolean", ["feature-state", "focused"], false],
+          geofence.selectedStroke,
+          geofence.stroke,
+        ],
+        "line-width": [
+          "case",
+          ["boolean", ["feature-state", "focused"], false],
+          2.2,
+          1.3,
+        ],
+        "line-opacity": [
+          "case",
+          ["boolean", ["feature-state", "focused"], false],
+          theme === "dark" ? 0.9 : 0.82,
+          theme === "dark" ? 0.62 : 0.5,
+        ],
       },
     },
   ];
@@ -172,7 +194,8 @@ export function createDetailContextMaskLayer(theme: ThemeMode): LayerProps {
     id: "detail-context-mask",
     type: "fill",
     paint: {
-      "fill-color": detailContext.outsideMask,
+      "fill-color": detailContext.mask.outsideFill,
+      "fill-opacity": detailContext.mask.outsideOpacity,
     },
   };
 }

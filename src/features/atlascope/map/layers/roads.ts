@@ -3,13 +3,12 @@ import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { DEFAULT_MAP_DETAIL_CONTEXT, type MapDetailContext } from "../core/types";
 import { atlascopeMapConfig } from "../core/config";
 import type { MapLayerDefinition } from "../core/provider";
-import { getZoomInterpolatedNumber } from "../style/style-config";
+import { getZoomInterpolatedNumber, scaleZoomStops } from "../style/style-config";
 import {
-  createScopedLayerFilter,
-  createStreetLayerId,
-  getStreetLayerVisibility,
-  type StreetDetailProfile,
-  type StreetDetailScope,
+  createDetailLayerId,
+  createDetailProfileFilter,
+  detailProfiles,
+  getDetailProfileVisibility,
 } from "./detail-context";
 
 const TRANSPORTATION_SOURCE_LAYER = "transportation";
@@ -48,9 +47,6 @@ const roadLayerConfigs: RoadLayerConfig[] = [
   },
 ];
 
-const streetLayerScopes: StreetDetailScope[] = ["global", "context"];
-const streetLayerProfiles: StreetDetailProfile[] = ["ambient", "focused"];
-
 function createRoadFilter(classes: readonly string[]) {
   return [
     "all",
@@ -67,35 +63,37 @@ export function createRoadLayerDefinitions(
 ): MapLayerDefinition[] {
   const { colors, zoom } = getMapTheme(theme);
 
-  return streetLayerProfiles.flatMap((profile) =>
-    streetLayerScopes.flatMap((scope) =>
-      roadLayerConfigs.map((config) => {
-        const profileZoom = zoom.streetDetailProfiles[profile].roads;
-        const baseFilter = createRoadFilter(roadClassFilters[config.classKey]);
-        const isVisible = getStreetLayerVisibility(detailContext, profile, scope);
-        const minzoomKey = `${config.zoomKey}MinZoom` as const;
-        const opacityKey = `${config.zoomKey}Opacity` as const;
-        const widthKey = `${config.zoomKey}Width` as const;
+  return detailProfiles.flatMap((profile) =>
+    roadLayerConfigs.map((config) => {
+      const profileZoom = zoom.detailProfiles[profile].roads;
+      const profileTheme = colors.detailContext[profile];
+      const baseFilter = createRoadFilter(roadClassFilters[config.classKey]);
+      const minzoomKey = `${config.zoomKey}MinZoom` as const;
+      const opacityKey = `${config.zoomKey}Opacity` as const;
+      const widthKey = `${config.zoomKey}Width` as const;
 
-        return {
-          id: createStreetLayerId(config.baseId, profile, scope),
-          type: "line",
-          source: vectorSourceId,
-          "source-layer": TRANSPORTATION_SOURCE_LAYER,
-          minzoom: profileZoom[minzoomKey],
-          filter: createScopedLayerFilter(baseFilter, detailContext, scope),
-          layout: {
-            "line-cap": "round",
-            "line-join": "round",
-            visibility: isVisible,
-          },
-          paint: {
-            "line-color": colors.roads[config.colorKey],
-            "line-opacity": getZoomInterpolatedNumber(profileZoom[opacityKey]),
-            "line-width": getZoomInterpolatedNumber(profileZoom[widthKey]),
-          },
-        };
-      }),
-    ),
+      return {
+        id: createDetailLayerId(config.baseId, profile),
+        type: "line",
+        source: vectorSourceId,
+        "source-layer": TRANSPORTATION_SOURCE_LAYER,
+        minzoom: profileZoom[minzoomKey],
+        filter: createDetailProfileFilter(baseFilter, detailContext, profile),
+        layout: {
+          "line-cap": "round",
+          "line-join": "round",
+          visibility: getDetailProfileVisibility(detailContext, profile),
+        },
+        paint: {
+          "line-color": colors.roads[config.colorKey],
+          "line-opacity": getZoomInterpolatedNumber(
+            scaleZoomStops(profileZoom[opacityKey], profileTheme.lineOpacityMultiplier),
+          ),
+          "line-width": getZoomInterpolatedNumber(
+            scaleZoomStops(profileZoom[widthKey], profileTheme.lineWidthMultiplier),
+          ),
+        },
+      };
+    }),
   );
 }
