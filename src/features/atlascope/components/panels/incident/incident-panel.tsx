@@ -6,6 +6,8 @@ import {
 } from "@/features/atlascope/config/theme";
 import type { Incident } from "@/features/atlascope/types/atlascope";
 
+import { PanelMetric } from "./panel-metric";
+
 type IncidentPanelProps = {
   incident: Incident | null;
   isLoading: boolean;
@@ -114,21 +116,6 @@ function SelectedIncidentView({
         </button>
       </div>
     </>
-  );
-}
-
-function PanelMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className={cx("px-3 py-3", atlasUi.surfaces.card)}>
-      <p className={atlasUi.text.detailEyebrow}>{label}</p>
-      <p className={cx("mt-2", atlasUi.text.heading)}>{value}</p>
-    </div>
   );
 }
 

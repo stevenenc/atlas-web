@@ -1,19 +1,18 @@
 import type { ComponentProps, RefObject } from "react";
 
-import { type ThemeMode } from "@/features/atlascope/config/theme";
-import type { IncidentType } from "@/features/atlascope/types/atlascope";
-
 import {
   GeofenceIcon,
   LayersIcon,
   SearchIcon,
   UserIcon,
-} from "./atlascope-icons";
-import { GeofencePanel } from "./geofence-panel";
-import { LayersPanel } from "./layers-panel";
-import { OverlayRailButton } from "./overlay-rail-button";
-import { SearchPanel } from "./search-panel";
-import { UserPanel } from "./user-panel";
+} from "@/features/atlascope/components/icons/atlascope-icons";
+import { OverlayRailButton } from "@/features/atlascope/components/overlay/rail/overlay-rail-button";
+import { GeofencePanel } from "@/features/atlascope/components/panels/geofence/geofence-panel";
+import { LayersPanel } from "@/features/atlascope/components/panels/layers/layers-panel";
+import { SearchPanel } from "@/features/atlascope/components/panels/search/search-panel";
+import { UserPanel } from "@/features/atlascope/components/panels/user/user-panel";
+import { type ThemeMode } from "@/features/atlascope/config/theme";
+import type { IncidentType } from "@/features/atlascope/types/atlascope";
 
 export type OverlayPanelId = "search" | "user" | "layers" | "geofences";
 

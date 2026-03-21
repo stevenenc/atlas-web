@@ -1,49 +1,13 @@
-import { atlasUi, cx, layerRows } from "@/features/atlascope/config/theme";
-import type { IncidentType } from "@/features/atlascope/types/atlascope";
+import { atlasUi, cx } from "@/features/atlascope/config/theme";
 
-import { BasePanel, PanelHeader } from "./panel-system";
-
-type LayersPanelProps = {
-  activeLayers: Record<IncidentType, boolean>;
-  isOpen: boolean;
-  onToggleLayer: (layer: IncidentType) => void;
+type LayerRowProps = {
+  active: boolean;
+  color: string;
+  label: string;
+  onClick: () => void;
 };
 
-export function LayersPanel({
-  activeLayers,
-  isOpen,
-  onToggleLayer,
-}: LayersPanelProps) {
-  return (
-    <BasePanel isOpen={isOpen} ariaLabel="Layers panel">
-      <PanelHeader eyebrow="Hazard Layers" />
-
-      <div className="mt-5 space-y-2">
-        {layerRows.map((layer) => (
-          <LayerRow
-            key={layer.id}
-            label={layer.label}
-            color={layer.color}
-            active={activeLayers[layer.id]}
-            onClick={() => onToggleLayer(layer.id)}
-          />
-        ))}
-      </div>
-    </BasePanel>
-  );
-}
-
-function LayerRow({
-  label,
-  color,
-  active,
-  onClick,
-}: {
-  label: string;
-  color: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+export function LayerRow({ active, color, label, onClick }: LayerRowProps) {
   return (
     <button
       type="button"

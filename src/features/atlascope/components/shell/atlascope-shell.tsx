@@ -2,22 +2,22 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import { TimelineControlBar } from "@/features/atlascope/components/timeline-control-bar";
+import { MapView } from "@/features/atlascope/components/map/map-view";
+import { usePanelManager } from "@/features/atlascope/components/overlay/panel/panel-system";
+import { IncidentPanel } from "@/features/atlascope/components/panels/incident/incident-panel";
+import { TimelineControlBar } from "@/features/atlascope/components/timeline/timeline-control-bar";
 import { atlasUi, type ThemeMode } from "@/features/atlascope/config/theme";
 import { mockGeofences } from "@/features/atlascope/data/mock-geofences";
 import { incidents } from "@/features/atlascope/data/mock-incidents";
-import { formatTimelineDate } from "@/features/atlascope/lib/incident-timeline";
-import type { IncidentType } from "@/features/atlascope/types/atlascope";
 import { useAtlascopeGeofences } from "@/features/atlascope/hooks/use-atlascope-geofences";
 import { useAtlascopeTimeline } from "@/features/atlascope/hooks/use-atlascope-timeline";
+import { formatTimelineDate } from "@/features/atlascope/lib/incident-timeline";
+import type { IncidentType } from "@/features/atlascope/types/atlascope";
 
 import {
   AtlascopeShellOverlays,
   type OverlayPanelId,
 } from "./atlascope-shell-overlays";
-import { IncidentPanel } from "./incident-panel";
-import { MapView } from "./map-view";
-import { usePanelManager } from "./panel-system";
 
 const initialLayers: Record<IncidentType, boolean> = {
   earthquake: true,

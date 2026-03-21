@@ -1,7 +1,6 @@
 import { atlasUi, cx } from "@/features/atlascope/config/theme";
-
-import { SearchIcon } from "./atlascope-icons";
-import { BasePanel, PanelHeader } from "./panel-system";
+import { SearchIcon } from "@/features/atlascope/components/icons/atlascope-icons";
+import { BasePanel, PanelHeader } from "@/features/atlascope/components/overlay/panel/panel-system";
 
 type SearchPanelProps = {
   isOpen: boolean;
