@@ -357,7 +357,9 @@ export const atlasTheme = {
         stroke: "#1E63D5",
         selectedStroke: "#1354BF",
         draftStroke: "#1354BF",
-        draftHandleFill: "#F8FBFF",
+        draftValidStroke: "#1E9E57",
+        draftInvalidStroke: "#C94646",
+        draftHandleFill: "#F4FFF7",
       },
       detailContext: {
         ambient: {
@@ -439,7 +441,9 @@ export const atlasTheme = {
         stroke: "#5BD3F5",
         selectedStroke: "#8AE5FF",
         draftStroke: "#8AE5FF",
-        draftHandleFill: "#D9F8FF",
+        draftValidStroke: "#67E08E",
+        draftInvalidStroke: "#FF6B6B",
+        draftHandleFill: "#E7FFEF",
       },
       detailContext: {
         ambient: {

@@ -6,12 +6,13 @@ import { MapView } from "@/features/atlascope/components/map/map-view";
 import { usePanelManager } from "@/features/atlascope/components/overlay/panel/panel-system";
 import { IncidentPanel } from "@/features/atlascope/components/panels/incident/incident-panel";
 import { TimelineControlBar } from "@/features/atlascope/components/timeline/timeline-control-bar";
+import { TimelineInfoBlock } from "@/features/atlascope/components/timeline/timeline-info-block";
 import { atlasUi, type ThemeMode } from "@/features/atlascope/config/theme";
 import { mockGeofences } from "@/features/atlascope/data/mock-geofences";
 import { incidents } from "@/features/atlascope/data/mock-incidents";
 import { useAtlascopeGeofences } from "@/features/atlascope/hooks/use-atlascope-geofences";
 import { useAtlascopeTimeline } from "@/features/atlascope/hooks/use-atlascope-timeline";
-import { formatTimelineDate } from "@/features/atlascope/lib/incident-timeline";
+import { formatTimelineLongDate } from "@/features/atlascope/lib/incident-timeline";
 import type { IncidentType } from "@/features/atlascope/types/atlascope";
 
 import {
@@ -33,6 +34,7 @@ export function AtlascopeShell() {
     setActiveOverlayPanel("geofences");
   }, []);
   const {
+    canFinishDrawingGeofence,
     drawingGeofenceCoordinates,
     editingGeofenceCoordinates,
     editingGeofenceId,
@@ -136,6 +138,7 @@ export function AtlascopeShell() {
         selectedTimeMs={selectedTimeMs}
         onSelectIncident={handleSelectIncident}
         onMapClick={handleAddGeofencePoint}
+        onDrawingComplete={handleFinishDrawingGeofence}
         onDrawingCoordinateAddAt={handleAddGeofencePointAt}
         onDrawingCoordinateUpdate={handleUpdateDrawingGeofencePoint}
         onDrawingCoordinateRemove={handleRemoveDrawingGeofencePoint}
@@ -147,6 +150,12 @@ export function AtlascopeShell() {
       />
 
       <div className="pointer-events-none absolute inset-0">
+        <TimelineInfoBlock
+          currentDateLabel={formatTimelineLongDate(selectedTimeMs)}
+          trackedIncidentCount={trackedIncidents.length}
+          activeIncidentCount={activeIncidents.length}
+        />
+
         <AtlascopeShellOverlays
           activeLayers={activeLayers}
           geofencePanelProps={{
@@ -154,6 +163,7 @@ export function AtlascopeShell() {
             selectedGeofenceId,
             isDrawingGeofence,
             drawingPointCount: drawingGeofenceCoordinates.length,
+            canFinishDrawing: canFinishDrawingGeofence,
             editingGeofenceId,
             renamingGeofenceId,
             draftName: geofenceDraftName,
@@ -192,7 +202,7 @@ export function AtlascopeShell() {
         </div>
 
         <div
-          className={`absolute bottom-6 left-6 right-6 z-30 flex justify-center atlas-transition-panel ${
+          className={`absolute bottom-6 left-4 right-4 z-30 flex justify-center atlas-transition-panel sm:left-6 sm:right-6 ${
             shouldOffsetTimeline ? atlasUi.layout.timelineOffset : ""
           }`}
         >
@@ -201,9 +211,6 @@ export function AtlascopeShell() {
             minTimeMs={timelineBounds.startMs}
             maxTimeMs={timelineBounds.endMs}
             isPlaying={isTimelinePlaying}
-            activeIncidentCount={activeIncidents.length}
-            trackedIncidentCount={trackedIncidents.length}
-            currentDateLabel={formatTimelineDate(selectedTimeMs)}
             onPlayPause={handleTimelinePlayPause}
             onTimeChange={handleTimelineTimeChange}
             onInteractionChange={setIsTimelineInteracting}

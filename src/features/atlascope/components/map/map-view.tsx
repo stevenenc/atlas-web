@@ -31,6 +31,7 @@ type MapViewProps = {
   selectedTimeMs: number;
   onSelectIncident: (incident: Incident) => void;
   onMapClick: (coordinates: MapGeofenceData["coordinates"][number]) => void;
+  onDrawingComplete: () => void;
   onDrawingCoordinateAddAt: (
     index: number,
     coordinates: MapGeofenceData["coordinates"][number],
@@ -72,6 +73,7 @@ export function MapView({
   selectedTimeMs,
   onSelectIncident,
   onMapClick,
+  onDrawingComplete,
   onDrawingCoordinateAddAt,
   onDrawingCoordinateUpdate,
   onDrawingCoordinateRemove,
@@ -139,20 +141,6 @@ export function MapView({
         })),
     [editingCoordinates, editingGeofenceId, geofences],
   );
-  const geofenceLayers = useMemo(
-    () =>
-      isDrawingGeofence && drawingCoordinates.length >= 3
-        ? [
-            ...visibleGeofences,
-            {
-              id: "draft-geofence",
-              title: "Draft geofence",
-              coordinates: drawingCoordinates,
-            },
-          ]
-        : visibleGeofences,
-    [drawingCoordinates, isDrawingGeofence, visibleGeofences],
-  );
   useEffect(() => {
     return () => {
       if (detailContextAnimationFrameRef.current) {
@@ -213,7 +201,7 @@ export function MapView({
       <div className="absolute inset-0">
         <ActiveMapAdapter
           markers={markers}
-          geofences={geofenceLayers}
+          geofences={visibleGeofences}
           detailContext={detailContext}
           drawingCoordinates={drawingCoordinates}
           isDrawingGeofence={isDrawingGeofence}
@@ -226,6 +214,7 @@ export function MapView({
           theme={theme}
           onViewportChange={setViewport}
           onMapClick={onMapClick}
+          onDrawingComplete={onDrawingComplete}
           onDrawingCoordinateAddAt={onDrawingCoordinateAddAt}
           onDrawingCoordinateUpdate={onDrawingCoordinateUpdate}
           onDrawingCoordinateRemove={onDrawingCoordinateRemove}

@@ -55,6 +55,14 @@ export function formatTimelineDate(value: number) {
   }).format(value);
 }
 
+export function formatTimelineLongDate(value: number) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(value);
+}
+
 export function getTimelineHourMarks(startMs: number, endMs: number) {
   const marks: number[] = [];
   const startDate = new Date(startMs);

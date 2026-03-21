@@ -59,6 +59,8 @@ export type MapColorTokens = {
     stroke: string;
     selectedStroke: string;
     draftStroke: string;
+    draftValidStroke: string;
+    draftInvalidStroke: string;
     draftHandleFill: string;
   };
   detailContext: {

@@ -4,12 +4,14 @@ import { CheckIcon, CloseIcon } from "./geofence-icons";
 
 type GeofenceDrawingCalloutProps = {
   drawingPointCount: number;
+  canFinishDrawing: boolean;
   onCancelDrawing: () => void;
   onFinishDrawing: () => void;
 };
 
 export function GeofenceDrawingCallout({
   drawingPointCount,
+  canFinishDrawing,
   onCancelDrawing,
   onFinishDrawing,
 }: GeofenceDrawingCalloutProps) {
@@ -35,7 +37,7 @@ export function GeofenceDrawingCallout({
         <button
           type="button"
           onClick={onFinishDrawing}
-          disabled={drawingPointCount < 3}
+          disabled={!canFinishDrawing}
           aria-label="Finish geofence drawing"
           className="flex size-7 items-center justify-center text-atlas-ink atlas-transition-surface hover:text-atlas-ink disabled:cursor-not-allowed disabled:text-atlas-disabled"
         >

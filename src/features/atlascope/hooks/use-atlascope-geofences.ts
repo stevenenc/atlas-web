@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { MapCoordinates } from "@/features/atlascope/map/core/types";
+import {
+  canCloseFromPoint,
+  isValidNextPoint,
+  isValidOpenGeofencePath,
+} from "@/features/atlascope/map/lib/geofence-drawing";
 import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 
 type FocusedGeofenceRequest = {
@@ -39,6 +44,7 @@ export function useAtlascopeGeofences({
     previousVisibility: boolean;
   } | null>(null);
   const isGeofencePanelPersistent = isDrawingGeofence || editingGeofenceId !== null;
+  const canFinishDrawingGeofence = canCloseFromPoint(drawingGeofenceCoordinates);
 
   const restoreSelectedGeofencePreview = useCallback(() => {
     const preview = selectedGeofencePreviewRef.current;
@@ -85,7 +91,7 @@ export function useAtlascopeGeofences({
   );
 
   const handleFinishDrawingGeofence = useCallback(() => {
-    if (drawingGeofenceCoordinates.length < 3) {
+    if (!canCloseFromPoint(drawingGeofenceCoordinates)) {
       return;
     }
 
@@ -245,7 +251,7 @@ export function useAtlascopeGeofences({
       event.preventDefault();
 
       if (isDrawingGeofence) {
-        if (drawingGeofenceCoordinates.length >= 3) {
+        if (canFinishDrawingGeofence) {
           handleFinishDrawingGeofence();
         }
 
@@ -263,7 +269,7 @@ export function useAtlascopeGeofences({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
-    drawingGeofenceCoordinates.length,
+    canFinishDrawingGeofence,
     editingGeofenceId,
     geofences,
     handleCancelDrawingGeofence,
@@ -293,7 +299,9 @@ export function useAtlascopeGeofences({
       return;
     }
 
-    setDrawingGeofenceCoordinates((current) => [...current, coordinates]);
+    setDrawingGeofenceCoordinates((current) =>
+      isValidNextPoint(current, coordinates) ? [...current, coordinates] : current,
+    );
   }
 
   function handleAddGeofencePointAt(index: number, coordinates: MapCoordinates) {
@@ -301,9 +309,11 @@ export function useAtlascopeGeofences({
       return;
     }
 
-    setDrawingGeofenceCoordinates((current) =>
-      insertCoordinatesAt(current, index, coordinates),
-    );
+    setDrawingGeofenceCoordinates((current) => {
+      const nextCoordinates = insertCoordinatesAt(current, index, coordinates);
+
+      return isValidOpenGeofencePath(nextCoordinates) ? nextCoordinates : current;
+    });
   }
 
   function handleUpdateDrawingGeofencePoint(index: number, coordinates: MapCoordinates) {
@@ -311,9 +321,13 @@ export function useAtlascopeGeofences({
       return;
     }
 
-    setDrawingGeofenceCoordinates((current) =>
-      current.map((point, pointIndex) => (pointIndex === index ? coordinates : point)),
-    );
+    setDrawingGeofenceCoordinates((current) => {
+      const nextCoordinates = current.map((point, pointIndex) =>
+        pointIndex === index ? coordinates : point,
+      );
+
+      return isValidOpenGeofencePath(nextCoordinates) ? nextCoordinates : current;
+    });
   }
 
   function handleRemoveDrawingGeofencePoint(index: number) {
@@ -459,6 +473,7 @@ export function useAtlascopeGeofences({
 
   return {
     drawingGeofenceCoordinates,
+    canFinishDrawingGeofence,
     editingGeofenceCoordinates,
     handleAddEditingGeofencePointAt,
     editingGeofenceId,

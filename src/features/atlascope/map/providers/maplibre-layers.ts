@@ -8,6 +8,7 @@ import {
 } from "@/features/atlascope/config/theme";
 import type {
   HazardLayerType,
+  MapCoordinates,
   MapGeofenceData,
   MapDetailContext,
   MapMarkerData,
@@ -35,6 +36,8 @@ type GeofenceFeatureProperties = {
 type DraftGeofenceSegmentFeatureProperties = {
   segmentIndex: number;
 };
+
+type DraftGeofencePreviewStatus = "default" | "closing" | "invalid";
 
 export function createHazardSourceData(
   markers: MapMarkerData[],
@@ -233,7 +236,8 @@ export function createDetailContextMaskLayer(
 export function createDraftGeofenceLineSourceData(
   coordinates: MapGeofenceData["coordinates"],
   closePath = false,
-): FeatureCollection<LineString> {
+  status: DraftGeofencePreviewStatus = "default",
+): FeatureCollection<LineString, { status: DraftGeofencePreviewStatus }> {
   const lineCoordinates = coordinates.map((coordinate) => [
     coordinate.longitude,
     coordinate.latitude,
@@ -253,10 +257,48 @@ export function createDraftGeofenceLineSourceData(
               type: "LineString",
               coordinates: closedLineCoordinates,
             },
-            properties: {},
+            properties: {
+              status,
+            },
           },
         ]
       : [],
+  };
+}
+
+export function createDraftGeofenceProjectedLineSourceData(
+  segment:
+    | {
+        start: MapCoordinates;
+        end: MapCoordinates;
+        status: DraftGeofencePreviewStatus;
+      }
+    | null,
+): FeatureCollection<LineString, { status: DraftGeofencePreviewStatus }> {
+  if (!segment) {
+    return {
+      type: "FeatureCollection",
+      features: [],
+    };
+  }
+
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [segment.start.longitude, segment.start.latitude],
+            [segment.end.longitude, segment.end.latitude],
+          ],
+        },
+        properties: {
+          status: segment.status,
+        },
+      },
+    ],
   };
 }
 
@@ -352,17 +394,52 @@ export function createDraftGeofenceLayers(theme: ThemeMode): LayerProps[] {
       },
     },
     {
-      id: "draft-geofence-line",
+      id: "draft-geofence-confirmed-line",
       type: "line",
       layout: {
         "line-cap": "round",
         "line-join": "round",
       },
       paint: {
-        "line-color": geofence.draftStroke,
+        "line-color": [
+          "match",
+          ["get", "status"],
+          "closing",
+          geofence.draftValidStroke,
+          "invalid",
+          geofence.draftInvalidStroke,
+          geofence.draftStroke,
+        ],
         "line-width": 2.5,
-        "line-dasharray": [1.2, 1.1],
         "line-opacity": 0.96,
+      },
+    },
+    {
+      id: "draft-geofence-projected-line",
+      type: "line",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": [
+          "match",
+          ["get", "status"],
+          "closing",
+          geofence.draftValidStroke,
+          "invalid",
+          geofence.draftInvalidStroke,
+          geofence.draftStroke,
+        ],
+        "line-width": 3.1,
+        "line-dasharray": [
+          "match",
+          ["get", "status"],
+          "closing",
+          ["literal", [1, 0]],
+          ["literal", [0.9, 1.8]],
+        ],
+        "line-opacity": 0.98,
       },
     },
     {
