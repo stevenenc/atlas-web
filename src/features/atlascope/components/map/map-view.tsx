@@ -20,6 +20,7 @@ type MapViewProps = {
   focusedGeofenceId: number | null;
   focusedGeofenceNonce: number;
   drawingCoordinates: MapGeofenceData["coordinates"];
+  editingCoordinates: MapGeofenceData["coordinates"];
   isDrawingGeofence: boolean;
   editingGeofenceId: number | null;
   isInteractionLocked: boolean;
@@ -28,12 +29,20 @@ type MapViewProps = {
   selectedTimeMs: number;
   onSelectIncident: (incident: Incident) => void;
   onMapClick: (coordinates: MapGeofenceData["coordinates"][number]) => void;
+  onDrawingCoordinateAddAt: (
+    index: number,
+    coordinates: MapGeofenceData["coordinates"][number],
+  ) => void;
   onDrawingCoordinateUpdate: (
     index: number,
     coordinates: MapGeofenceData["coordinates"][number],
   ) => void;
   onDrawingCoordinateRemove: (index: number) => void;
   onEditingCoordinateAdd: (
+    coordinates: MapGeofenceData["coordinates"][number],
+  ) => void;
+  onEditingCoordinateAddAt: (
+    index: number,
     coordinates: MapGeofenceData["coordinates"][number],
   ) => void;
   onEditingCoordinateUpdate: (
@@ -52,6 +61,7 @@ export function MapView({
   focusedGeofenceId,
   focusedGeofenceNonce,
   drawingCoordinates,
+  editingCoordinates,
   isDrawingGeofence,
   editingGeofenceId,
   isInteractionLocked,
@@ -60,9 +70,11 @@ export function MapView({
   selectedTimeMs,
   onSelectIncident,
   onMapClick,
+  onDrawingCoordinateAddAt,
   onDrawingCoordinateUpdate,
   onDrawingCoordinateRemove,
   onEditingCoordinateAdd,
+  onEditingCoordinateAddAt,
   onEditingCoordinateUpdate,
   onEditingCoordinateRemove,
   theme,
@@ -82,7 +94,6 @@ export function MapView({
       })),
     [incidents, selectedTimeMs],
   );
-  const editingGeofence = geofences.find((geofence) => geofence.id === editingGeofenceId) ?? null;
   const focusedGeofence = geofences.find((geofence) => geofence.id === focusedGeofenceId) ?? null;
   const detailContext = useMemo<MapDetailContext>(
     () => ({
@@ -101,9 +112,10 @@ export function MapView({
         .map((geofence) => ({
           id: String(geofence.id),
           title: geofence.name,
-          coordinates: geofence.coordinates,
+          coordinates:
+            geofence.id === editingGeofenceId ? editingCoordinates : geofence.coordinates,
         })),
-    [editingGeofenceId, geofences],
+    [editingCoordinates, editingGeofenceId, geofences],
   );
   const geofenceLayers = useMemo(
     () =>
@@ -132,8 +144,8 @@ export function MapView({
           detailContext={detailContext}
           drawingCoordinates={drawingCoordinates}
           isDrawingGeofence={isDrawingGeofence}
-          editingCoordinates={editingGeofence?.coordinates ?? []}
-          isEditingGeofence={editingGeofence !== null}
+          editingCoordinates={editingCoordinates}
+          isEditingGeofence={editingGeofenceId !== null}
           isInteractionLocked={isInteractionLocked}
           activeLayers={activeLayers}
           selectedMarkerId={selectedIncidentId}
@@ -141,13 +153,15 @@ export function MapView({
           theme={theme}
           onViewportChange={setViewport}
           onMapClick={onMapClick}
+          onDrawingCoordinateAddAt={onDrawingCoordinateAddAt}
           onDrawingCoordinateUpdate={onDrawingCoordinateUpdate}
           onDrawingCoordinateRemove={onDrawingCoordinateRemove}
           onEditingCoordinateAdd={onEditingCoordinateAdd}
+          onEditingCoordinateAddAt={onEditingCoordinateAddAt}
           onEditingCoordinateUpdate={onEditingCoordinateUpdate}
           onEditingCoordinateRemove={onEditingCoordinateRemove}
           onMarkerClick={(marker: MapMarkerData) => {
-            if (isDrawingGeofence || editingGeofence !== null) {
+            if (isDrawingGeofence || editingGeofenceId !== null) {
               return;
             }
 

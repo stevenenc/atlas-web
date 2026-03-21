@@ -42,7 +42,7 @@ export const atlascopeMapConfig = {
     latitude: 12.3,
     zoom: 6.2,
     bearing: 0,
-    pitch: 18,
+    pitch: 0,
   } satisfies MapViewportState,
   minZoom: 5.1,
   maxZoom: 14.5,

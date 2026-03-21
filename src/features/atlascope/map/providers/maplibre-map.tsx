@@ -37,6 +37,7 @@ import {
   createDetailContextMaskLayer,
   createDetailContextMaskSourceData,
   createDraftGeofenceLayers,
+  createDraftGeofenceLineHitAreaSourceData,
   createDraftGeofenceLineSourceData,
   createDraftGeofencePointSourceData,
   createGeofenceLayers,
@@ -54,6 +55,14 @@ const DRAFT_POINT_POINTER_RADIUS = {
   pen: 18,
   touch: 28,
 } as const;
+const DRAFT_LINE_HOVER_DISTANCE_PX = 20;
+const DRAFT_LINE_DISTANCE_EPSILON = 0.01;
+
+type ScreenPoint = {
+  x: number;
+  y: number;
+};
+type MapCursorMode = "idle" | "add" | "grab" | "grabbing";
 
 function toViewportState(event: ViewStateChangeEvent): MapViewportState {
   return {
@@ -72,6 +81,8 @@ const NORWAY_TO_AUSTRALIA_BOUNDS = {
 
 const DRAWING_CURSOR =
   'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 28 28\' fill=\'none\'%3E%3Cpath d=\'M18.69 4.2a2.4 2.4 0 0 1 3.4 0l1.7 1.7a2.4 2.4 0 0 1 0 3.4l-11.2 11.2-4.94.72.72-4.94L18.69 4.2Z\' fill=\'%23111A1F\'/%3E%3Cpath d=\'M19.61 5.11a1.1 1.1 0 0 1 1.55 0l1.73 1.73a1.1 1.1 0 0 1 0 1.55L11.92 19.36l-2.86.42.42-2.86L19.61 5.11Z\' fill=\'%235BD3F5\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\'/%3E%3Cpath d=\'M18.65 7.61l2.74 2.74\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\' stroke-linecap=\'round\'/%3E%3C/svg%3E") 4 24, crosshair';
+const DRAWING_ADD_CURSOR =
+  'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 28 28\' fill=\'none\'%3E%3Ccircle cx=\'7.25\' cy=\'7.25\' r=\'5.25\' fill=\'%23E7FBFF\' stroke=\'%23111A1F\' stroke-width=\'1.1\'/%3E%3Cpath d=\'M7.25 4.65v5.2M4.65 7.25h5.2\' stroke=\'%235BD3F5\' stroke-width=\'1.5\' stroke-linecap=\'round\'/%3E%3Cpath d=\'M18.69 4.2a2.4 2.4 0 0 1 3.4 0l1.7 1.7a2.4 2.4 0 0 1 0 3.4l-11.2 11.2-4.94.72.72-4.94L18.69 4.2Z\' fill=\'%23111A1F\'/%3E%3Cpath d=\'M19.61 5.11a1.1 1.1 0 0 1 1.55 0l1.73 1.73a1.1 1.1 0 0 1 0 1.55L11.92 19.36l-2.86.42.42-2.86L19.61 5.11Z\' fill=\'%235BD3F5\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\'/%3E%3Cpath d=\'M18.65 7.61l2.74 2.74\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\' stroke-linecap=\'round\'/%3E%3C/svg%3E") 4 24, crosshair';
 
 type DraftPointEvent = MapLayerMouseEvent | MapLayerTouchEvent;
 
@@ -100,28 +111,6 @@ function getVerticalBoundsMinZoom(containerHeight: number) {
   );
 }
 
-function getPointerClientPosition(event: DraftPointEvent) {
-  const originalEvent = event.originalEvent;
-
-  if ("clientX" in originalEvent && "clientY" in originalEvent) {
-    return {
-      clientX: originalEvent.clientX,
-      clientY: originalEvent.clientY,
-    };
-  }
-
-  const touch = originalEvent.touches[0] ?? originalEvent.changedTouches[0];
-
-  if (!touch) {
-    return null;
-  }
-
-  return {
-    clientX: touch.clientX,
-    clientY: touch.clientY,
-  };
-}
-
 export const MapLibreMap = memo(function MapLibreMap({
   markers,
   geofences,
@@ -137,9 +126,11 @@ export const MapLibreMap = memo(function MapLibreMap({
   onViewportChange,
   onMarkerClick,
   onMapClick,
+  onDrawingCoordinateAddAt,
   onDrawingCoordinateUpdate,
   onDrawingCoordinateRemove,
   onEditingCoordinateAdd,
+  onEditingCoordinateAddAt,
   onEditingCoordinateUpdate,
   onEditingCoordinateRemove,
 }: MapContainerProps) {
@@ -158,9 +149,7 @@ export const MapLibreMap = memo(function MapLibreMap({
   const [verticalBoundsMinZoom, setVerticalBoundsMinZoom] = useState(
     atlascopeMapConfig.minZoom,
   );
-  const [mapCursor, setMapCursor] = useState(
-    isDrawingGeofence ? DRAWING_CURSOR : "default",
-  );
+  const [mapCursorMode, setMapCursorMode] = useState<MapCursorMode>("idle");
   const [isDraggingPoint, setIsDraggingPoint] = useState(false);
   const [isTrashTargetActive, setIsTrashTargetActive] = useState(false);
   const styleUrl = getMapStyle(theme);
@@ -292,10 +281,39 @@ export const MapLibreMap = memo(function MapLibreMap({
   );
   const hasActiveGeofenceEdit = isDrawingGeofence || isEditingGeofence;
   const activeEditingCoordinates = isDrawingGeofence ? drawingCoordinates : editingCoordinates;
+  const shouldCloseDraftPath = isEditingGeofence;
+  const draftGeofenceLineSourceData = useMemo(
+    () =>
+      createDraftGeofenceLineSourceData(
+        activeEditingCoordinates,
+        shouldCloseDraftPath,
+      ),
+    [activeEditingCoordinates, shouldCloseDraftPath],
+  );
+  const draftGeofenceLineHitAreaSourceData = useMemo(
+    () =>
+      createDraftGeofenceLineHitAreaSourceData(
+        activeEditingCoordinates,
+        shouldCloseDraftPath,
+      ),
+    [activeEditingCoordinates, shouldCloseDraftPath],
+  );
+  const [
+    draftGeofenceLineHitAreaLayer,
+    draftGeofenceLineLayer,
+    draftGeofencePointsHitAreaLayer,
+    draftGeofencePointsLayer,
+  ] = draftGeofenceLayers;
   const canDeleteDraggedPoint = isDrawingGeofence || activeEditingCoordinates.length > 3;
   const isDragSessionActive = hasActiveGeofenceEdit && isDraggingPoint;
   const isPanGestureEnabled = !hasActiveGeofenceEdit && !isInteractionLocked;
   const isZoomGestureEnabled = !isInteractionLocked;
+  const resolvedMapCursor = resolveMapCursor({
+    hasActiveGeofenceEdit,
+    isDrawingGeofence,
+    isEditingGeofence,
+    mode: mapCursorMode,
+  });
 
   useEffect(() => {
     applyMapThemeStyle();
@@ -461,7 +479,7 @@ export const MapLibreMap = memo(function MapLibreMap({
       return;
     }
 
-    const nextCursor = hasActiveGeofenceEdit ? mapCursor : "default";
+    const nextCursor = hasActiveGeofenceEdit ? resolvedMapCursor : "default";
 
     if (nextCursor === "default") {
       canvas.style.removeProperty("cursor");
@@ -469,7 +487,7 @@ export const MapLibreMap = memo(function MapLibreMap({
     }
 
     canvas.style.setProperty("cursor", nextCursor);
-  }, [hasActiveGeofenceEdit, mapCursor]);
+  }, [hasActiveGeofenceEdit, resolvedMapCursor]);
 
   function getDraftPointIndex(event: DraftPointEvent) {
     const matchingFeature = event.features?.find(
@@ -477,19 +495,60 @@ export const MapLibreMap = memo(function MapLibreMap({
         feature.layer.id === "draft-geofence-points" ||
         feature.layer.id === "draft-geofence-points-hit-area",
     );
-    const rawIndex = matchingFeature?.properties?.index;
 
-    if (typeof rawIndex === "number") {
-      return rawIndex;
+    return parseFeatureIndex(matchingFeature?.properties?.index);
+  }
+
+  function getDraftLineSegmentIndex(event: DraftPointEvent) {
+    const mapInstance = mapRef.current?.getMap();
+
+    if (!mapInstance || activeEditingCoordinates.length < 2) {
+      return null;
     }
 
-    if (typeof rawIndex === "string") {
-      const parsedIndex = Number.parseInt(rawIndex, 10);
+    const pointer = mapInstance.project([event.lngLat.lng, event.lngLat.lat]);
+    const segmentCount =
+      shouldCloseDraftPath && activeEditingCoordinates.length >= 3
+        ? activeEditingCoordinates.length
+        : activeEditingCoordinates.length - 1;
+    let nearestSegmentIndex: number | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    let nearestMidpointDistance = Number.POSITIVE_INFINITY;
 
-      return Number.isNaN(parsedIndex) ? null : parsedIndex;
+    for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
+      const segmentPoints = getDraftSegmentScreenPoints(
+        mapInstance,
+        activeEditingCoordinates,
+        segmentIndex,
+        shouldCloseDraftPath,
+      );
+
+      if (!segmentPoints) {
+        continue;
+      }
+
+      const distance = getDistanceToSegment(pointer, segmentPoints.start, segmentPoints.end);
+      const midpointDistance = getDistanceToPoint(
+        pointer,
+        getSegmentMidpoint(segmentPoints.start, segmentPoints.end),
+      );
+
+      if (
+        distance < nearestDistance - DRAFT_LINE_DISTANCE_EPSILON ||
+        (Math.abs(distance - nearestDistance) <= DRAFT_LINE_DISTANCE_EPSILON &&
+          midpointDistance < nearestMidpointDistance)
+      ) {
+        nearestSegmentIndex = segmentIndex;
+        nearestDistance = distance;
+        nearestMidpointDistance = midpointDistance;
+      }
     }
 
-    return null;
+    if (!isDrawingGeofence) {
+      return nearestSegmentIndex;
+    }
+
+    return nearestDistance <= DRAFT_LINE_HOVER_DISTANCE_PX ? nearestSegmentIndex : null;
   }
 
   function getDraftPointIndexAtScreenPoint(
@@ -581,30 +640,6 @@ export const MapLibreMap = memo(function MapLibreMap({
     };
   }
 
-  function isPointerOverTrashTarget(event: DraftPointEvent) {
-    const trashTarget = trashTargetRef.current;
-
-    if (!trashTarget) {
-      return false;
-    }
-
-    const pointerPosition = getPointerClientPosition(event);
-
-    if (!pointerPosition) {
-      return false;
-    }
-
-    const trashRect = trashTarget.getBoundingClientRect();
-    const { clientX: pointerX, clientY: pointerY } = pointerPosition;
-
-    return (
-      pointerX >= trashRect.left &&
-      pointerX <= trashRect.right &&
-      pointerY >= trashRect.top &&
-      pointerY <= trashRect.bottom
-    );
-  }
-
   function isClientPointOverTrashTarget(clientX: number, clientY: number) {
     const trashTarget = trashTargetRef.current;
 
@@ -633,7 +668,7 @@ export const MapLibreMap = memo(function MapLibreMap({
     setIsDraggingPoint(false);
     setIsTrashTargetActive(false);
     mapRef.current?.getMap().dragPan.enable();
-    setMapCursor(DRAWING_CURSOR);
+    setMapCursorMode("idle");
 
     if (!shouldDeletePoint) {
       return;
@@ -697,7 +732,7 @@ export const MapLibreMap = memo(function MapLibreMap({
       draggedPointIndexRef.current = pointIndex;
       suppressMapClickRef.current = false;
       setIsDraggingPoint(true);
-      setMapCursor("grabbing");
+      setMapCursorMode("grabbing");
       canvas.setPointerCapture(event.pointerId);
       mapRef.current?.getMap().dragPan.disable();
     };
@@ -725,7 +760,7 @@ export const MapLibreMap = memo(function MapLibreMap({
       setIsTrashTargetActive(
         canDeleteDraggedPoint && isClientPointOverTrashTarget(event.clientX, event.clientY),
       );
-      setMapCursor("grabbing");
+      setMapCursorMode("grabbing");
 
       if (isDrawingGeofence) {
         onDrawingCoordinateUpdate(draggedPointIndex, coordinates);
@@ -789,13 +824,31 @@ export const MapLibreMap = memo(function MapLibreMap({
       longitude: event.lngLat.lng,
       latitude: event.lngLat.lat,
     };
+    const draftLineSegmentIndex = getDraftLineSegmentIndex(event);
+
+    if (draftLineSegmentIndex !== null) {
+      const insertionIndex = Math.min(
+        draftLineSegmentIndex + 1,
+        activeEditingCoordinates.length,
+      );
+
+      if (isDrawingGeofence) {
+        onDrawingCoordinateAddAt(insertionIndex, coordinates);
+        return;
+      }
+
+      onEditingCoordinateAddAt(insertionIndex, coordinates);
+      return;
+    }
 
     if (isDrawingGeofence) {
       onMapClick(coordinates);
       return;
     }
 
-    onEditingCoordinateAdd(coordinates);
+    if (activeEditingCoordinates.length < 2) {
+      onEditingCoordinateAdd(coordinates);
+    }
   }
 
   function handleMapPointerMove(event: DraftPointEvent) {
@@ -803,29 +856,21 @@ export const MapLibreMap = memo(function MapLibreMap({
       return;
     }
 
-    const draggedPointIndex = draggedPointIndexRef.current;
-
-    if (draggedPointIndex !== null) {
-      suppressMapClickRef.current = true;
-      setIsDraggingPoint(true);
-      setIsTrashTargetActive(
-        canDeleteDraggedPoint && isPointerOverTrashTarget(event),
-      );
-      setMapCursor("grabbing");
-      const coordinates = {
-        longitude: event.lngLat.lng,
-        latitude: event.lngLat.lat,
-      };
-
-      if (isDrawingGeofence) {
-        onDrawingCoordinateUpdate(draggedPointIndex, coordinates);
-      } else {
-        onEditingCoordinateUpdate(draggedPointIndex, coordinates);
-      }
+    if (draggedPointIndexRef.current !== null) {
       return;
     }
 
-    setMapCursor(getDraftPointIndex(event) !== null ? "grab" : DRAWING_CURSOR);
+    const isDraftPointHovered = getDraftPointIndex(event) !== null;
+
+    setMapCursorMode(
+      isDraftPointHovered
+        ? "grab"
+        : isEditingGeofence
+          ? "idle"
+          : getDraftLineSegmentIndex(event) !== null
+            ? "add"
+            : "idle",
+    );
   }
 
   return (
@@ -847,7 +892,7 @@ export const MapLibreMap = memo(function MapLibreMap({
             ? ["draft-geofence-points-hit-area", "draft-geofence-points"]
             : undefined
         }
-        cursor={mapCursor}
+        cursor={resolvedMapCursor}
         dragRotate={false}
         touchPitch={false}
         dragPan={isPanGestureEnabled}
@@ -897,14 +942,20 @@ export const MapLibreMap = memo(function MapLibreMap({
         ) : null}
         {hasActiveGeofenceEdit && activeEditingCoordinates.length >= 2 ? (
           <Source
+            id="atlascope-draft-geofence-line-hit-area"
+            type="geojson"
+            data={draftGeofenceLineHitAreaSourceData}
+          >
+            <Layer {...draftGeofenceLineHitAreaLayer} />
+          </Source>
+        ) : null}
+        {hasActiveGeofenceEdit && activeEditingCoordinates.length >= 2 ? (
+          <Source
             id="atlascope-draft-geofence-line"
             type="geojson"
-            data={createDraftGeofenceLineSourceData(
-              activeEditingCoordinates,
-              isEditingGeofence,
-            )}
+            data={draftGeofenceLineSourceData}
           >
-            <Layer {...draftGeofenceLayers[0]} />
+            <Layer {...draftGeofenceLineLayer} />
           </Source>
         ) : null}
         {hasActiveGeofenceEdit && activeEditingCoordinates.length ? (
@@ -913,8 +964,8 @@ export const MapLibreMap = memo(function MapLibreMap({
             type="geojson"
             data={createDraftGeofencePointSourceData(activeEditingCoordinates)}
           >
-            <Layer {...draftGeofenceLayers[1]} />
-            <Layer {...draftGeofenceLayers[2]} />
+            <Layer {...draftGeofencePointsHitAreaLayer} />
+            <Layer {...draftGeofencePointsLayer} />
           </Source>
         ) : null}
         {markers.map((marker) => (
@@ -975,4 +1026,109 @@ function TrashTargetIcon() {
       />
     </svg>
   );
+}
+
+function parseFeatureIndex(value: unknown) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsedValue = Number.parseInt(value, 10);
+
+    return Number.isNaN(parsedValue) ? null : parsedValue;
+  }
+
+  return null;
+}
+
+function resolveMapCursor({
+  hasActiveGeofenceEdit,
+  isDrawingGeofence,
+  isEditingGeofence,
+  mode,
+}: {
+  hasActiveGeofenceEdit: boolean;
+  isDrawingGeofence: boolean;
+  isEditingGeofence: boolean;
+  mode: MapCursorMode;
+}) {
+  if (!hasActiveGeofenceEdit) {
+    return "default";
+  }
+
+  if (mode === "grab" || mode === "grabbing") {
+    return mode;
+  }
+
+  if (isEditingGeofence) {
+    return DRAWING_ADD_CURSOR;
+  }
+
+  if (isDrawingGeofence && mode === "add") {
+    return DRAWING_ADD_CURSOR;
+  }
+
+  return DRAWING_CURSOR;
+}
+
+function getDraftSegmentScreenPoints(
+  mapInstance: maplibregl.Map,
+  coordinates: MapContainerProps["editingCoordinates"],
+  segmentIndex: number,
+  closePath: boolean,
+) {
+  const start = coordinates[segmentIndex];
+  const endIndex =
+    segmentIndex + 1 < coordinates.length
+      ? segmentIndex + 1
+      : closePath && coordinates.length >= 3
+        ? 0
+        : null;
+  const end = endIndex === null ? null : coordinates[endIndex];
+
+  if (!start || !end) {
+    return null;
+  }
+
+  return {
+    start: mapInstance.project([start.longitude, start.latitude]),
+    end: mapInstance.project([end.longitude, end.latitude]),
+  };
+}
+
+function getSegmentMidpoint(start: ScreenPoint, end: ScreenPoint): ScreenPoint {
+  return {
+    x: (start.x + end.x) / 2,
+    y: (start.y + end.y) / 2,
+  };
+}
+
+function getDistanceToPoint(first: ScreenPoint, second: ScreenPoint) {
+  return Math.hypot(first.x - second.x, first.y - second.y);
+}
+
+function getDistanceToSegment(point: ScreenPoint, start: ScreenPoint, end: ScreenPoint) {
+  const segmentDeltaX = end.x - start.x;
+  const segmentDeltaY = end.y - start.y;
+  const segmentLengthSquared = segmentDeltaX ** 2 + segmentDeltaY ** 2;
+
+  if (segmentLengthSquared === 0) {
+    return getDistanceToPoint(point, start);
+  }
+
+  const projection = Math.max(
+    0,
+    Math.min(
+      1,
+      ((point.x - start.x) * segmentDeltaX + (point.y - start.y) * segmentDeltaY) /
+        segmentLengthSquared,
+    ),
+  );
+  const closestPoint = {
+    x: start.x + segmentDeltaX * projection,
+    y: start.y + segmentDeltaY * projection,
+  };
+
+  return getDistanceToPoint(point, closestPoint);
 }

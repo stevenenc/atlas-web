@@ -34,14 +34,17 @@ export function AtlascopeShell() {
   }, []);
   const {
     drawingGeofenceCoordinates,
+    editingGeofenceCoordinates,
     editingGeofenceId,
     enteringGeofenceId,
     focusedGeofenceRequest,
     geofenceDraftName,
     geofences,
     handleAddEditingGeofencePoint,
+    handleAddEditingGeofencePointAt,
     handleAddGeofence,
     handleAddGeofencePoint,
+    handleAddGeofencePointAt,
     handleCancelDrawingGeofence,
     handleCancelEditingGeofence,
     handleDeleteGeofence,
@@ -125,6 +128,7 @@ export function AtlascopeShell() {
         focusedGeofenceNonce={focusedGeofenceRequest?.nonce ?? 0}
         drawingCoordinates={drawingGeofenceCoordinates}
         isDrawingGeofence={isDrawingGeofence}
+        editingCoordinates={editingGeofenceCoordinates}
         editingGeofenceId={editingGeofenceId}
         isInteractionLocked={isTimelineInteracting}
         activeLayers={activeLayers}
@@ -132,9 +136,11 @@ export function AtlascopeShell() {
         selectedTimeMs={selectedTimeMs}
         onSelectIncident={handleSelectIncident}
         onMapClick={handleAddGeofencePoint}
+        onDrawingCoordinateAddAt={handleAddGeofencePointAt}
         onDrawingCoordinateUpdate={handleUpdateDrawingGeofencePoint}
         onDrawingCoordinateRemove={handleRemoveDrawingGeofencePoint}
         onEditingCoordinateAdd={handleAddEditingGeofencePoint}
+        onEditingCoordinateAddAt={handleAddEditingGeofencePointAt}
         onEditingCoordinateUpdate={handleUpdateEditingGeofencePoint}
         onEditingCoordinateRemove={handleRemoveEditingGeofencePoint}
         theme={theme}

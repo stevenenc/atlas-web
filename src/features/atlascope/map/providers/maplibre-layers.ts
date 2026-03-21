@@ -24,6 +24,10 @@ type GeofenceFeatureProperties = {
   title: string;
 };
 
+type DraftGeofenceSegmentFeatureProperties = {
+  segmentIndex: number;
+};
+
 export function createHazardSourceData(
   markers: MapMarkerData[],
 ): FeatureCollection<Point, HazardFeatureProperties> {
@@ -230,6 +234,61 @@ export function createDraftGeofenceLineSourceData(
   };
 }
 
+export function createDraftGeofenceLineHitAreaSourceData(
+  coordinates: MapGeofenceData["coordinates"],
+  closePath = false,
+): FeatureCollection<LineString, DraftGeofenceSegmentFeatureProperties> {
+  if (coordinates.length < 2) {
+    return {
+      type: "FeatureCollection",
+      features: [],
+    };
+  }
+
+  const features = coordinates.slice(0, -1).map((coordinate, segmentIndex) => ({
+    type: "Feature" as const,
+    geometry: {
+      type: "LineString" as const,
+      coordinates: [
+        [coordinate.longitude, coordinate.latitude],
+        [
+          coordinates[segmentIndex + 1]?.longitude ?? coordinate.longitude,
+          coordinates[segmentIndex + 1]?.latitude ?? coordinate.latitude,
+        ],
+      ],
+    },
+    properties: {
+      segmentIndex,
+    },
+  }));
+
+  if (closePath && coordinates.length >= 3) {
+    const lastPoint = coordinates[coordinates.length - 1];
+    const firstPoint = coordinates[0];
+
+    if (lastPoint && firstPoint) {
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [lastPoint.longitude, lastPoint.latitude],
+            [firstPoint.longitude, firstPoint.latitude],
+          ],
+        },
+        properties: {
+          segmentIndex: coordinates.length - 1,
+        },
+      });
+    }
+  }
+
+  return {
+    type: "FeatureCollection",
+    features,
+  };
+}
+
 export function createDraftGeofencePointSourceData(
   coordinates: MapGeofenceData["coordinates"],
 ): FeatureCollection<Point, { index: number }> {
@@ -255,8 +314,24 @@ export function createDraftGeofenceLayers(theme: ThemeMode): LayerProps[] {
 
   return [
     {
+      id: "draft-geofence-line-hit-area",
+      type: "line",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-width": 18,
+        "line-color": "rgba(0, 0, 0, 0)",
+      },
+    },
+    {
       id: "draft-geofence-line",
       type: "line",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
       paint: {
         "line-color": geofence.draftStroke,
         "line-width": 2.5,

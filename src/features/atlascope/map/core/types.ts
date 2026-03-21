@@ -69,9 +69,11 @@ export type MapContainerProps = {
   onViewportChange: (viewport: MapViewportState) => void;
   onMarkerClick: (marker: MapMarkerData) => void;
   onMapClick: (coordinates: MapCoordinates) => void;
+  onDrawingCoordinateAddAt: (index: number, coordinates: MapCoordinates) => void;
   onDrawingCoordinateUpdate: (index: number, coordinates: MapCoordinates) => void;
   onDrawingCoordinateRemove: (index: number) => void;
   onEditingCoordinateAdd: (coordinates: MapCoordinates) => void;
+  onEditingCoordinateAddAt: (index: number, coordinates: MapCoordinates) => void;
   onEditingCoordinateUpdate: (index: number, coordinates: MapCoordinates) => void;
   onEditingCoordinateRemove: (index: number) => void;
 };
