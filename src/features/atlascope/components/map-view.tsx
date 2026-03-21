@@ -7,6 +7,7 @@ import { isIncidentActiveAtTime } from "@/features/atlascope/lib/incident-timeli
 import { resolveMapAdapter } from "@/features/atlascope/map/core/adapter";
 import { atlascopeMapConfig } from "@/features/atlascope/map/core/config";
 import type {
+  MapDetailContext,
   MapGeofenceData,
   MapMarkerData,
 } from "@/features/atlascope/map/core/types";
@@ -83,6 +84,15 @@ export function MapView({
   );
   const editingGeofence = geofences.find((geofence) => geofence.id === editingGeofenceId) ?? null;
   const focusedGeofence = geofences.find((geofence) => geofence.id === focusedGeofenceId) ?? null;
+  const detailContext = useMemo<MapDetailContext>(
+    () => ({
+      mode: focusedGeofence ? "focused-geofence" : "global",
+      focusFeatureId: focusedGeofence ? String(focusedGeofence.id) : null,
+      focusGeometry: focusedGeofence?.coordinates ?? null,
+      version: focusedGeofenceNonce,
+    }),
+    [focusedGeofence, focusedGeofenceNonce],
+  );
   const visibleGeofences: MapGeofenceData[] = useMemo(
     () =>
       geofences
@@ -118,8 +128,7 @@ export function MapView({
         <ActiveMapAdapter
           markers={markers}
           geofences={geofenceLayers}
-          focusedGeofenceCoordinates={focusedGeofence?.coordinates ?? null}
-          focusedGeofenceNonce={focusedGeofenceNonce}
+          detailContext={detailContext}
           drawingCoordinates={drawingCoordinates}
           isDrawingGeofence={isDrawingGeofence}
           editingCoordinates={editingGeofence?.coordinates ?? []}

@@ -1,82 +1,120 @@
 import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 
+import { DEFAULT_MAP_DETAIL_CONTEXT, type MapDetailContext } from "../core/types";
 import { atlascopeMapConfig } from "../core/config";
 import type { MapLayerDefinition } from "../core/provider";
 import { getZoomInterpolatedNumber } from "../style/style-config";
+import {
+  createScopedLayerFilter,
+  createStreetLayerId,
+  getStreetLayerVisibility,
+  type StreetDetailProfile,
+  type StreetDetailScope,
+} from "./detail-context";
 import { roadClassFilters } from "./roads";
 
 const TRANSPORTATION_LABEL_SOURCE_LAYER = "transportation_name";
 
+type RoadLabelConfig = {
+  baseId: string;
+  classes: readonly string[];
+  colorKey: "majorLabel" | "localLabel";
+  textHaloWidth: {
+    dark: number;
+    light: number;
+  };
+  textSize: readonly unknown[];
+  letterSpacing: number;
+  symbolSpacing: number;
+  minZoomKey: "majorRoadMinZoom" | "localRoadMinZoom";
+  opacityKey: "majorRoadOpacity" | "localRoadOpacity";
+};
+
+const roadLabelConfigs: RoadLabelConfig[] = [
+  {
+    baseId: "atlascope-road-labels-major",
+    classes: roadClassFilters.major,
+    colorKey: "majorLabel",
+    textHaloWidth: {
+      dark: 1.15,
+      light: 1.1,
+    },
+    textSize: ["interpolate", ["linear"], ["zoom"], 11, 10.5, 14.5, 12],
+    letterSpacing: 0.015,
+    symbolSpacing: 360,
+    minZoomKey: "majorRoadMinZoom",
+    opacityKey: "majorRoadOpacity",
+  },
+  {
+    baseId: "atlascope-road-labels-local",
+    classes: [...roadClassFilters.secondary, ...roadClassFilters.tertiary],
+    colorKey: "localLabel",
+    textHaloWidth: {
+      dark: 1.05,
+      light: 1,
+    },
+    textSize: ["interpolate", ["linear"], ["zoom"], 13, 9.5, 14.5, 10.8],
+    letterSpacing: 0.01,
+    symbolSpacing: 300,
+    minZoomKey: "localRoadMinZoom",
+    opacityKey: "localRoadOpacity",
+  },
+];
+
+const streetLayerScopes: StreetDetailScope[] = ["global", "context"];
+const streetLayerProfiles: StreetDetailProfile[] = ["ambient", "focused"];
+
+function createRoadLabelFilter(classes: readonly string[]) {
+  return [
+    "match",
+    ["get", "class"],
+    [...classes],
+    true,
+    false,
+  ] as const;
+}
+
 export function createRoadLabelLayerDefinitions(
   theme: ThemeMode,
   vectorSourceId = atlascopeMapConfig.basemap.vectorSourceId,
+  detailContext: MapDetailContext = DEFAULT_MAP_DETAIL_CONTEXT,
 ): MapLayerDefinition[] {
   const { colors, zoom } = getMapTheme(theme);
 
-  return [
-    {
-      id: "atlascope-road-labels-major",
-      type: "symbol",
-      source: vectorSourceId,
-      "source-layer": TRANSPORTATION_LABEL_SOURCE_LAYER,
-      minzoom: zoom.labels.majorRoadMinZoom,
-      filter: [
-        "match",
-        ["get", "class"],
-        [...roadClassFilters.major],
-        true,
-        false,
-      ],
-      layout: {
-        "symbol-placement": "line",
-        "text-field": ["coalesce", ["get", "name_en"], ["get", "name"]],
-        "text-font": ["Noto Sans Regular"],
-        "text-letter-spacing": 0.015,
-        "text-size": ["interpolate", ["linear"], ["zoom"], 11, 10.5, 14.5, 12],
-        "text-max-angle": 38,
-        "text-rotation-alignment": "map",
-        "symbol-spacing": 360,
-        "text-keep-upright": true,
-        visibility: "visible",
-      },
-      paint: {
-        "text-color": colors.roads.majorLabel,
-        "text-halo-color": colors.roads.halo,
-        "text-halo-width": theme === "dark" ? 1.15 : 1.1,
-        "text-opacity": getZoomInterpolatedNumber(zoom.labels.majorRoadOpacity),
-      },
-    },
-    {
-      id: "atlascope-road-labels-local",
-      type: "symbol",
-      source: vectorSourceId,
-      "source-layer": TRANSPORTATION_LABEL_SOURCE_LAYER,
-      minzoom: zoom.labels.localRoadMinZoom,
-      filter: [
-        "match",
-        ["get", "class"],
-        [...roadClassFilters.secondary, ...roadClassFilters.tertiary],
-        true,
-        false,
-      ],
-      layout: {
-        "symbol-placement": "line",
-        "text-field": ["coalesce", ["get", "name_en"], ["get", "name"]],
-        "text-font": ["Noto Sans Regular"],
-        "text-letter-spacing": 0.01,
-        "text-size": ["interpolate", ["linear"], ["zoom"], 13, 9.5, 14.5, 10.8],
-        "text-max-angle": 40,
-        "text-rotation-alignment": "map",
-        "symbol-spacing": 300,
-        "text-keep-upright": true,
-        visibility: "visible",
-      },
-      paint: {
-        "text-color": colors.roads.localLabel,
-        "text-halo-color": colors.roads.halo,
-        "text-halo-width": theme === "dark" ? 1.05 : 1,
-        "text-opacity": getZoomInterpolatedNumber(zoom.labels.localRoadOpacity),
-      },
-    },
-  ];
+  return streetLayerProfiles.flatMap((profile) =>
+    streetLayerScopes.flatMap((scope) =>
+      roadLabelConfigs.map((config) => {
+        const profileZoom = zoom.streetDetailProfiles[profile].labels;
+        const baseFilter = createRoadLabelFilter(config.classes);
+        const isVisible = getStreetLayerVisibility(detailContext, profile, scope);
+
+        return {
+          id: createStreetLayerId(config.baseId, profile, scope),
+          type: "symbol",
+          source: vectorSourceId,
+          "source-layer": TRANSPORTATION_LABEL_SOURCE_LAYER,
+          minzoom: profileZoom[config.minZoomKey],
+          filter: createScopedLayerFilter(baseFilter, detailContext, scope),
+          layout: {
+            "symbol-placement": "line",
+            "text-field": ["coalesce", ["get", "name_en"], ["get", "name"]],
+            "text-font": ["Noto Sans Regular"],
+            "text-letter-spacing": config.letterSpacing,
+            "text-size": config.textSize,
+            "text-max-angle": 40,
+            "text-rotation-alignment": "map",
+            "symbol-spacing": config.symbolSpacing,
+            "text-keep-upright": true,
+            visibility: isVisible,
+          },
+          paint: {
+            "text-color": colors.roads[config.colorKey],
+            "text-halo-color": colors.roads.halo,
+            "text-halo-width": config.textHaloWidth[theme],
+            "text-opacity": getZoomInterpolatedNumber(profileZoom[config.opacityKey]),
+          },
+        };
+      }),
+    ),
+  );
 }

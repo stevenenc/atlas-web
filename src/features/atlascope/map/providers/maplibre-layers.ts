@@ -11,6 +11,7 @@ import type {
   MapGeofenceData,
   MapMarkerData,
 } from "@/features/atlascope/map/core/types";
+import { closePolygonRing, createPolygonGeometry } from "@/features/atlascope/map/lib/geojson";
 
 type HazardFeatureProperties = {
   id: string;
@@ -81,29 +82,6 @@ export function createHazardLayers(theme: ThemeMode): LayerProps[] {
   );
 }
 
-function closePolygonRing(coordinates: MapGeofenceData["coordinates"]) {
-  if (!coordinates.length) {
-    return [];
-  }
-
-  const ring = coordinates.map((coordinate) => [
-    coordinate.longitude,
-    coordinate.latitude,
-  ]);
-  const first = ring[0];
-  const last = ring[ring.length - 1];
-
-  if (!first || !last) {
-    return ring;
-  }
-
-  if (first[0] === last[0] && first[1] === last[1]) {
-    return ring;
-  }
-
-  return [...ring, first];
-}
-
 export function createGeofenceSourceData(
   geofences: MapGeofenceData[],
 ): FeatureCollection<Polygon, GeofenceFeatureProperties> {
@@ -120,6 +98,43 @@ export function createGeofenceSourceData(
         title: geofence.title,
       },
     })),
+  };
+}
+
+export function createDetailContextMaskSourceData(
+  coordinates: MapGeofenceData["coordinates"] | null,
+): FeatureCollection<Polygon> {
+  if (!coordinates || coordinates.length < 3) {
+    return {
+      type: "FeatureCollection",
+      features: [],
+    };
+  }
+
+  const focusGeometry = createPolygonGeometry(coordinates);
+  const focusRing = focusGeometry.coordinates[0];
+
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [-179.9, -85],
+              [179.9, -85],
+              [179.9, 85],
+              [-179.9, 85],
+              [-179.9, -85],
+            ],
+            [...focusRing].reverse(),
+          ],
+        },
+        properties: {},
+      },
+    ],
   };
 }
 
@@ -146,6 +161,20 @@ export function createGeofenceLayers(theme: ThemeMode): LayerProps[] {
       },
     },
   ];
+}
+
+export function createDetailContextMaskLayer(theme: ThemeMode): LayerProps {
+  const {
+    colors: { detailContext },
+  } = getMapTheme(theme);
+
+  return {
+    id: "detail-context-mask",
+    type: "fill",
+    paint: {
+      "fill-color": detailContext.outsideMask,
+    },
+  };
 }
 
 export function createDraftGeofenceLineSourceData(

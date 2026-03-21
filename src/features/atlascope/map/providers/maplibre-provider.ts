@@ -137,6 +137,14 @@ function applyLayerDefinitionUpdate(
   if (style.maxzoom !== undefined) {
     targetLayer.maxzoom = style.maxzoom;
   }
+
+  if (style.minzoom !== undefined || style.maxzoom !== undefined) {
+    map.setLayerZoomRange(
+      layerId,
+      style.minzoom ?? targetLayer.minzoom ?? 0,
+      style.maxzoom ?? targetLayer.maxzoom ?? 24,
+    );
+  }
 }
 
 function getStyleSignature(style: string | MapStyleDefinition) {

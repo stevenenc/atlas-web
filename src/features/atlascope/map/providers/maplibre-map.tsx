@@ -32,7 +32,10 @@ import type {
   MapContainerProps,
   MapViewportState,
 } from "@/features/atlascope/map/core/types";
+import { createStreetLayerStyleUpdates } from "@/features/atlascope/map/layers/street-layers";
 import {
+  createDetailContextMaskLayer,
+  createDetailContextMaskSourceData,
   createDraftGeofenceLayers,
   createDraftGeofenceLineSourceData,
   createDraftGeofencePointSourceData,
@@ -122,8 +125,7 @@ function getPointerClientPosition(event: DraftPointEvent) {
 export const MapLibreMap = memo(function MapLibreMap({
   markers,
   geofences,
-  focusedGeofenceCoordinates,
-  focusedGeofenceNonce,
+  detailContext,
   drawingCoordinates,
   isDrawingGeofence,
   editingCoordinates,
@@ -257,20 +259,30 @@ export const MapLibreMap = memo(function MapLibreMap({
       return;
     }
 
-    createOperationalThemeLayerUpdates(baseMapStyle, theme).forEach(({ id, definition, style }) => {
-      if (mapProviderRef.current?.hasLayer(id)) {
-        mapProviderRef.current.updateLayerStyle(id, style);
-        return;
-      }
+    createOperationalThemeLayerUpdates(baseMapStyle, theme).forEach(
+      ({ id, definition, style }) => {
+        if (mapProviderRef.current?.hasLayer(id)) {
+          mapProviderRef.current.updateLayerStyle(id, style);
+          return;
+        }
 
-      mapProviderRef.current?.addLayer(definition);
-    });
+        mapProviderRef.current?.addLayer(definition);
+      },
+    );
 
     lastAppliedThemeRef.current = theme;
   }, [baseMapStyle, hasMapStyleError, mapStyle, markCurrentThemeAsApplied, theme]);
   const geofenceSourceData = useMemo(
     () => createGeofenceSourceData(geofences),
     [geofences],
+  );
+  const detailContextMaskSourceData = useMemo(
+    () => createDetailContextMaskSourceData(detailContext.focusGeometry),
+    [detailContext.focusGeometry],
+  );
+  const detailContextMaskLayer = useMemo(
+    () => createDetailContextMaskLayer(theme),
+    [theme],
   );
   const geofenceLayers = useMemo(() => createGeofenceLayers(theme), [theme]);
   const draftGeofenceLayers = useMemo(
@@ -288,6 +300,29 @@ export const MapLibreMap = memo(function MapLibreMap({
     applyMapThemeStyle();
   }, [applyMapThemeStyle]);
 
+  const applyDetailContextStyle = useCallback(() => {
+    const mapInstance = mapRef.current?.getMap();
+
+    if (
+      !mapProviderRef.current ||
+      !mapInstance ||
+      hasMapStyleError ||
+      !baseMapStyle ||
+      !mapInstance.getSource(atlascopeMapConfig.basemap.vectorSourceId)
+    ) {
+      return;
+    }
+
+    createStreetLayerStyleUpdates(theme, detailContext).forEach(({ id, definition, style }) => {
+      if (mapProviderRef.current?.hasLayer(id)) {
+        mapProviderRef.current.updateLayerStyle(id, style);
+        return;
+      }
+
+      mapProviderRef.current?.addLayer(definition);
+    });
+  }, [baseMapStyle, detailContext, hasMapStyleError, theme]);
+
   useEffect(() => {
     return () => {
       mapProviderRef.current?.destroy();
@@ -295,6 +330,12 @@ export const MapLibreMap = memo(function MapLibreMap({
   }, []);
 
   useEffect(() => {
+    applyDetailContextStyle();
+  }, [applyDetailContextStyle]);
+
+  useEffect(() => {
+    const focusedGeofenceCoordinates = detailContext.focusGeometry;
+
     if (!focusedGeofenceCoordinates?.length) {
       return;
     }
@@ -337,7 +378,7 @@ export const MapLibreMap = memo(function MapLibreMap({
         },
       },
     );
-  }, [focusedGeofenceCoordinates, focusedGeofenceNonce]);
+  }, [detailContext.focusGeometry, detailContext.version]);
 
   useEffect(() => {
     if (!hasActiveGeofenceEdit) {
@@ -770,11 +811,26 @@ export const MapLibreMap = memo(function MapLibreMap({
         onMouseMove={handleMapPointerMove}
         onLoad={() => {
           applyMapThemeStyle();
+          applyDetailContextStyle();
+        }}
+        onStyleData={() => {
+          applyDetailContextStyle();
         }}
         onError={() => {
-          setHasMapStyleError(true);
+          if (!baseMapStyle) {
+            setHasMapStyleError(true);
+          }
         }}
       >
+        {detailContext.mode === "focused-geofence" ? (
+          <Source
+            id="atlascope-detail-context-mask"
+            type="geojson"
+            data={detailContextMaskSourceData}
+          >
+            <Layer {...detailContextMaskLayer} />
+          </Source>
+        ) : null}
         {geofences.length ? (
           <Source id="atlascope-geofences" type="geojson" data={geofenceSourceData}>
             {geofenceLayers.map((layer) => (

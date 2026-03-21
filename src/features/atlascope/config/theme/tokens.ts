@@ -346,6 +346,9 @@ export const atlasTheme = {
         draftStroke: "#1354BF",
         draftHandleFill: "#F8FBFF",
       },
+      detailContext: {
+        outsideMask: "rgba(238, 244, 248, 0.38)",
+      },
       overlays: {
         surface: "#D4DBDF",
         topGlow: "rgba(255, 255, 255, 0.015)",
@@ -392,6 +395,9 @@ export const atlasTheme = {
         selectedStroke: "#8AE5FF",
         draftStroke: "#8AE5FF",
         draftHandleFill: "#D9F8FF",
+      },
+      detailContext: {
+        outsideMask: "rgba(4, 10, 16, 0.34)",
       },
       overlays: {
         surface: "#121920",

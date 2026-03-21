@@ -5,7 +5,6 @@ import type {
   MapStyleDefinition,
 } from "../core/provider";
 import { getFallbackMapStyle } from "../core/config";
-import { createStreetLayerDefinitions } from "../layers/street-layers";
 import { cleanStyle } from "./clean-style";
 
 const styleCache = new Map<string, Promise<MapStyleDefinition>>();
@@ -40,10 +39,7 @@ export function buildOperationalMapStyle(
   return {
     ...cleanedStyle,
     transition: THEME_STYLE_TRANSITION,
-    layers: [
-      ...cleanedStyle.layers,
-      ...createStreetLayerDefinitions(theme),
-    ],
+    layers: cleanedStyle.layers,
   };
 }
 

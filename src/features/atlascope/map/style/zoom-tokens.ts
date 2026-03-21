@@ -2,6 +2,30 @@ export type ZoomStop = readonly [number, number];
 
 export type ZoomWidthStops = readonly [number, number][];
 
+type StreetRoadZoomProfile = {
+  majorMinZoom: number;
+  secondaryMinZoom: number;
+  minorMinZoom: number;
+  majorWidth: ZoomWidthStops;
+  majorOpacity: ZoomWidthStops;
+  secondaryWidth: ZoomWidthStops;
+  secondaryOpacity: ZoomWidthStops;
+  minorWidth: ZoomWidthStops;
+  minorOpacity: ZoomWidthStops;
+};
+
+type StreetLabelZoomProfile = {
+  majorRoadMinZoom: number;
+  localRoadMinZoom: number;
+  majorRoadOpacity: ZoomWidthStops;
+  localRoadOpacity: ZoomWidthStops;
+};
+
+type StreetDetailProfile = {
+  roads: StreetRoadZoomProfile;
+  labels: StreetLabelZoomProfile;
+};
+
 export const mapZoomTokens = {
   detail: {
     low: 0,
@@ -129,5 +153,115 @@ export const mapZoomTokens = {
       [12.4, 0.28],
       [14.5, 0.42],
     ] as ZoomWidthStops,
+  },
+  streetDetailProfiles: {
+    ambient: {
+      roads: {
+        majorMinZoom: 5.6,
+        secondaryMinZoom: 10.8,
+        minorMinZoom: 13.2,
+        majorWidth: [
+          [5.6, 0.72],
+          [8, 1.02],
+          [11.5, 1.44],
+          [14.5, 1.9],
+        ] as ZoomWidthStops,
+        majorOpacity: [
+          [5.6, 0],
+          [6.1, 0.44],
+          [10, 0.58],
+          [14.5, 0.7],
+        ] as ZoomWidthStops,
+        secondaryWidth: [
+          [10.8, 0.46],
+          [12.6, 0.76],
+          [14.5, 1.08],
+        ] as ZoomWidthStops,
+        secondaryOpacity: [
+          [10.8, 0],
+          [11.5, 0.24],
+          [13.4, 0.36],
+          [14.5, 0.48],
+        ] as ZoomWidthStops,
+        minorWidth: [
+          [13.2, 0.3],
+          [14, 0.52],
+          [14.5, 0.72],
+        ] as ZoomWidthStops,
+        minorOpacity: [
+          [13.2, 0],
+          [13.8, 0.16],
+          [14.5, 0.28],
+        ] as ZoomWidthStops,
+      },
+      labels: {
+        majorRoadMinZoom: 11.8,
+        localRoadMinZoom: 13.9,
+        majorRoadOpacity: [
+          [11.8, 0],
+          [12.5, 0.54],
+          [14.5, 0.74],
+        ] as ZoomWidthStops,
+        localRoadOpacity: [
+          [13.9, 0],
+          [14.3, 0.28],
+          [14.5, 0.42],
+        ] as ZoomWidthStops,
+      },
+    } satisfies StreetDetailProfile,
+    focused: {
+      roads: {
+        majorMinZoom: 5.6,
+        secondaryMinZoom: 8.2,
+        minorMinZoom: 11.8,
+        majorWidth: [
+          [5.6, 0.72],
+          [8, 1.04],
+          [11.5, 1.58],
+          [14.5, 2.2],
+        ] as ZoomWidthStops,
+        majorOpacity: [
+          [5.6, 0],
+          [6.1, 0.5],
+          [10, 0.68],
+          [14.5, 0.8],
+        ] as ZoomWidthStops,
+        secondaryWidth: [
+          [8.2, 0.52],
+          [11.2, 0.94],
+          [14.5, 1.4],
+        ] as ZoomWidthStops,
+        secondaryOpacity: [
+          [8.2, 0],
+          [8.9, 0.36],
+          [12, 0.52],
+          [14.5, 0.64],
+        ] as ZoomWidthStops,
+        minorWidth: [
+          [11.8, 0.34],
+          [13.2, 0.68],
+          [14.5, 0.98],
+        ] as ZoomWidthStops,
+        minorOpacity: [
+          [11.8, 0],
+          [12.4, 0.28],
+          [14.5, 0.42],
+        ] as ZoomWidthStops,
+      },
+      labels: {
+        majorRoadMinZoom: 10.8,
+        localRoadMinZoom: 12.8,
+        majorRoadOpacity: [
+          [10.8, 0],
+          [11.4, 0.82],
+          [14.5, 0.96],
+        ] as ZoomWidthStops,
+        localRoadOpacity: [
+          [12.8, 0],
+          [13.4, 0.62],
+          [14.5, 0.82],
+        ] as ZoomWidthStops,
+      },
+    } satisfies StreetDetailProfile,
   },
 } as const;

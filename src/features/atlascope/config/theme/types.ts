@@ -48,6 +48,9 @@ export type MapColorTokens = {
     draftStroke: string;
     draftHandleFill: string;
   };
+  detailContext: {
+    outsideMask: string;
+  };
   overlays: MapOverlayTokens;
 };
 

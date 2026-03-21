@@ -35,11 +35,26 @@ export type MapGeofenceData = {
 
 export type MapStyleConfig = string | MapStyleDefinition;
 
+export type MapDetailContextMode = "global" | "focused-geofence";
+
+export type MapDetailContext = {
+  mode: MapDetailContextMode;
+  focusFeatureId: string | null;
+  focusGeometry: MapCoordinates[] | null;
+  version: number;
+};
+
+export const DEFAULT_MAP_DETAIL_CONTEXT: MapDetailContext = {
+  mode: "global",
+  focusFeatureId: null,
+  focusGeometry: null,
+  version: 0,
+};
+
 export type MapContainerProps = {
   markers: MapMarkerData[];
   geofences: MapGeofenceData[];
-  focusedGeofenceCoordinates: MapCoordinates[] | null;
-  focusedGeofenceNonce: number;
+  detailContext: MapDetailContext;
   drawingCoordinates: MapCoordinates[];
   isDrawingGeofence: boolean;
   editingCoordinates: MapCoordinates[];
