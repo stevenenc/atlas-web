@@ -37,6 +37,8 @@ export type MapStyleConfig = string | MapStyleDefinition;
 
 export type MapDetailContextMode = "overview" | "geofence-focus";
 
+export const DETAIL_CONTEXT_TRANSITION_MS = 220;
+
 export type MapDetailContext = {
   mode: MapDetailContextMode;
   focusFeatureId: string | null;

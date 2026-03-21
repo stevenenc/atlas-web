@@ -9,9 +9,14 @@ import {
 import type {
   HazardLayerType,
   MapGeofenceData,
+  MapDetailContext,
   MapMarkerData,
 } from "@/features/atlascope/map/core/types";
 import { closePolygonRing, createPolygonGeometry } from "@/features/atlascope/map/lib/geojson";
+import {
+  DETAIL_CONTEXT_PAINT_TRANSITION,
+  hasDetailFocusGeometry,
+} from "@/features/atlascope/map/layers/detail-context";
 
 type HazardFeatureProperties = {
   id: string;
@@ -189,17 +194,26 @@ export function createGeofenceLayers(theme: ThemeMode): LayerProps[] {
   ];
 }
 
-export function createDetailContextMaskLayer(theme: ThemeMode): LayerProps {
+export function createDetailContextMaskLayer(
+  theme: ThemeMode,
+  detailContext: MapDetailContext,
+): LayerProps {
   const {
-    colors: { detailContext },
+    colors: { detailContext: detailContextTheme },
   } = getMapTheme(theme);
+  const outsideOpacity = hasDetailFocusGeometry(detailContext)
+    ? detailContext.mode === "geofence-focus"
+      ? detailContextTheme.mask.outsideOpacity
+      : 0
+    : 0;
 
   return {
     id: "detail-context-mask",
     type: "fill",
     paint: {
-      "fill-color": detailContext.mask.outsideFill,
-      "fill-opacity": detailContext.mask.outsideOpacity,
+      "fill-color": detailContextTheme.mask.outsideFill,
+      "fill-opacity": outsideOpacity,
+      "fill-opacity-transition": DETAIL_CONTEXT_PAINT_TRANSITION,
     },
   };
 }

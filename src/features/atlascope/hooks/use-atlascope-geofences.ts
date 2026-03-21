@@ -56,6 +56,9 @@ export function useAtlascopeGeofences({
       ),
     );
   }, []);
+  const clearFocusedGeofence = useCallback(() => {
+    setFocusedGeofenceRequest(null);
+  }, []);
 
   const commitEditingGeofenceCoordinates = useCallback(() => {
     if (editingGeofenceId === null || !editingGeofenceCoordinates.length) {
@@ -119,12 +122,17 @@ export function useAtlascopeGeofences({
   const handleGeofencePanelDismiss = useCallback(() => {
     commitEditingGeofenceCoordinates();
     restoreSelectedGeofencePreview();
+    clearFocusedGeofence();
     setSelectedGeofenceId(null);
     setShowGeofenceRowActions(false);
     setEditingGeofenceId(null);
     setEditingGeofenceCoordinates([]);
     setRenamingGeofenceId(null);
-  }, [commitEditingGeofenceCoordinates, restoreSelectedGeofencePreview]);
+  }, [
+    clearFocusedGeofence,
+    commitEditingGeofenceCoordinates,
+    restoreSelectedGeofencePreview,
+  ]);
   const handleCancelDrawingGeofence = useCallback(() => {
     setIsDrawingGeofence(false);
     setDrawingGeofenceCoordinates([]);
@@ -161,6 +169,7 @@ export function useAtlascopeGeofences({
       }
 
       restoreSelectedGeofencePreview();
+      clearFocusedGeofence();
       setSelectedGeofenceId(null);
     };
 
@@ -169,7 +178,7 @@ export function useAtlascopeGeofences({
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [restoreSelectedGeofencePreview, selectedGeofenceId]);
+  }, [clearFocusedGeofence, restoreSelectedGeofencePreview, selectedGeofenceId]);
 
   useEffect(() => {
     if (editingGeofenceId === null) {
@@ -267,6 +276,9 @@ export function useAtlascopeGeofences({
   function handleAddGeofence() {
     commitEditingGeofenceCoordinates();
     setShowGeofenceRowActions(false);
+    restoreSelectedGeofencePreview();
+    clearFocusedGeofence();
+    setSelectedGeofenceId(null);
     setEditingGeofenceId(null);
     setEditingGeofenceCoordinates([]);
     setRenamingGeofenceId(null);
@@ -416,6 +428,10 @@ export function useAtlascopeGeofences({
     if (selectedGeofencePreviewRef.current?.geofenceId === id) {
       selectedGeofencePreviewRef.current = null;
     }
+
+    setFocusedGeofenceRequest((current) =>
+      current?.geofenceId === id ? null : current,
+    );
 
     if (editingGeofenceId === id) {
       setEditingGeofenceCoordinates([]);

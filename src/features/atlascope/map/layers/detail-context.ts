@@ -1,12 +1,20 @@
 import type { MapVisibility } from "@/features/atlascope/map/core/provider";
-import type { MapDetailContext } from "@/features/atlascope/map/core/types";
+import {
+  DETAIL_CONTEXT_TRANSITION_MS,
+  type MapDetailContext,
+} from "@/features/atlascope/map/core/types";
 
-import { createPolygonGeometry } from "../lib/geojson";
 import type { MapLayerDefinition } from "../core/provider";
 
 export type DetailProfile = "ambient" | "focused";
 
 export const detailProfiles: DetailProfile[] = ["ambient", "focused"];
+// This is intentionally reserved for non-zoom style updates such as the detail
+// mask and symbol paint changes. It is not used as a fix for vector zoom pop-in.
+export const DETAIL_CONTEXT_PAINT_TRANSITION = {
+  duration: DETAIL_CONTEXT_TRANSITION_MS,
+  delay: 0,
+} as const;
 
 const NO_MATCH_FILTER = [
   "==",
@@ -22,11 +30,9 @@ export function getDetailProfileVisibility(
   detailContext: MapDetailContext,
   profile: DetailProfile,
 ): MapVisibility {
-  if (!hasDetailFocusGeometry(detailContext)) {
-    return profile === "focused" ? "visible" : "none";
-  }
+  void detailContext;
 
-  return "visible";
+  return profile === "focused" ? "visible" : "none";
 }
 
 export function createDetailProfileFilter(
@@ -34,26 +40,29 @@ export function createDetailProfileFilter(
   detailContext: MapDetailContext,
   profile: DetailProfile,
 ) {
-  if (!hasDetailFocusGeometry(detailContext)) {
-    return profile === "focused" ? baseFilter : combineLayerFilters(baseFilter, NO_MATCH_FILTER);
-  }
+  void detailContext;
 
-  // Focused layers are clipped to the active geofence while ambient layers are
-  // explicitly pushed outside it, which avoids double rendering when context mode is active.
-  const focusGeometry = createPolygonGeometry(detailContext.focusGeometry!);
-  const focusFilter =
-    profile === "focused"
-      ? (["within", focusGeometry] as const)
-      : (["!", ["within", focusGeometry]] as const);
-
-  return combineLayerFilters(baseFilter, focusFilter);
+  return profile === "focused" ? baseFilter : combineLayerFilters(baseFilter, NO_MATCH_FILTER);
 }
 
 export function hasDetailFocusGeometry(detailContext: MapDetailContext) {
-  return (
-    detailContext.mode === "geofence-focus" &&
-    Boolean(detailContext.focusGeometry && detailContext.focusGeometry.length >= 3)
-  );
+  return Boolean(detailContext.focusGeometry && detailContext.focusGeometry.length >= 3);
+}
+
+export function resolveDetailProfileValue(
+  detailContext: MapDetailContext,
+  profile: DetailProfile,
+  focusedValue: number,
+  _ambientValue: number,
+) {
+  void detailContext;
+  void profile;
+  void _ambientValue;
+
+  // The perceived focus fade is driven by the outside mask. Keeping ambient
+  // and focused detail paints identical avoids the one-frame redraw that happens
+  // when filters repartition the map during focus changes.
+  return focusedValue;
 }
 
 function combineLayerFilters(...filters: Array<MapLayerDefinition["filter"] | undefined>) {

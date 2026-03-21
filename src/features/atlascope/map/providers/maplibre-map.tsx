@@ -62,7 +62,7 @@ type ScreenPoint = {
   x: number;
   y: number;
 };
-type MapCursorMode = "idle" | "add" | "grab" | "grabbing";
+type MapCursorMode = "idle" | "grab" | "grabbing";
 
 function toViewportState(event: ViewStateChangeEvent): MapViewportState {
   return {
@@ -81,8 +81,6 @@ const NORWAY_TO_AUSTRALIA_BOUNDS = {
 
 const DRAWING_CURSOR =
   'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 28 28\' fill=\'none\'%3E%3Cpath d=\'M18.69 4.2a2.4 2.4 0 0 1 3.4 0l1.7 1.7a2.4 2.4 0 0 1 0 3.4l-11.2 11.2-4.94.72.72-4.94L18.69 4.2Z\' fill=\'%23111A1F\'/%3E%3Cpath d=\'M19.61 5.11a1.1 1.1 0 0 1 1.55 0l1.73 1.73a1.1 1.1 0 0 1 0 1.55L11.92 19.36l-2.86.42.42-2.86L19.61 5.11Z\' fill=\'%235BD3F5\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\'/%3E%3Cpath d=\'M18.65 7.61l2.74 2.74\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\' stroke-linecap=\'round\'/%3E%3C/svg%3E") 4 24, crosshair';
-const DRAWING_ADD_CURSOR =
-  'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 28 28\' fill=\'none\'%3E%3Ccircle cx=\'7.25\' cy=\'7.25\' r=\'5.25\' fill=\'%23E7FBFF\' stroke=\'%23111A1F\' stroke-width=\'1.1\'/%3E%3Cpath d=\'M7.25 4.65v5.2M4.65 7.25h5.2\' stroke=\'%235BD3F5\' stroke-width=\'1.5\' stroke-linecap=\'round\'/%3E%3Cpath d=\'M18.69 4.2a2.4 2.4 0 0 1 3.4 0l1.7 1.7a2.4 2.4 0 0 1 0 3.4l-11.2 11.2-4.94.72.72-4.94L18.69 4.2Z\' fill=\'%23111A1F\'/%3E%3Cpath d=\'M19.61 5.11a1.1 1.1 0 0 1 1.55 0l1.73 1.73a1.1 1.1 0 0 1 0 1.55L11.92 19.36l-2.86.42.42-2.86L19.61 5.11Z\' fill=\'%235BD3F5\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\'/%3E%3Cpath d=\'M18.65 7.61l2.74 2.74\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\' stroke-linecap=\'round\'/%3E%3C/svg%3E") 4 24, crosshair';
 
 type DraftPointEvent = MapLayerMouseEvent | MapLayerTouchEvent;
 
@@ -144,6 +142,8 @@ export const MapLibreMap = memo(function MapLibreMap({
   const draggedPointIndexRef = useRef<number | null>(null);
   const dragPointerIdRef = useRef<number | null>(null);
   const suppressMapClickRef = useRef(false);
+  const focusReturnViewportRef = useRef<MapViewportState | null>(null);
+  const wasFocusedGeofenceRef = useRef(detailContext.mode === "geofence-focus");
   const [baseMapStyle, setBaseMapStyle] = useState<MapStyleDefinition | null>(null);
   const [hasMapStyleError, setHasMapStyleError] = useState(false);
   const [verticalBoundsMinZoom, setVerticalBoundsMinZoom] = useState(
@@ -271,8 +271,8 @@ export const MapLibreMap = memo(function MapLibreMap({
     [detailContext.focusGeometry],
   );
   const detailContextMaskLayer = useMemo(
-    () => createDetailContextMaskLayer(theme),
-    [theme],
+    () => createDetailContextMaskLayer(theme, detailContext),
+    [detailContext, theme],
   );
   const geofenceLayers = useMemo(() => createGeofenceLayers(theme), [theme]);
   const draftGeofenceLayers = useMemo(
@@ -310,8 +310,6 @@ export const MapLibreMap = memo(function MapLibreMap({
   const isZoomGestureEnabled = !isInteractionLocked;
   const resolvedMapCursor = resolveMapCursor({
     hasActiveGeofenceEdit,
-    isDrawingGeofence,
-    isEditingGeofence,
     mode: mapCursorMode,
   });
 
@@ -400,6 +398,34 @@ export const MapLibreMap = memo(function MapLibreMap({
   useEffect(() => {
     applyFocusedGeofenceState();
   }, [applyFocusedGeofenceState, geofences.length]);
+
+  useEffect(() => {
+    const isFocusedGeofence = detailContext.mode === "geofence-focus";
+    const wasFocusedGeofence = wasFocusedGeofenceRef.current;
+
+    if (isFocusedGeofence && !wasFocusedGeofence) {
+      focusReturnViewportRef.current = { ...viewport };
+    }
+
+    if (!isFocusedGeofence && wasFocusedGeofence) {
+      const mapInstance = mapRef.current?.getMap();
+      const focusReturnViewport = focusReturnViewportRef.current;
+
+      focusReturnViewportRef.current = null;
+
+      if (mapInstance && focusReturnViewport) {
+        mapInstance.easeTo({
+          center: [focusReturnViewport.longitude, focusReturnViewport.latitude],
+          zoom: focusReturnViewport.zoom,
+          bearing: focusReturnViewport.bearing,
+          pitch: focusReturnViewport.pitch,
+          duration: 900,
+        });
+      }
+    }
+
+    wasFocusedGeofenceRef.current = isFocusedGeofence;
+  }, [detailContext.mode, viewport]);
 
   useEffect(() => {
     const focusedGeofenceCoordinates = detailContext.focusGeometry;
@@ -865,11 +891,7 @@ export const MapLibreMap = memo(function MapLibreMap({
     setMapCursorMode(
       isDraftPointHovered
         ? "grab"
-        : isEditingGeofence
-          ? "idle"
-          : getDraftLineSegmentIndex(event) !== null
-            ? "add"
-            : "idle",
+        : "idle",
     );
   }
 
@@ -919,15 +941,13 @@ export const MapLibreMap = memo(function MapLibreMap({
           }
         }}
       >
-        {detailContext.mode === "geofence-focus" ? (
-          <Source
-            id="atlascope-detail-context-mask"
-            type="geojson"
-            data={detailContextMaskSourceData}
-          >
-            <Layer {...detailContextMaskLayer} />
-          </Source>
-        ) : null}
+        <Source
+          id="atlascope-detail-context-mask"
+          type="geojson"
+          data={detailContextMaskSourceData}
+        >
+          <Layer {...detailContextMaskLayer} />
+        </Source>
         {geofences.length ? (
           <Source
             id="atlascope-geofences"
@@ -1044,13 +1064,9 @@ function parseFeatureIndex(value: unknown) {
 
 function resolveMapCursor({
   hasActiveGeofenceEdit,
-  isDrawingGeofence,
-  isEditingGeofence,
   mode,
 }: {
   hasActiveGeofenceEdit: boolean;
-  isDrawingGeofence: boolean;
-  isEditingGeofence: boolean;
   mode: MapCursorMode;
 }) {
   if (!hasActiveGeofenceEdit) {
@@ -1059,14 +1075,6 @@ function resolveMapCursor({
 
   if (mode === "grab" || mode === "grabbing") {
     return mode;
-  }
-
-  if (isEditingGeofence) {
-    return DRAWING_ADD_CURSOR;
-  }
-
-  if (isDrawingGeofence && mode === "add") {
-    return DRAWING_ADD_CURSOR;
   }
 
   return DRAWING_CURSOR;

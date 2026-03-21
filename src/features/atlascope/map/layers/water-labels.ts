@@ -3,12 +3,19 @@ import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { atlascopeMapConfig } from "../core/config";
 import type { MapLayerDefinition } from "../core/provider";
 import { DEFAULT_MAP_DETAIL_CONTEXT, type MapDetailContext } from "../core/types";
-import { getZoomInterpolatedNumber, scaleZoomStops } from "../style/style-config";
 import {
+  extendZoomStopsWithFade,
+  getZoomInterpolatedNumber,
+  scaleZoomStops,
+  softenMinZoom,
+} from "../style/style-config";
+import {
+  DETAIL_CONTEXT_PAINT_TRANSITION,
   createDetailLayerId,
   createDetailProfileFilter,
   detailProfiles,
   getDetailProfileVisibility,
+  resolveDetailProfileValue,
 } from "./detail-context";
 
 const WATER_LABEL_SOURCE_LAYER = "water_name";
@@ -69,13 +76,20 @@ export function createWaterLabelLayerDefinitions(
   return detailProfiles.flatMap((profile) =>
     waterLabelConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].waterLabels;
+      const originalMinZoom = profileZoom[config.minZoomKey];
+      const labelOpacityMultiplier = resolveDetailProfileValue(
+        detailContext,
+        profile,
+        colors.detailContext.focused.labelOpacityMultiplier,
+        colors.detailContext.ambient.labelOpacityMultiplier,
+      );
 
       return {
         id: createDetailLayerId(config.baseId, profile),
         type: "symbol",
         source: vectorSourceId,
         "source-layer": WATER_LABEL_SOURCE_LAYER,
-        minzoom: profileZoom[config.minZoomKey],
+        minzoom: softenMinZoom(originalMinZoom),
         filter: createDetailProfileFilter(config.geometryFilter, detailContext, profile),
         layout: {
           ...config.layout,
@@ -86,11 +100,12 @@ export function createWaterLabelLayerDefinitions(
           "text-halo-color": colors.waterLabels.halo,
           "text-halo-width": theme === "dark" ? 1.05 : 0.95,
           "text-opacity": getZoomInterpolatedNumber(
-            scaleZoomStops(
-              profileZoom[config.opacityKey],
-              colors.detailContext[profile].labelOpacityMultiplier,
+            extendZoomStopsWithFade(
+              scaleZoomStops(profileZoom[config.opacityKey], labelOpacityMultiplier),
+              originalMinZoom,
             ),
           ),
+          "text-opacity-transition": DETAIL_CONTEXT_PAINT_TRANSITION,
         },
       };
     }),

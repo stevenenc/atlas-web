@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { isIncidentActiveAtTime } from "@/features/atlascope/lib/incident-timeline";
@@ -11,6 +11,7 @@ import type {
   MapGeofenceData,
   MapMarkerData,
 } from "@/features/atlascope/map/core/types";
+import { DETAIL_CONTEXT_TRANSITION_MS } from "@/features/atlascope/map/core/types";
 import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 import type { Incident, IncidentType } from "@/features/atlascope/types/atlascope";
 
@@ -95,15 +96,23 @@ export function MapView({
     [incidents, selectedTimeMs],
   );
   const focusedGeofence = geofences.find((geofence) => geofence.id === focusedGeofenceId) ?? null;
+  const [detailContextFocusGeometry, setDetailContextFocusGeometry] = useState<
+    MapGeofenceData["coordinates"] | null
+  >(() => focusedGeofence?.coordinates ?? null);
+  const [detailContextVersion, setDetailContextVersion] = useState(
+    () => (focusedGeofence ? focusedGeofenceNonce : 0),
+  );
+  const detailContextAnimationFrameRef = useRef<number | null>(null);
+  const detailContextCleanupTimerRef = useRef<number | null>(null);
   const detailContext = useMemo<MapDetailContext>(
     () => ({
       mode: focusedGeofence ? "geofence-focus" : "overview",
       focusFeatureId: focusedGeofence ? String(focusedGeofence.id) : null,
       focusFeatureIds: focusedGeofence ? [String(focusedGeofence.id)] : [],
-      focusGeometry: focusedGeofence?.coordinates ?? null,
-      version: focusedGeofenceNonce,
+      focusGeometry: focusedGeofence?.coordinates ?? detailContextFocusGeometry,
+      version: focusedGeofence ? focusedGeofenceNonce : detailContextVersion,
     }),
-    [focusedGeofence, focusedGeofenceNonce],
+    [detailContextFocusGeometry, detailContextVersion, focusedGeofence, focusedGeofenceNonce],
   );
   const visibleGeofences: MapGeofenceData[] = useMemo(
     () =>
@@ -131,6 +140,52 @@ export function MapView({
         : visibleGeofences,
     [drawingCoordinates, isDrawingGeofence, visibleGeofences],
   );
+  useEffect(() => {
+    return () => {
+      if (detailContextAnimationFrameRef.current) {
+        window.cancelAnimationFrame(detailContextAnimationFrameRef.current);
+      }
+
+      if (detailContextCleanupTimerRef.current) {
+        window.clearTimeout(detailContextCleanupTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (detailContextAnimationFrameRef.current) {
+      window.cancelAnimationFrame(detailContextAnimationFrameRef.current);
+      detailContextAnimationFrameRef.current = null;
+    }
+
+    if (detailContextCleanupTimerRef.current) {
+      window.clearTimeout(detailContextCleanupTimerRef.current);
+      detailContextCleanupTimerRef.current = null;
+    }
+
+    if (focusedGeofence) {
+      detailContextAnimationFrameRef.current = window.requestAnimationFrame(() => {
+        setDetailContextFocusGeometry(focusedGeofence.coordinates);
+        setDetailContextVersion(focusedGeofenceNonce);
+        detailContextAnimationFrameRef.current = null;
+      });
+      return;
+    }
+
+    if (!detailContextFocusGeometry) {
+      detailContextAnimationFrameRef.current = window.requestAnimationFrame(() => {
+        setDetailContextVersion(0);
+        detailContextAnimationFrameRef.current = null;
+      });
+      return;
+    }
+
+    detailContextCleanupTimerRef.current = window.setTimeout(() => {
+      setDetailContextFocusGeometry(null);
+      setDetailContextVersion(0);
+      detailContextCleanupTimerRef.current = null;
+    }, DETAIL_CONTEXT_TRANSITION_MS);
+  }, [detailContextFocusGeometry, focusedGeofence, focusedGeofenceNonce]);
 
   return (
     <div

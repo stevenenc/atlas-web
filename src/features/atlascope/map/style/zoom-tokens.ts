@@ -1,5 +1,3 @@
-export type ZoomStop = readonly [number, number];
-
 export type ZoomWidthStops = readonly [number, number][];
 
 type RoadDetailZoomProfile = {
@@ -284,15 +282,15 @@ export const mapZoomTokens = {
           [14.5, 0.8],
         ] as ZoomWidthStops,
         secondaryWidth: [
-          [8.2, 0.52],
-          [11.2, 0.94],
-          [14.5, 1.4],
+          [8.2, 0.6],
+          [11.2, 1.08],
+          [14.5, 1.58],
         ] as ZoomWidthStops,
         secondaryOpacity: [
           [8.2, 0],
-          [8.9, 0.36],
-          [12, 0.52],
-          [14.5, 0.64],
+          [8.9, 0.48],
+          [12, 0.64],
+          [14.5, 0.78],
         ] as ZoomWidthStops,
         minorWidth: [
           [11.8, 0.34],

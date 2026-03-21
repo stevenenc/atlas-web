@@ -3,12 +3,19 @@ import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { DEFAULT_MAP_DETAIL_CONTEXT, type MapDetailContext } from "../core/types";
 import { atlascopeMapConfig } from "../core/config";
 import type { MapLayerDefinition } from "../core/provider";
-import { getZoomInterpolatedNumber, scaleZoomStops } from "../style/style-config";
 import {
+  extendZoomStopsWithFade,
+  getZoomInterpolatedNumber,
+  scaleZoomStops,
+  softenMinZoom,
+} from "../style/style-config";
+import {
+  DETAIL_CONTEXT_PAINT_TRANSITION,
   createDetailLayerId,
   createDetailProfileFilter,
   detailProfiles,
   getDetailProfileVisibility,
+  resolveDetailProfileValue,
 } from "./detail-context";
 import { roadClassFilters } from "./roads";
 
@@ -86,13 +93,20 @@ export function createRoadLabelLayerDefinitions(
     roadLabelConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].roadLabels;
       const baseFilter = createRoadLabelFilter(config.classes);
+      const originalMinZoom = profileZoom[config.minZoomKey];
+      const labelOpacityMultiplier = resolveDetailProfileValue(
+        detailContext,
+        profile,
+        colors.detailContext.focused.labelOpacityMultiplier,
+        colors.detailContext.ambient.labelOpacityMultiplier,
+      );
 
       return {
         id: createDetailLayerId(config.baseId, profile),
         type: "symbol",
         source: vectorSourceId,
         "source-layer": TRANSPORTATION_LABEL_SOURCE_LAYER,
-        minzoom: profileZoom[config.minZoomKey],
+        minzoom: softenMinZoom(originalMinZoom),
         filter: createDetailProfileFilter(baseFilter, detailContext, profile),
         layout: {
           "symbol-placement": "line",
@@ -111,11 +125,12 @@ export function createRoadLabelLayerDefinitions(
           "text-halo-color": colors.roads.halo,
           "text-halo-width": config.textHaloWidth[theme],
           "text-opacity": getZoomInterpolatedNumber(
-            scaleZoomStops(
-              profileZoom[config.opacityKey],
-              colors.detailContext[profile].labelOpacityMultiplier,
+            extendZoomStopsWithFade(
+              scaleZoomStops(profileZoom[config.opacityKey], labelOpacityMultiplier),
+              originalMinZoom,
             ),
           ),
+          "text-opacity-transition": DETAIL_CONTEXT_PAINT_TRANSITION,
         },
       };
     }),

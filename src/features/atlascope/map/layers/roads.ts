@@ -3,12 +3,18 @@ import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { DEFAULT_MAP_DETAIL_CONTEXT, type MapDetailContext } from "../core/types";
 import { atlascopeMapConfig } from "../core/config";
 import type { MapLayerDefinition } from "../core/provider";
-import { getZoomInterpolatedNumber, scaleZoomStops } from "../style/style-config";
+import {
+  createFadedOpacityStops,
+  createFadedWidthStops,
+  getZoomInterpolatedNumber,
+  resolveLayerZoomRange,
+} from "../style/style-config";
 import {
   createDetailLayerId,
   createDetailProfileFilter,
   detailProfiles,
   getDetailProfileVisibility,
+  resolveDetailProfileValue,
 } from "./detail-context";
 
 const TRANSPORTATION_SOURCE_LAYER = "transportation";
@@ -66,18 +72,31 @@ export function createRoadLayerDefinitions(
   return detailProfiles.flatMap((profile) =>
     roadLayerConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].roads;
-      const profileTheme = colors.detailContext[profile];
       const baseFilter = createRoadFilter(roadClassFilters[config.classKey]);
       const minzoomKey = `${config.zoomKey}MinZoom` as const;
       const opacityKey = `${config.zoomKey}Opacity` as const;
       const widthKey = `${config.zoomKey}Width` as const;
+      const originalMinZoom = profileZoom[minzoomKey];
+      const lineOpacityMultiplier = resolveDetailProfileValue(
+        detailContext,
+        profile,
+        colors.detailContext.focused.lineOpacityMultiplier,
+        colors.detailContext.ambient.lineOpacityMultiplier,
+      );
+      const lineWidthMultiplier = resolveDetailProfileValue(
+        detailContext,
+        profile,
+        colors.detailContext.focused.lineWidthMultiplier,
+        colors.detailContext.ambient.lineWidthMultiplier,
+      );
+      const zoomRange = resolveLayerZoomRange(originalMinZoom);
 
       return {
         id: createDetailLayerId(config.baseId, profile),
         type: "line",
         source: vectorSourceId,
         "source-layer": TRANSPORTATION_SOURCE_LAYER,
-        minzoom: profileZoom[minzoomKey],
+        ...zoomRange,
         filter: createDetailProfileFilter(baseFilter, detailContext, profile),
         layout: {
           "line-cap": "round",
@@ -86,12 +105,14 @@ export function createRoadLayerDefinitions(
         },
         paint: {
           "line-color": colors.roads[config.colorKey],
-          "line-opacity": getZoomInterpolatedNumber(
-            scaleZoomStops(profileZoom[opacityKey], profileTheme.lineOpacityMultiplier),
-          ),
-          "line-width": getZoomInterpolatedNumber(
-            scaleZoomStops(profileZoom[widthKey], profileTheme.lineWidthMultiplier),
-          ),
+          "line-opacity": getZoomInterpolatedNumber(createFadedOpacityStops(profileZoom[opacityKey], {
+            multiplier: lineOpacityMultiplier,
+            minZoom: originalMinZoom,
+          })),
+          "line-width": getZoomInterpolatedNumber(createFadedWidthStops(profileZoom[widthKey], {
+            multiplier: lineWidthMultiplier,
+            minZoom: originalMinZoom,
+          })),
         },
       };
     }),

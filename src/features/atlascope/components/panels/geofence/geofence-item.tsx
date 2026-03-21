@@ -76,6 +76,7 @@ export function GeofenceItem({
     action: () => void,
   ) {
     event.stopPropagation();
+    onFocusGeofence();
     action();
   }
 
@@ -135,7 +136,9 @@ export function GeofenceItem({
               value={draftName}
               onClick={(event) => {
                 event.stopPropagation();
+                onFocusGeofence();
               }}
+              onFocus={onFocusGeofence}
               onChange={(event) => {
                 onDraftNameChange(event.target.value);
               }}

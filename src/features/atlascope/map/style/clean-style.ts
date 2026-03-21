@@ -1,8 +1,12 @@
 import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 
 import {
+  createConstantZoomStops,
+  createFadedOpacityStops,
+  createFadedWidthStops,
   getZoomInterpolatedColor,
   getZoomInterpolatedNumber,
+  resolveLayerZoomRange,
 } from "./style-config";
 import type {
   MapLayerDefinition,
@@ -80,11 +84,16 @@ function sortLayers(layers: MapLayerDefinition[]) {
 
 function restyleBaseLayer(layer: MapLayerDefinition, theme: ThemeMode): MapLayerDefinition {
   const { colors, zoom } = getMapTheme(theme);
+  const zoomRange = resolveLayerZoomRange(
+    layer.minzoom as number | undefined,
+    layer.maxzoom as number | undefined,
+  );
 
   switch (layer.id) {
     case "natural_earth":
       return {
         ...layer,
+        ...zoomRange,
         paint: {
           ...layer.paint,
           "raster-opacity":
@@ -94,19 +103,35 @@ function restyleBaseLayer(layer: MapLayerDefinition, theme: ThemeMode): MapLayer
         },
       };
     case "water":
+      const baseWaterOpacity = Number.isFinite(layer.paint?.["fill-opacity"])
+        ? (layer.paint?.["fill-opacity"] as number)
+        : 1;
+
       return {
         ...layer,
+        ...zoomRange,
         paint: {
           ...layer.paint,
           "fill-color": getZoomInterpolatedColor(colors.water, zoom.detail.regional),
+          "fill-opacity": getZoomInterpolatedNumber(createFadedOpacityStops(
+            createConstantZoomStops(
+              baseWaterOpacity,
+              layer.minzoom as number | undefined,
+              layer.maxzoom as number | undefined,
+            ),
+            {
+              minZoom: layer.minzoom as number | undefined,
+              maxZoom: layer.maxzoom as number | undefined,
+            },
+          )),
         },
       };
     default:
       const isStateLabel = layer.id === "label_state";
-      const isCountryLabel = layer.id.startsWith("label_country");
 
       return {
         ...layer,
+        ...zoomRange,
         layout: {
           ...layer.layout,
           "text-font": ["Noto Sans Regular"],
@@ -118,11 +143,15 @@ function restyleBaseLayer(layer: MapLayerDefinition, theme: ThemeMode): MapLayer
           "text-halo-width": isStateLabel
             ? getZoomInterpolatedNumber(zoom.labels.stateHaloWidth)
             : getZoomInterpolatedNumber(zoom.labels.regionHaloWidth),
-          "text-opacity": isStateLabel
-            ? getZoomInterpolatedNumber(zoom.labels.stateOpacity)
-            : isCountryLabel
-              ? getZoomInterpolatedNumber(zoom.labels.regionOpacity)
-              : 0.92,
+          "text-opacity": getZoomInterpolatedNumber(
+            createFadedOpacityStops(
+              isStateLabel ? zoom.labels.stateOpacity : zoom.labels.regionOpacity,
+              {
+                minZoom: layer.minzoom as number | undefined,
+                maxZoom: layer.maxzoom as number | undefined,
+              },
+            ),
+          ),
           "icon-opacity": 0,
         },
       };
@@ -153,8 +182,12 @@ function createCoastlineOutlineLayers(
       id: "atlascope-coastline-outline-base",
       paint: {
         "line-color": colors.outline.coastlineBase,
-        "line-opacity": getZoomInterpolatedNumber(zoom.boundaries.coastlineBaseOpacity),
-        "line-width": getZoomInterpolatedNumber(zoom.boundaries.coastlineBaseWidth),
+        "line-opacity": getZoomInterpolatedNumber(
+          createFadedOpacityStops(zoom.boundaries.coastlineBaseOpacity),
+        ),
+        "line-width": getZoomInterpolatedNumber(
+          createFadedWidthStops(zoom.boundaries.coastlineBaseWidth),
+        ),
         "line-blur": theme === "dark" ? 0.42 : 0.2,
       },
     },
@@ -163,8 +196,12 @@ function createCoastlineOutlineLayers(
       id: "atlascope-coastline-outline-top",
       paint: {
         "line-color": colors.outline.coastlineTop,
-        "line-opacity": getZoomInterpolatedNumber(zoom.boundaries.coastlineTopOpacity),
-        "line-width": getZoomInterpolatedNumber(zoom.boundaries.coastlineTopWidth),
+        "line-opacity": getZoomInterpolatedNumber(
+          createFadedOpacityStops(zoom.boundaries.coastlineTopOpacity),
+        ),
+        "line-width": getZoomInterpolatedNumber(
+          createFadedWidthStops(zoom.boundaries.coastlineTopWidth),
+        ),
         "line-blur": theme === "dark" ? 0.16 : 0.08,
       },
     },

@@ -3,12 +3,18 @@ import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { atlascopeMapConfig } from "../core/config";
 import type { MapLayerDefinition } from "../core/provider";
 import { DEFAULT_MAP_DETAIL_CONTEXT, type MapDetailContext } from "../core/types";
-import { getZoomInterpolatedNumber, scaleZoomStops } from "../style/style-config";
+import {
+  createFadedOpacityStops,
+  createFadedWidthStops,
+  getZoomInterpolatedNumber,
+  resolveLayerZoomRange,
+} from "../style/style-config";
 import {
   createDetailLayerId,
   createDetailProfileFilter,
   detailProfiles,
   getDetailProfileVisibility,
+  resolveDetailProfileValue,
 } from "./detail-context";
 
 const BOUNDARY_SOURCE_LAYER = "boundary";
@@ -68,16 +74,27 @@ export function createBoundaryLayerDefinitions(
   return detailProfiles.flatMap((profile) =>
     boundaryLayerConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].boundaries;
-      const profileTheme = colors.detailContext[profile];
-      const widthMultiplier =
-        profile === "focused" ? colors.detailContext.focused.boundaryWidthMultiplier : 1;
+      const originalMinZoom = profileZoom[config.minZoomKey];
+      const boundaryOpacityMultiplier = resolveDetailProfileValue(
+        detailContext,
+        profile,
+        colors.detailContext.focused.boundaryOpacityMultiplier,
+        colors.detailContext.ambient.boundaryOpacityMultiplier,
+      );
+      const boundaryWidthMultiplier = resolveDetailProfileValue(
+        detailContext,
+        profile,
+        colors.detailContext.focused.boundaryWidthMultiplier,
+        1,
+      );
+      const zoomRange = resolveLayerZoomRange(originalMinZoom);
 
       return {
         id: createDetailLayerId(config.baseId, profile),
         type: "line",
         source: vectorSourceId,
         "source-layer": BOUNDARY_SOURCE_LAYER,
-        minzoom: profileZoom[config.minZoomKey],
+        ...zoomRange,
         filter: createDetailProfileFilter(config.filter, detailContext, profile),
         layout: {
           "line-cap": "round",
@@ -86,16 +103,15 @@ export function createBoundaryLayerDefinitions(
         },
         paint: {
           "line-color": colors.boundary[config.colorKey],
-          "line-dasharray": config.dasharray,
-          "line-opacity": getZoomInterpolatedNumber(
-            scaleZoomStops(
-              profileZoom[config.opacityKey],
-              profileTheme.boundaryOpacityMultiplier,
-            ),
-          ),
-          "line-width": getZoomInterpolatedNumber(
-            scaleZoomStops(profileZoom[config.widthKey], widthMultiplier),
-          ),
+          "line-opacity": getZoomInterpolatedNumber(createFadedOpacityStops(profileZoom[config.opacityKey], {
+            multiplier: boundaryOpacityMultiplier,
+            minZoom: originalMinZoom,
+          })),
+          "line-width": getZoomInterpolatedNumber(createFadedWidthStops(profileZoom[config.widthKey], {
+            multiplier: boundaryWidthMultiplier,
+            minZoom: originalMinZoom,
+          })),
+          ...(config.dasharray ? { "line-dasharray": config.dasharray } : {}),
         },
       };
     }),

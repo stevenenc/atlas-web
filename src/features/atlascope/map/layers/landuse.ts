@@ -3,12 +3,17 @@ import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { atlascopeMapConfig } from "../core/config";
 import type { MapLayerDefinition } from "../core/provider";
 import { DEFAULT_MAP_DETAIL_CONTEXT, type MapDetailContext } from "../core/types";
-import { getZoomInterpolatedNumber, scaleZoomStops } from "../style/style-config";
+import {
+  createFadedOpacityStops,
+  getZoomInterpolatedNumber,
+  resolveLayerZoomRange,
+} from "../style/style-config";
 import {
   createDetailLayerId,
   createDetailProfileFilter,
   detailProfiles,
   getDetailProfileVisibility,
+  resolveDetailProfileValue,
 } from "./detail-context";
 
 type LanduseLayerConfig = {
@@ -97,14 +102,21 @@ export function createLanduseLayerDefinitions(
   return detailProfiles.flatMap((profile) =>
     landuseLayerConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].landuse;
-      const profileTheme = colors.detailContext[profile];
+      const originalMinZoom = profileZoom[config.minZoomKey];
+      const fillOpacityMultiplier = resolveDetailProfileValue(
+        detailContext,
+        profile,
+        colors.detailContext.focused.fillOpacityMultiplier,
+        colors.detailContext.ambient.fillOpacityMultiplier,
+      );
+      const zoomRange = resolveLayerZoomRange(originalMinZoom);
 
       return {
         id: createDetailLayerId(config.baseId, profile),
         type: "fill",
         source: vectorSourceId,
         "source-layer": config.sourceLayer,
-        minzoom: profileZoom[config.minZoomKey],
+        ...zoomRange,
         filter: createDetailProfileFilter(config.filter, detailContext, profile),
         layout: {
           visibility: getDetailProfileVisibility(detailContext, profile),
@@ -112,12 +124,10 @@ export function createLanduseLayerDefinitions(
         paint: {
           "fill-antialias": true,
           "fill-color": colors.landuse[config.colorKey],
-          "fill-opacity": getZoomInterpolatedNumber(
-            scaleZoomStops(
-              profileZoom[config.opacityKey],
-              profileTheme.fillOpacityMultiplier,
-            ),
-          ),
+          "fill-opacity": getZoomInterpolatedNumber(createFadedOpacityStops(profileZoom[config.opacityKey], {
+            multiplier: fillOpacityMultiplier,
+            minZoom: originalMinZoom,
+          })),
         },
       };
     }),

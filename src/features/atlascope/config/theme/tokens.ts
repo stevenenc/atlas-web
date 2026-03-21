@@ -333,7 +333,7 @@ export const atlasTheme = {
       },
       roads: {
         major: "#5F788C",
-        secondary: "#7F97A6",
+        secondary: "#5D7484",
         minor: "#A8B9C3",
         majorLabel: "#2C3F4B",
         localLabel: "#3E5360",
