@@ -59,7 +59,8 @@ export function GeofenceItem({
   const iconButtonClass = "flex size-7 items-center justify-center atlas-transition-surface";
   const primaryIconClass = "text-atlas-primary hover:text-atlas-primary";
   const mutedIconClass = "text-atlas-muted hover:text-atlas-ink";
-  const strongIconClass = "text-atlas-ink hover:text-atlas-ink";
+  const confirmHoverIconClass = "text-atlas-ink hover:text-[#2FBF71]";
+  const cancelHoverIconClass = "text-atlas-muted hover:text-[#E15B64]";
 
   function handleItemClick(event: MouseEvent<HTMLDivElement>) {
     const target = event.target;
@@ -197,7 +198,7 @@ export function GeofenceItem({
                       ? `Save ${geofence.name} edits`
                       : `Save ${geofence.name}`
                 }
-                className={cx(iconButtonClass, strongIconClass)}
+                className={cx(iconButtonClass, confirmHoverIconClass)}
               >
                 <CheckIcon />
               </button>
@@ -213,7 +214,7 @@ export function GeofenceItem({
                       ? `Cancel ${geofence.name} edits`
                       : `Cancel editing ${geofence.name}`
                 }
-                className={cx(iconButtonClass, mutedIconClass)}
+                className={cx(iconButtonClass, cancelHoverIconClass)}
               >
                 <CloseIcon />
               </button>

@@ -77,6 +77,12 @@ type DraftProjectedSegment = {
   status: "default" | "closing" | "invalid";
 };
 
+type EditingPreviewState = {
+  hiddenSegmentIndex: number | null;
+  projectedSegments: DraftProjectedSegment[];
+  status: "default" | "invalid";
+};
+
 type MapCursorMode = "idle" | "grab" | "grabbing";
 
 function toViewportState(event: ViewStateChangeEvent): MapViewportState {
@@ -156,9 +162,9 @@ export const MapLibreMap = memo(function MapLibreMap({
   const trashTargetRef = useRef<HTMLDivElement | null>(null);
   const draggedPointIndexRef = useRef<number | null>(null);
   const dragPointerIdRef = useRef<number | null>(null);
+  const middlePanPointerIdRef = useRef<number | null>(null);
+  const middlePanLastPointRef = useRef<ScreenPoint | null>(null);
   const suppressMapClickRef = useRef(false);
-  const focusReturnViewportRef = useRef<MapViewportState | null>(null);
-  const wasFocusedGeofenceRef = useRef(detailContext.mode === "geofence-focus");
   const [baseMapStyle, setBaseMapStyle] = useState<MapStyleDefinition | null>(null);
   const [hasMapStyleError, setHasMapStyleError] = useState(false);
   const [verticalBoundsMinZoom, setVerticalBoundsMinZoom] = useState(
@@ -173,6 +179,9 @@ export const MapLibreMap = memo(function MapLibreMap({
   } | null>(null);
   const [drawingProjectedSegment, setDrawingProjectedSegment] =
     useState<DraftProjectedSegment | null>(null);
+  const [editingPreviewState, setEditingPreviewState] = useState<EditingPreviewState | null>(
+    null,
+  );
   const styleUrl = getMapStyle(theme);
   const hasAppliedOperationalStyleRef = useRef(false);
   const lastAppliedThemeRef = useRef<ThemeMode | null>(null);
@@ -313,13 +322,31 @@ export const MapLibreMap = memo(function MapLibreMap({
       createDraftGeofenceLineSourceData(
         activeEditingCoordinates,
         shouldCloseDraftPath,
-        isDrawingGeofence ? drawingPreviewStatus : "default",
+        isDrawingGeofence
+          ? drawingPreviewStatus
+          : editingPreviewState?.status === "invalid"
+            ? "invalid"
+            : "default",
+        isDrawingGeofence ? null : editingPreviewState?.hiddenSegmentIndex ?? null,
       ),
-    [activeEditingCoordinates, drawingPreviewStatus, isDrawingGeofence, shouldCloseDraftPath],
+    [
+      activeEditingCoordinates,
+      drawingPreviewStatus,
+      editingPreviewState,
+      isDrawingGeofence,
+      shouldCloseDraftPath,
+    ],
   );
   const draftGeofenceProjectedLineSourceData = useMemo(
-    () => createDraftGeofenceProjectedLineSourceData(drawingProjectedSegment),
-    [drawingProjectedSegment],
+    () =>
+      createDraftGeofenceProjectedLineSourceData(
+        isDrawingGeofence
+          ? drawingProjectedSegment
+            ? [drawingProjectedSegment]
+            : []
+          : editingPreviewState?.projectedSegments ?? [],
+      ),
+    [drawingProjectedSegment, editingPreviewState, isDrawingGeofence],
   );
   const draftGeofenceLineHitAreaSourceData = useMemo(
     () =>
@@ -432,34 +459,6 @@ export const MapLibreMap = memo(function MapLibreMap({
   }, [applyFocusedGeofenceState, geofences.length]);
 
   useEffect(() => {
-    const isFocusedGeofence = detailContext.mode === "geofence-focus";
-    const wasFocusedGeofence = wasFocusedGeofenceRef.current;
-
-    if (isFocusedGeofence && !wasFocusedGeofence) {
-      focusReturnViewportRef.current = { ...viewport };
-    }
-
-    if (!isFocusedGeofence && wasFocusedGeofence) {
-      const mapInstance = mapRef.current?.getMap();
-      const focusReturnViewport = focusReturnViewportRef.current;
-
-      focusReturnViewportRef.current = null;
-
-      if (mapInstance && focusReturnViewport) {
-        mapInstance.easeTo({
-          center: [focusReturnViewport.longitude, focusReturnViewport.latitude],
-          zoom: focusReturnViewport.zoom,
-          bearing: focusReturnViewport.bearing,
-          pitch: focusReturnViewport.pitch,
-          duration: 900,
-        });
-      }
-    }
-
-    wasFocusedGeofenceRef.current = isFocusedGeofence;
-  }, [detailContext.mode, viewport]);
-
-  useEffect(() => {
     const focusedGeofenceGeometry = detailContext.focusGeometry;
 
     if (!focusedGeofenceGeometry) {
@@ -503,9 +502,12 @@ export const MapLibreMap = memo(function MapLibreMap({
   useEffect(() => {
     if (!hasActiveGeofenceEdit) {
       draggedPointIndexRef.current = null;
+      middlePanPointerIdRef.current = null;
+      middlePanLastPointRef.current = null;
       suppressMapClickRef.current = false;
       setDrawingHoverState(null);
       setDrawingProjectedSegment(null);
+      setEditingPreviewState(null);
       mapRef.current?.getMap().dragPan.enable();
       mapRef.current?.getCanvas().style.removeProperty("cursor");
     }
@@ -587,6 +589,143 @@ export const MapLibreMap = memo(function MapLibreMap({
     setDrawingProjectedSegment(resolveDrawingProjectedSegment(drawingHoverState));
   }, [drawingHoverState, resolveDrawingProjectedSegment]);
 
+  const getDraftLineSegmentIndexFromScreenPoint = useCallback(
+    (
+      pointer: ScreenPoint,
+      requireHoverThreshold: boolean,
+    ) => {
+      if (activeEditingCoordinates.length < 2) {
+        return null;
+      }
+
+      const segmentCount =
+        shouldCloseDraftPath && activeEditingCoordinates.length >= 3
+          ? activeEditingCoordinates.length
+          : activeEditingCoordinates.length - 1;
+      let nearestSegmentIndex: number | null = null;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+      let nearestMidpointDistance = Number.POSITIVE_INFINITY;
+
+      const mapInstance = mapRef.current?.getMap();
+
+      if (!mapInstance) {
+        return null;
+      }
+
+      for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
+        const segmentPoints = getDraftSegmentScreenPoints(
+          mapInstance,
+          activeEditingCoordinates,
+          segmentIndex,
+          shouldCloseDraftPath,
+        );
+
+        if (!segmentPoints) {
+          continue;
+        }
+
+        const distance = getDistanceToSegment(pointer, segmentPoints.start, segmentPoints.end);
+        const midpointDistance = getDistanceToPoint(
+          pointer,
+          getSegmentMidpoint(segmentPoints.start, segmentPoints.end),
+        );
+
+        if (
+          distance < nearestDistance - DRAFT_LINE_DISTANCE_EPSILON ||
+          (Math.abs(distance - nearestDistance) <= DRAFT_LINE_DISTANCE_EPSILON &&
+            midpointDistance < nearestMidpointDistance)
+        ) {
+          nearestSegmentIndex = segmentIndex;
+          nearestDistance = distance;
+          nearestMidpointDistance = midpointDistance;
+        }
+      }
+
+      if (!requireHoverThreshold) {
+        return nearestSegmentIndex;
+      }
+
+      return nearestDistance <= DRAFT_LINE_HOVER_DISTANCE_PX ? nearestSegmentIndex : null;
+    },
+    [activeEditingCoordinates, shouldCloseDraftPath],
+  );
+
+  const resolveEditingPreviewState = useCallback(
+    (
+      hoverState: {
+        coordinates: MapContainerProps["editingCoordinates"][number];
+        point: ScreenPoint;
+      } | null,
+      hoveredPointIndex: number | null,
+    ) => {
+      if (
+        isDrawingGeofence ||
+        !hoverState ||
+        hoveredPointIndex !== null ||
+        activeEditingCoordinates.length < 2
+      ) {
+        return null;
+      }
+
+      const segmentIndex = getDraftLineSegmentIndexFromScreenPoint(hoverState.point, false);
+
+      if (segmentIndex === null) {
+        return null;
+      }
+
+      const startPoint = activeEditingCoordinates[segmentIndex];
+      const endIndex =
+        segmentIndex + 1 < activeEditingCoordinates.length
+          ? segmentIndex + 1
+          : shouldCloseDraftPath && activeEditingCoordinates.length >= 3
+            ? 0
+            : null;
+      const endPoint = endIndex === null ? null : activeEditingCoordinates[endIndex];
+
+      if (!startPoint || !endPoint) {
+        return null;
+      }
+
+      const nextCoordinates = [
+        ...activeEditingCoordinates.slice(0, segmentIndex + 1),
+        hoverState.coordinates,
+        ...activeEditingCoordinates.slice(segmentIndex + 1),
+      ];
+      const isValidInsertion = canCloseFromPoint(nextCoordinates);
+
+      if (!isValidInsertion) {
+        return {
+          hiddenSegmentIndex: null,
+          projectedSegments: [],
+          status: "invalid" as const,
+        };
+      }
+
+      return {
+        hiddenSegmentIndex: segmentIndex,
+        projectedSegments: [
+          {
+            start: startPoint,
+            end: hoverState.coordinates,
+            status: "default" as const,
+          },
+          {
+            start: hoverState.coordinates,
+            end: endPoint,
+            status: "default" as const,
+          },
+        ],
+        status: "default" as const,
+      };
+    },
+    [
+      activeEditingCoordinates,
+      getDraftLineSegmentIndexFromScreenPoint,
+      isDrawingGeofence,
+      shouldCloseDraftPath,
+    ],
+  );
+
   const updateHoverPreview = useCallback(
     (
       hoverState: {
@@ -602,10 +741,16 @@ export const MapLibreMap = memo(function MapLibreMap({
       const projectedSegment = isDrawingGeofence
         ? resolveDrawingProjectedSegment(hoverState)
         : null;
+      const nextEditingPreviewState = isDrawingGeofence
+        ? null
+        : resolveEditingPreviewState(hoverState, hoveredPointIndex);
 
       if (isDrawingGeofence) {
         setDrawingHoverState(hoverState);
         setDrawingProjectedSegment(projectedSegment);
+        setEditingPreviewState(null);
+      } else {
+        setEditingPreviewState(nextEditingPreviewState);
       }
 
       const isCloseCompletionHover =
@@ -615,7 +760,12 @@ export const MapLibreMap = memo(function MapLibreMap({
         hoveredPointIndex !== null && !isCloseCompletionHover ? "grab" : "idle",
       );
     },
-    [hasActiveGeofenceEdit, isDrawingGeofence, resolveDrawingProjectedSegment],
+    [
+      hasActiveGeofenceEdit,
+      isDrawingGeofence,
+      resolveDrawingProjectedSegment,
+      resolveEditingPreviewState,
+    ],
   );
 
   useEffect(() => {
@@ -668,48 +818,7 @@ export const MapLibreMap = memo(function MapLibreMap({
     }
 
     const pointer = mapInstance.project([event.lngLat.lng, event.lngLat.lat]);
-    const segmentCount =
-      shouldCloseDraftPath && activeEditingCoordinates.length >= 3
-        ? activeEditingCoordinates.length
-        : activeEditingCoordinates.length - 1;
-    let nearestSegmentIndex: number | null = null;
-    let nearestDistance = Number.POSITIVE_INFINITY;
-    let nearestMidpointDistance = Number.POSITIVE_INFINITY;
-
-    for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += 1) {
-      const segmentPoints = getDraftSegmentScreenPoints(
-        mapInstance,
-        activeEditingCoordinates,
-        segmentIndex,
-        shouldCloseDraftPath,
-      );
-
-      if (!segmentPoints) {
-        continue;
-      }
-
-      const distance = getDistanceToSegment(pointer, segmentPoints.start, segmentPoints.end);
-      const midpointDistance = getDistanceToPoint(
-        pointer,
-        getSegmentMidpoint(segmentPoints.start, segmentPoints.end),
-      );
-
-      if (
-        distance < nearestDistance - DRAFT_LINE_DISTANCE_EPSILON ||
-        (Math.abs(distance - nearestDistance) <= DRAFT_LINE_DISTANCE_EPSILON &&
-          midpointDistance < nearestMidpointDistance)
-      ) {
-        nearestSegmentIndex = segmentIndex;
-        nearestDistance = distance;
-        nearestMidpointDistance = midpointDistance;
-      }
-    }
-
-    if (!isDrawingGeofence) {
-      return nearestSegmentIndex;
-    }
-
-    return nearestDistance <= DRAFT_LINE_HOVER_DISTANCE_PX ? nearestSegmentIndex : null;
+    return getDraftLineSegmentIndexFromScreenPoint(pointer, isDrawingGeofence);
   }
 
   function getDraftPointIndexAtScreenPoint(
@@ -878,6 +987,18 @@ export const MapLibreMap = memo(function MapLibreMap({
     }
 
     const handlePointerDown = (event: PointerEvent) => {
+      if (event.button === 1 && !isInteractionLocked) {
+        event.preventDefault();
+        middlePanPointerIdRef.current = event.pointerId;
+        middlePanLastPointRef.current = {
+          x: event.clientX,
+          y: event.clientY,
+        };
+        setMapCursorMode("grabbing");
+        canvas.setPointerCapture(event.pointerId);
+        return;
+      }
+
       const pointIndex = getDraftPointIndexAtScreenPoint(
         event.clientX,
         event.clientY,
@@ -904,6 +1025,27 @@ export const MapLibreMap = memo(function MapLibreMap({
     };
 
     const handlePointerMove = (event: PointerEvent) => {
+      if (middlePanPointerIdRef.current === event.pointerId) {
+        const lastPoint = middlePanLastPointRef.current;
+        const mapInstance = mapRef.current?.getMap();
+
+        if (!lastPoint || !mapInstance) {
+          return;
+        }
+
+        event.preventDefault();
+        middlePanLastPointRef.current = {
+          x: event.clientX,
+          y: event.clientY,
+        };
+        setMapCursorMode("grabbing");
+        mapInstance.panBy(
+          [lastPoint.x - event.clientX, lastPoint.y - event.clientY],
+          { animate: false },
+        );
+        return;
+      }
+
       if (dragPointerIdRef.current !== event.pointerId) {
         return;
       }
@@ -963,10 +1105,24 @@ export const MapLibreMap = memo(function MapLibreMap({
     const handlePointerLeave = () => {
       setDrawingHoverState(null);
       setDrawingProjectedSegment(null);
+      setEditingPreviewState(null);
       setMapCursorMode("idle");
     };
 
     const handlePointerFinish = (event: PointerEvent) => {
+      if (middlePanPointerIdRef.current === event.pointerId) {
+        event.preventDefault();
+
+        if (canvas.hasPointerCapture(event.pointerId)) {
+          canvas.releasePointerCapture(event.pointerId);
+        }
+
+        middlePanPointerIdRef.current = null;
+        middlePanLastPointRef.current = null;
+        setMapCursorMode("idle");
+        return;
+      }
+
       if (dragPointerIdRef.current !== event.pointerId) {
         return;
       }
@@ -1003,6 +1159,7 @@ export const MapLibreMap = memo(function MapLibreMap({
     canCloseDrawingPolygon,
     finishPointDrag,
     hasActiveGeofenceEdit,
+    isInteractionLocked,
     isDrawingGeofence,
     onDrawingCoordinateUpdate,
     onEditingCoordinateUpdate,
@@ -1080,6 +1237,7 @@ export const MapLibreMap = memo(function MapLibreMap({
         activeEditingCoordinates.length,
       );
 
+      setEditingPreviewState(null);
       onEditingCoordinateAddAt(insertionIndex, coordinates);
       return;
     }
@@ -1201,7 +1359,9 @@ export const MapLibreMap = memo(function MapLibreMap({
             <Layer {...draftGeofenceConfirmedLineLayer} />
           </Source>
         ) : null}
-        {isDrawingGeofence && drawingProjectedSegment ? (
+        {(isDrawingGeofence
+          ? Boolean(drawingProjectedSegment)
+          : Boolean(editingPreviewState?.projectedSegments.length)) ? (
           <Source
             id="atlascope-draft-geofence-projected-line"
             type="geojson"

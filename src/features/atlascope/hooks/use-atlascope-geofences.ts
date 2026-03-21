@@ -38,6 +38,7 @@ export function useAtlascopeGeofences({
   const [selectedGeofenceId, setSelectedGeofenceId] = useState<number | null>(null);
   const [focusedGeofenceRequest, setFocusedGeofenceRequest] =
     useState<FocusedGeofenceRequest | null>(null);
+  const pendingCreatedGeofenceIdRef = useRef<number | null>(null);
   const geofenceEnterTimerRef = useRef<number | null>(null);
   const selectedGeofencePreviewRef = useRef<{
     geofenceId: number;
@@ -82,6 +83,21 @@ export function useAtlascopeGeofences({
 
   const handleCancelEditingGeofence = useCallback(
     (geofence: AtlascopeGeofence) => {
+      if (pendingCreatedGeofenceIdRef.current === geofence.id) {
+        pendingCreatedGeofenceIdRef.current = null;
+        setGeofences((current) => current.filter((item) => item.id !== geofence.id));
+        setEditingGeofenceCoordinates([]);
+        setEditingGeofenceId((current) => (current === geofence.id ? null : current));
+        setRenamingGeofenceId((current) => (current === geofence.id ? null : current));
+        setEnteringGeofenceId((current) => (current === geofence.id ? null : current));
+        setSelectedGeofenceId((current) => (current === geofence.id ? null : current));
+        setFocusedGeofenceRequest((current) =>
+          current?.geofenceId === geofence.id ? null : current,
+        );
+        setGeofenceDraftName("New Geofence");
+        return;
+      }
+
       setEditingGeofenceCoordinates([]);
       setEditingGeofenceId((current) => (current === geofence.id ? null : current));
       setRenamingGeofenceId((current) => (current === geofence.id ? null : current));
@@ -111,6 +127,7 @@ export function useAtlascopeGeofences({
     setRenamingGeofenceId(id);
     setGeofenceDraftName("New Geofence");
     setEnteringGeofenceId(id);
+    pendingCreatedGeofenceIdRef.current = id;
     setIsDrawingGeofence(false);
     setDrawingGeofenceCoordinates([]);
     openGeofencePanel();
@@ -126,7 +143,16 @@ export function useAtlascopeGeofences({
   }, [drawingGeofenceCoordinates, openGeofencePanel]);
 
   const handleGeofencePanelDismiss = useCallback(() => {
-    commitEditingGeofenceCoordinates();
+    const pendingCreatedGeofenceId = pendingCreatedGeofenceIdRef.current;
+
+    if (pendingCreatedGeofenceId !== null) {
+      pendingCreatedGeofenceIdRef.current = null;
+      setGeofences((current) =>
+        current.filter((geofence) => geofence.id !== pendingCreatedGeofenceId),
+      );
+    } else {
+      commitEditingGeofenceCoordinates();
+    }
     restoreSelectedGeofencePreview();
     clearFocusedGeofence();
     setSelectedGeofenceId(null);
@@ -144,6 +170,7 @@ export function useAtlascopeGeofences({
     setDrawingGeofenceCoordinates([]);
   }, []);
   const handleSaveEditingGeofence = useCallback(() => {
+    pendingCreatedGeofenceIdRef.current = null;
     commitEditingGeofenceCoordinates();
     setEditingGeofenceCoordinates([]);
     setEditingGeofenceId(null);
@@ -439,6 +466,10 @@ export function useAtlascopeGeofences({
   }
 
   function handleDeleteGeofence(id: number) {
+    if (pendingCreatedGeofenceIdRef.current === id) {
+      pendingCreatedGeofenceIdRef.current = null;
+    }
+
     if (selectedGeofencePreviewRef.current?.geofenceId === id) {
       selectedGeofencePreviewRef.current = null;
     }

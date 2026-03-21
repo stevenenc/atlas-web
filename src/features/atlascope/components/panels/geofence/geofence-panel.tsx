@@ -16,7 +16,6 @@ type GeofencePanelProps = {
   selectedGeofenceId: number | null;
   isDrawingGeofence: boolean;
   drawingPointCount: number;
-  canFinishDrawing: boolean;
   editingGeofenceId: number | null;
   renamingGeofenceId: number | null;
   draftName: string;
@@ -24,7 +23,6 @@ type GeofencePanelProps = {
   showRowActions: boolean;
   onAddGeofence: () => void;
   onCancelDrawing: () => void;
-  onFinishDrawing: () => void;
   onDraftNameChange: (value: string) => void;
   onFocusGeofence: (geofence: Geofence) => void;
   onStartEditing: (geofence: Geofence) => void;
@@ -43,7 +41,6 @@ export function GeofencePanel({
   selectedGeofenceId,
   isDrawingGeofence,
   drawingPointCount,
-  canFinishDrawing,
   editingGeofenceId,
   renamingGeofenceId,
   draftName,
@@ -51,7 +48,6 @@ export function GeofencePanel({
   showRowActions,
   onAddGeofence,
   onCancelDrawing,
-  onFinishDrawing,
   onDraftNameChange,
   onFocusGeofence,
   onStartEditing,
@@ -190,9 +186,7 @@ export function GeofencePanel({
           {isDrawingGeofence ? (
             <GeofenceDrawingCallout
               drawingPointCount={drawingPointCount}
-              canFinishDrawing={canFinishDrawing}
               onCancelDrawing={onCancelDrawing}
-              onFinishDrawing={onFinishDrawing}
             />
           ) : (
             <button

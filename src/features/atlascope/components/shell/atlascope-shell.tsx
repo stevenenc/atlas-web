@@ -34,7 +34,6 @@ export function AtlascopeShell() {
     setActiveOverlayPanel("geofences");
   }, []);
   const {
-    canFinishDrawingGeofence,
     drawingGeofenceCoordinates,
     editingGeofenceCoordinates,
     editingGeofenceId,
@@ -163,7 +162,6 @@ export function AtlascopeShell() {
             selectedGeofenceId,
             isDrawingGeofence,
             drawingPointCount: drawingGeofenceCoordinates.length,
-            canFinishDrawing: canFinishDrawingGeofence,
             editingGeofenceId,
             renamingGeofenceId,
             draftName: geofenceDraftName,
@@ -171,7 +169,6 @@ export function AtlascopeShell() {
             showRowActions: showGeofenceRowActions,
             onAddGeofence: handleAddGeofence,
             onCancelDrawing: handleCancelDrawingGeofence,
-            onFinishDrawing: handleFinishDrawingGeofence,
             onDraftNameChange: setGeofenceDraftName,
             onFocusGeofence: handleFocusGeofence,
             onStartEditing: handleStartEditingGeofence,

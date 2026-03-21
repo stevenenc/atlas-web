@@ -237,45 +237,82 @@ export function createDraftGeofenceLineSourceData(
   coordinates: MapGeofenceData["coordinates"],
   closePath = false,
   status: DraftGeofencePreviewStatus = "default",
+  hiddenSegmentIndex: number | null = null,
 ): FeatureCollection<LineString, { status: DraftGeofencePreviewStatus }> {
-  const lineCoordinates = coordinates.map((coordinate) => [
-    coordinate.longitude,
-    coordinate.latitude,
-  ]);
-  const closedLineCoordinates =
-    closePath && lineCoordinates.length >= 3
-      ? [...lineCoordinates, lineCoordinates[0] as [number, number]]
-      : lineCoordinates;
+  if (coordinates.length < 2) {
+    return {
+      type: "FeatureCollection",
+      features: [],
+    };
+  }
+
+  const features = coordinates.slice(0, -1).flatMap((coordinate, segmentIndex) => {
+    if (segmentIndex === hiddenSegmentIndex) {
+      return [];
+    }
+
+    const nextCoordinate = coordinates[segmentIndex + 1];
+
+    if (!nextCoordinate) {
+      return [];
+    }
+
+    return [
+      {
+        type: "Feature" as const,
+        geometry: {
+          type: "LineString" as const,
+          coordinates: [
+            [coordinate.longitude, coordinate.latitude],
+            [nextCoordinate.longitude, nextCoordinate.latitude],
+          ],
+        },
+        properties: {
+          status,
+        },
+      },
+    ];
+  });
+
+  if (
+    closePath &&
+    coordinates.length >= 3 &&
+    hiddenSegmentIndex !== coordinates.length - 1
+  ) {
+    const lastPoint = coordinates[coordinates.length - 1];
+    const firstPoint = coordinates[0];
+
+    if (lastPoint && firstPoint) {
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [lastPoint.longitude, lastPoint.latitude],
+            [firstPoint.longitude, firstPoint.latitude],
+          ],
+        },
+        properties: {
+          status,
+        },
+      });
+    }
+  }
 
   return {
     type: "FeatureCollection",
-    features: coordinates.length >= 2
-      ? [
-          {
-            type: "Feature",
-            geometry: {
-              type: "LineString",
-              coordinates: closedLineCoordinates,
-            },
-            properties: {
-              status,
-            },
-          },
-        ]
-      : [],
+    features,
   };
 }
 
 export function createDraftGeofenceProjectedLineSourceData(
-  segment:
-    | {
-        start: MapCoordinates;
-        end: MapCoordinates;
-        status: DraftGeofencePreviewStatus;
-      }
-    | null,
+  segments: Array<{
+    start: MapCoordinates;
+    end: MapCoordinates;
+    status: DraftGeofencePreviewStatus;
+  }>,
 ): FeatureCollection<LineString, { status: DraftGeofencePreviewStatus }> {
-  if (!segment) {
+  if (!segments.length) {
     return {
       type: "FeatureCollection",
       features: [],
@@ -284,21 +321,19 @@ export function createDraftGeofenceProjectedLineSourceData(
 
   return {
     type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [segment.start.longitude, segment.start.latitude],
-            [segment.end.longitude, segment.end.latitude],
-          ],
-        },
-        properties: {
-          status: segment.status,
-        },
+    features: segments.map((segment) => ({
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [segment.start.longitude, segment.start.latitude],
+          [segment.end.longitude, segment.end.latitude],
+        ],
       },
-    ],
+      properties: {
+        status: segment.status,
+      },
+    })),
   };
 }
 
