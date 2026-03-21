@@ -35,14 +35,6 @@ const lightFallbackStyle = createFallbackStyle(lightTheme.land.zoomedOut);
 
 export const OPEN_FREEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
-export const performanceConfig = {
-  enablePOI: false,
-  enableBuildings: false,
-  enableTransit: false,
-  enableHeavyLanduse: false,
-  enableLowZoomStreetLabels: false,
-} as const;
-
 export const atlascopeMapConfig = {
   provider: MAP_PROVIDER as MapProviderId,
   defaultViewport: {

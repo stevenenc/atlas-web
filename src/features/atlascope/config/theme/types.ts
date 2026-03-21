@@ -50,12 +50,6 @@ export type MapColorTokens = {
     sand: string;
     wetland: string;
   };
-  poi: {
-    emergency: string;
-    civic: string;
-    transport: string;
-    halo: string;
-  };
   waterLabels: {
     text: string;
     halo: string;
@@ -74,7 +68,6 @@ export type MapColorTokens = {
       labelOpacityMultiplier: number;
       fillOpacityMultiplier: number;
       boundaryOpacityMultiplier: number;
-      poiOpacityMultiplier: number;
     };
     focused: {
       lineOpacityMultiplier: number;
@@ -83,7 +76,6 @@ export type MapColorTokens = {
       fillOpacityMultiplier: number;
       boundaryOpacityMultiplier: number;
       boundaryWidthMultiplier: number;
-      poiOpacityMultiplier: number;
     };
     mask: {
       outsideFill: string;

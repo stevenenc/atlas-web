@@ -50,22 +50,12 @@ type WaterLabelDetailZoomProfile = {
   lineOpacity: ZoomWidthStops;
 };
 
-type PoiDetailZoomProfile = {
-  emergencyMinZoom: number;
-  civicMinZoom: number;
-  transportMinZoom: number;
-  emergencyOpacity: ZoomWidthStops;
-  civicOpacity: ZoomWidthStops;
-  transportOpacity: ZoomWidthStops;
-};
-
 type MapDetailProfile = {
   roads: RoadDetailZoomProfile;
   roadLabels: RoadLabelDetailZoomProfile;
   landuse: LanduseDetailZoomProfile;
   boundaries: BoundaryDetailZoomProfile;
   waterLabels: WaterLabelDetailZoomProfile;
-  poi: PoiDetailZoomProfile;
 };
 
 export const mapZoomTokens = {
@@ -275,25 +265,6 @@ export const mapZoomTokens = {
           [14.5, 0.36],
         ] as ZoomWidthStops,
       },
-      poi: {
-        emergencyMinZoom: 13.6,
-        civicMinZoom: 14.2,
-        transportMinZoom: 13.1,
-        emergencyOpacity: [
-          [13.6, 0],
-          [14, 0.46],
-          [14.5, 0.62],
-        ] as ZoomWidthStops,
-        civicOpacity: [
-          [14.2, 0],
-          [14.5, 0.34],
-        ] as ZoomWidthStops,
-        transportOpacity: [
-          [13.1, 0],
-          [13.7, 0.34],
-          [14.5, 0.5],
-        ] as ZoomWidthStops,
-      },
     } satisfies MapDetailProfile,
     focused: {
       roads: {
@@ -422,26 +393,6 @@ export const mapZoomTokens = {
           [10.8, 0],
           [11.8, 0.42],
           [14.5, 0.62],
-        ] as ZoomWidthStops,
-      },
-      poi: {
-        emergencyMinZoom: 12.4,
-        civicMinZoom: 13.2,
-        transportMinZoom: 12.1,
-        emergencyOpacity: [
-          [12.4, 0],
-          [13, 0.58],
-          [14.5, 0.82],
-        ] as ZoomWidthStops,
-        civicOpacity: [
-          [13.2, 0],
-          [13.8, 0.42],
-          [14.5, 0.64],
-        ] as ZoomWidthStops,
-        transportOpacity: [
-          [12.1, 0],
-          [12.8, 0.46],
-          [14.5, 0.7],
         ] as ZoomWidthStops,
       },
     } satisfies MapDetailProfile,

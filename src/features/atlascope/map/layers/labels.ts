@@ -13,6 +13,12 @@ import {
 import { roadClassFilters } from "./roads";
 
 const TRANSPORTATION_LABEL_SOURCE_LAYER = "transportation_name";
+const ROAD_LABEL_TEXT_FIELD = [
+  "coalesce",
+  ["get", "name_en"],
+  ["get", "name"],
+  "",
+] as const;
 
 type RoadLabelConfig = {
   baseId: string;
@@ -62,11 +68,10 @@ const roadLabelConfigs: RoadLabelConfig[] = [
 
 function createRoadLabelFilter(classes: readonly string[]) {
   return [
-    "match",
-    ["get", "class"],
-    [...classes],
-    true,
-    false,
+    "all",
+    ["match", ["geometry-type"], ["LineString", "MultiLineString"], true, false],
+    ["match", ["get", "class"], [...classes], true, false],
+    ["==", ["index-of", " & ", ROAD_LABEL_TEXT_FIELD], -1],
   ] as const;
 }
 
@@ -91,7 +96,7 @@ export function createRoadLabelLayerDefinitions(
         filter: createDetailProfileFilter(baseFilter, detailContext, profile),
         layout: {
           "symbol-placement": "line",
-          "text-field": ["coalesce", ["get", "name_en"], ["get", "name"]],
+          "text-field": ROAD_LABEL_TEXT_FIELD,
           "text-font": ["Noto Sans Regular"],
           "text-letter-spacing": config.letterSpacing,
           "text-size": config.textSize,

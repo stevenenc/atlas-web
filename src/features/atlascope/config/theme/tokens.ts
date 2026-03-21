@@ -348,12 +348,6 @@ export const atlasTheme = {
         sand: "rgba(233, 223, 177, 0.34)",
         wetland: "rgba(151, 184, 170, 0.38)",
       },
-      poi: {
-        emergency: "#8C4E2A",
-        civic: "#556A43",
-        transport: "#355E84",
-        halo: "rgba(250, 250, 248, 0.94)",
-      },
       waterLabels: {
         text: "#38576C",
         halo: "rgba(248, 250, 252, 0.92)",
@@ -372,7 +366,6 @@ export const atlasTheme = {
           labelOpacityMultiplier: 0.78,
           fillOpacityMultiplier: 0.78,
           boundaryOpacityMultiplier: 0.76,
-          poiOpacityMultiplier: 0.72,
         },
         focused: {
           lineOpacityMultiplier: 1,
@@ -381,7 +374,6 @@ export const atlasTheme = {
           fillOpacityMultiplier: 1,
           boundaryOpacityMultiplier: 1,
           boundaryWidthMultiplier: 1.08,
-          poiOpacityMultiplier: 1,
         },
         mask: {
           outsideFill: "#EEF4F8",
@@ -437,12 +429,6 @@ export const atlasTheme = {
         sand: "rgba(88, 77, 51, 0.28)",
         wetland: "rgba(33, 66, 74, 0.4)",
       },
-      poi: {
-        emergency: "#E7B08B",
-        civic: "#B8D296",
-        transport: "#89C1E8",
-        halo: "rgba(5, 10, 16, 0.84)",
-      },
       waterLabels: {
         text: "#7FA3BA",
         halo: "rgba(5, 10, 16, 0.84)",
@@ -461,7 +447,6 @@ export const atlasTheme = {
           labelOpacityMultiplier: 0.76,
           fillOpacityMultiplier: 0.8,
           boundaryOpacityMultiplier: 0.74,
-          poiOpacityMultiplier: 0.7,
         },
         focused: {
           lineOpacityMultiplier: 1,
@@ -470,7 +455,6 @@ export const atlasTheme = {
           fillOpacityMultiplier: 1,
           boundaryOpacityMultiplier: 1,
           boundaryWidthMultiplier: 1.1,
-          poiOpacityMultiplier: 1,
         },
         mask: {
           outsideFill: "#040A10",

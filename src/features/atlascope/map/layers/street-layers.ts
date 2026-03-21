@@ -13,7 +13,6 @@ import {
 import { createBoundaryLayerDefinitions } from "./boundaries";
 import { createRoadLabelLayerDefinitions } from "./labels";
 import { createLanduseLayerDefinitions } from "./landuse";
-import { createPoiLayerDefinitions } from "./poi";
 import { createRoadLayerDefinitions } from "./roads";
 import { createWaterLabelLayerDefinitions } from "./water-labels";
 
@@ -28,7 +27,6 @@ export function createDetailLayerDefinitions(
     ...createRoadLayerDefinitions(theme, vectorSourceId, detailContext),
     ...createWaterLabelLayerDefinitions(theme, vectorSourceId, detailContext),
     ...createRoadLabelLayerDefinitions(theme, vectorSourceId, detailContext),
-    ...createPoiLayerDefinitions(theme, vectorSourceId, detailContext),
   ];
 }
 
