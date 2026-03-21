@@ -42,7 +42,6 @@ import {
   createDetailContextMaskLayer,
   createDetailContextMaskSourceData,
   createDraftGeofenceLayers,
-  createDraftGeofenceLineHitAreaSourceData,
   createDraftGeofenceProjectedLineSourceData,
   createDraftGeofenceLineSourceData,
   createDraftGeofencePointSourceData,
@@ -61,7 +60,6 @@ const DRAFT_POINT_POINTER_RADIUS = {
   pen: 18,
   touch: 28,
 } as const;
-const DRAFT_LINE_HOVER_DISTANCE_PX = 20;
 const DRAFT_LINE_DISTANCE_EPSILON = 0.01;
 const DRAWING_CLOSE_THRESHOLD_PX = 18;
 const DRAWING_POINT_PROXIMITY_THRESHOLD_PX = 14;
@@ -348,16 +346,7 @@ export const MapLibreMap = memo(function MapLibreMap({
       ),
     [drawingProjectedSegment, editingPreviewState, isDrawingGeofence],
   );
-  const draftGeofenceLineHitAreaSourceData = useMemo(
-    () =>
-      createDraftGeofenceLineHitAreaSourceData(
-        activeEditingCoordinates,
-        shouldCloseDraftPath,
-      ),
-    [activeEditingCoordinates, shouldCloseDraftPath],
-  );
   const [
-    draftGeofenceLineHitAreaLayer,
     draftGeofenceConfirmedLineLayer,
     draftGeofenceProjectedLineLayer,
     draftGeofencePointsHitAreaLayer,
@@ -589,11 +578,8 @@ export const MapLibreMap = memo(function MapLibreMap({
     setDrawingProjectedSegment(resolveDrawingProjectedSegment(drawingHoverState));
   }, [drawingHoverState, resolveDrawingProjectedSegment]);
 
-  const getDraftLineSegmentIndexFromScreenPoint = useCallback(
-    (
-      pointer: ScreenPoint,
-      requireHoverThreshold: boolean,
-    ) => {
+  const getNearestDraftLineSegmentIndexFromScreenPoint = useCallback(
+    (pointer: ScreenPoint) => {
       if (activeEditingCoordinates.length < 2) {
         return null;
       }
@@ -641,11 +627,7 @@ export const MapLibreMap = memo(function MapLibreMap({
         }
       }
 
-      if (!requireHoverThreshold) {
-        return nearestSegmentIndex;
-      }
-
-      return nearestDistance <= DRAFT_LINE_HOVER_DISTANCE_PX ? nearestSegmentIndex : null;
+      return nearestSegmentIndex;
     },
     [activeEditingCoordinates, shouldCloseDraftPath],
   );
@@ -667,7 +649,7 @@ export const MapLibreMap = memo(function MapLibreMap({
         return null;
       }
 
-      const segmentIndex = getDraftLineSegmentIndexFromScreenPoint(hoverState.point, false);
+      const segmentIndex = getNearestDraftLineSegmentIndexFromScreenPoint(hoverState.point);
 
       if (segmentIndex === null) {
         return null;
@@ -720,7 +702,7 @@ export const MapLibreMap = memo(function MapLibreMap({
     },
     [
       activeEditingCoordinates,
-      getDraftLineSegmentIndexFromScreenPoint,
+      getNearestDraftLineSegmentIndexFromScreenPoint,
       isDrawingGeofence,
       shouldCloseDraftPath,
     ],
@@ -818,7 +800,7 @@ export const MapLibreMap = memo(function MapLibreMap({
     }
 
     const pointer = mapInstance.project([event.lngLat.lng, event.lngLat.lat]);
-    return getDraftLineSegmentIndexFromScreenPoint(pointer, isDrawingGeofence);
+    return getNearestDraftLineSegmentIndexFromScreenPoint(pointer);
   }
 
   function getDraftPointIndexAtScreenPoint(
@@ -1229,7 +1211,8 @@ export const MapLibreMap = memo(function MapLibreMap({
       return;
     }
 
-    const draftLineSegmentIndex = getDraftLineSegmentIndex(event);
+    const draftLineSegmentIndex =
+      editingPreviewState?.hiddenSegmentIndex ?? getDraftLineSegmentIndex(event);
 
     if (draftLineSegmentIndex !== null) {
       const insertionIndex = Math.min(
@@ -1339,15 +1322,6 @@ export const MapLibreMap = memo(function MapLibreMap({
             {geofenceLayers.map((layer) => (
               <Layer key={layer.id} {...layer} />
             ))}
-          </Source>
-        ) : null}
-        {isEditingGeofence && activeEditingCoordinates.length >= 2 ? (
-          <Source
-            id="atlascope-draft-geofence-line-hit-area"
-            type="geojson"
-            data={draftGeofenceLineHitAreaSourceData}
-          >
-            <Layer {...draftGeofenceLineHitAreaLayer} />
           </Source>
         ) : null}
         {hasActiveGeofenceEdit && activeEditingCoordinates.length >= 2 ? (
