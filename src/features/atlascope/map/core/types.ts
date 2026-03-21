@@ -1,3 +1,5 @@
+import type { MultiPolygon, Polygon } from "geojson";
+
 import type { ThemeMode } from "@/features/atlascope/config/theme";
 
 import type { MapStyleDefinition } from "./provider";
@@ -36,6 +38,7 @@ export type MapGeofenceData = {
 export type MapStyleConfig = string | MapStyleDefinition;
 
 export type MapDetailContextMode = "overview" | "geofence-focus";
+export type MapDetailFocusGeometry = Polygon | MultiPolygon;
 
 export const DETAIL_CONTEXT_TRANSITION_MS = 220;
 
@@ -43,7 +46,7 @@ export type MapDetailContext = {
   mode: MapDetailContextMode;
   focusFeatureId: string | null;
   focusFeatureIds: string[];
-  focusGeometry: MapCoordinates[] | null;
+  focusGeometry: MapDetailFocusGeometry | null;
   version: number;
 };
 

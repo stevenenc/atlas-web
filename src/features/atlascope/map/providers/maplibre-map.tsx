@@ -33,6 +33,7 @@ import type {
   MapViewportState,
 } from "@/features/atlascope/map/core/types";
 import { createDetailLayerStyleUpdates } from "@/features/atlascope/map/layers/street-layers";
+import { getFocusGeometryBounds } from "@/features/atlascope/map/lib/geojson";
 import {
   createDetailContextMaskLayer,
   createDetailContextMaskSourceData,
@@ -428,9 +429,9 @@ export const MapLibreMap = memo(function MapLibreMap({
   }, [detailContext.mode, viewport]);
 
   useEffect(() => {
-    const focusedGeofenceCoordinates = detailContext.focusGeometry;
+    const focusedGeofenceGeometry = detailContext.focusGeometry;
 
-    if (!focusedGeofenceCoordinates?.length) {
+    if (!focusedGeofenceGeometry) {
       return;
     }
 
@@ -441,25 +442,19 @@ export const MapLibreMap = memo(function MapLibreMap({
       return;
     }
 
-    let minLongitude = focusedGeofenceCoordinates[0]?.longitude ?? 0;
-    let maxLongitude = minLongitude;
-    let minLatitude = focusedGeofenceCoordinates[0]?.latitude ?? 0;
-    let maxLatitude = minLatitude;
+    const bounds = getFocusGeometryBounds(focusedGeofenceGeometry);
 
-    focusedGeofenceCoordinates.forEach((point) => {
-      minLongitude = Math.min(minLongitude, point.longitude);
-      maxLongitude = Math.max(maxLongitude, point.longitude);
-      minLatitude = Math.min(minLatitude, point.latitude);
-      maxLatitude = Math.max(maxLatitude, point.latitude);
-    });
+    if (!bounds) {
+      return;
+    }
 
     const horizontalPadding = Math.round(container.clientWidth * 0.15);
     const verticalPadding = Math.round(container.clientHeight * 0.15);
 
     mapInstance.fitBounds(
       [
-        [minLongitude, minLatitude],
-        [maxLongitude, maxLatitude],
+        [bounds.minLongitude, bounds.minLatitude],
+        [bounds.maxLongitude, bounds.maxLatitude],
       ],
       {
         duration: 900,

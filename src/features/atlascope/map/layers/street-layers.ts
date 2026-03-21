@@ -16,18 +16,22 @@ import { createLanduseLayerDefinitions } from "./landuse";
 import { createRoadLayerDefinitions } from "./roads";
 import { createWaterLabelLayerDefinitions } from "./water-labels";
 
+const detailLayerDefinitionBuilders = [
+  createLanduseLayerDefinitions,
+  createBoundaryLayerDefinitions,
+  createRoadLayerDefinitions,
+  createWaterLabelLayerDefinitions,
+  createRoadLabelLayerDefinitions,
+] as const;
+
 export function createDetailLayerDefinitions(
   theme: ThemeMode,
   vectorSourceId = atlascopeMapConfig.basemap.vectorSourceId,
   detailContext: MapDetailContext = DEFAULT_MAP_DETAIL_CONTEXT,
 ): MapLayerDefinition[] {
-  return [
-    ...createLanduseLayerDefinitions(theme, vectorSourceId, detailContext),
-    ...createBoundaryLayerDefinitions(theme, vectorSourceId, detailContext),
-    ...createRoadLayerDefinitions(theme, vectorSourceId, detailContext),
-    ...createWaterLabelLayerDefinitions(theme, vectorSourceId, detailContext),
-    ...createRoadLabelLayerDefinitions(theme, vectorSourceId, detailContext),
-  ];
+  return detailLayerDefinitionBuilders.flatMap((buildLayerDefinitions) =>
+    buildLayerDefinitions(theme, vectorSourceId, detailContext),
+  );
 }
 
 export function createDetailLayerStyleUpdates(

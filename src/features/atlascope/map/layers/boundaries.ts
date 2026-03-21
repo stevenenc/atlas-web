@@ -10,9 +10,9 @@ import {
   resolveLayerZoomRange,
 } from "../style/style-config";
 import {
+  buildSpatialProfileLayers,
   createDetailLayerId,
   createDetailProfileFilter,
-  detailProfiles,
   getDetailProfileVisibility,
   resolveDetailProfileValue,
 } from "./detail-context";
@@ -71,21 +71,19 @@ export function createBoundaryLayerDefinitions(
 ): MapLayerDefinition[] {
   const { colors, zoom } = getMapTheme(theme);
 
-  return detailProfiles.flatMap((profile) =>
+  return buildSpatialProfileLayers((profile) =>
     boundaryLayerConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].boundaries;
       const originalMinZoom = profileZoom[config.minZoomKey];
       const boundaryOpacityMultiplier = resolveDetailProfileValue(
-        detailContext,
         profile,
         colors.detailContext.focused.boundaryOpacityMultiplier,
         colors.detailContext.ambient.boundaryOpacityMultiplier,
       );
       const boundaryWidthMultiplier = resolveDetailProfileValue(
-        detailContext,
         profile,
         colors.detailContext.focused.boundaryWidthMultiplier,
-        1,
+        colors.detailContext.ambient.boundaryWidthMultiplier,
       );
       const zoomRange = resolveLayerZoomRange(originalMinZoom);
 

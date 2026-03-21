@@ -12,6 +12,7 @@ import type {
   MapMarkerData,
 } from "@/features/atlascope/map/core/types";
 import { DETAIL_CONTEXT_TRANSITION_MS } from "@/features/atlascope/map/core/types";
+import { createFocusGeometry } from "@/features/atlascope/map/lib/geojson";
 import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 import type { Incident, IncidentType } from "@/features/atlascope/types/atlascope";
 
@@ -96,9 +97,13 @@ export function MapView({
     [incidents, selectedTimeMs],
   );
   const focusedGeofence = geofences.find((geofence) => geofence.id === focusedGeofenceId) ?? null;
+  const focusedGeofenceGeometry = useMemo(
+    () => (focusedGeofence ? createFocusGeometry(focusedGeofence.coordinates) : null),
+    [focusedGeofence],
+  );
   const [detailContextFocusGeometry, setDetailContextFocusGeometry] = useState<
-    MapGeofenceData["coordinates"] | null
-  >(() => focusedGeofence?.coordinates ?? null);
+    MapDetailContext["focusGeometry"]
+  >(() => focusedGeofenceGeometry);
   const [detailContextVersion, setDetailContextVersion] = useState(
     () => (focusedGeofence ? focusedGeofenceNonce : 0),
   );
@@ -109,10 +114,18 @@ export function MapView({
       mode: focusedGeofence ? "geofence-focus" : "overview",
       focusFeatureId: focusedGeofence ? String(focusedGeofence.id) : null,
       focusFeatureIds: focusedGeofence ? [String(focusedGeofence.id)] : [],
-      focusGeometry: focusedGeofence?.coordinates ?? detailContextFocusGeometry,
+      focusGeometry: focusedGeofence
+        ? focusedGeofenceGeometry
+        : detailContextFocusGeometry,
       version: focusedGeofence ? focusedGeofenceNonce : detailContextVersion,
     }),
-    [detailContextFocusGeometry, detailContextVersion, focusedGeofence, focusedGeofenceNonce],
+    [
+      detailContextFocusGeometry,
+      detailContextVersion,
+      focusedGeofence,
+      focusedGeofenceGeometry,
+      focusedGeofenceNonce,
+    ],
   );
   const visibleGeofences: MapGeofenceData[] = useMemo(
     () =>
@@ -165,7 +178,7 @@ export function MapView({
 
     if (focusedGeofence) {
       detailContextAnimationFrameRef.current = window.requestAnimationFrame(() => {
-        setDetailContextFocusGeometry(focusedGeofence.coordinates);
+        setDetailContextFocusGeometry(focusedGeofenceGeometry);
         setDetailContextVersion(focusedGeofenceNonce);
         detailContextAnimationFrameRef.current = null;
       });
@@ -185,7 +198,12 @@ export function MapView({
       setDetailContextVersion(0);
       detailContextCleanupTimerRef.current = null;
     }, DETAIL_CONTEXT_TRANSITION_MS);
-  }, [detailContextFocusGeometry, focusedGeofence, focusedGeofenceNonce]);
+  }, [
+    detailContextFocusGeometry,
+    focusedGeofence,
+    focusedGeofenceGeometry,
+    focusedGeofenceNonce,
+  ]);
 
   return (
     <div

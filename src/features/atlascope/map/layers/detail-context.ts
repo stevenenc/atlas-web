@@ -7,8 +7,9 @@ import {
 import type { MapLayerDefinition } from "../core/provider";
 
 export type DetailProfile = "ambient" | "focused";
+type DetailProfileSpatialMatch = "intersects" | "within";
 
-export const detailProfiles: DetailProfile[] = ["ambient", "focused"];
+const DETAIL_PROFILES: readonly DetailProfile[] = ["ambient", "focused"];
 // This is intentionally reserved for non-zoom style updates such as the detail
 // mask and symbol paint changes. It is not used as a fix for vector zoom pop-in.
 export const DETAIL_CONTEXT_PAINT_TRANSITION = {
@@ -16,53 +17,78 @@ export const DETAIL_CONTEXT_PAINT_TRANSITION = {
   delay: 0,
 } as const;
 
-const NO_MATCH_FILTER = [
-  "==",
-  ["get", "__atlascope_detail_context__"],
-  "__atlascope_no_match__",
-] as const;
-
 export function createDetailLayerId(baseId: string, profile: DetailProfile) {
   return `${baseId}-${profile}`;
+}
+
+export function buildSpatialProfileLayers<T>(
+  buildProfileLayers: (profile: DetailProfile) => T[],
+) {
+  return DETAIL_PROFILES.flatMap((profile) => buildProfileLayers(profile));
 }
 
 export function getDetailProfileVisibility(
   detailContext: MapDetailContext,
   profile: DetailProfile,
 ): MapVisibility {
-  void detailContext;
+  if (profile === "ambient") {
+    return "visible";
+  }
 
-  return profile === "focused" ? "visible" : "none";
+  return hasFocusedDetailContext(detailContext) ? "visible" : "none";
 }
 
 export function createDetailProfileFilter(
   baseFilter: MapLayerDefinition["filter"],
   detailContext: MapDetailContext,
   profile: DetailProfile,
+  spatialMatch: DetailProfileSpatialMatch = "within",
 ) {
-  void detailContext;
+  const spatialFilter = createSpatialDetailProfileFilter(
+    detailContext,
+    profile,
+    spatialMatch,
+  );
 
-  return profile === "focused" ? baseFilter : combineLayerFilters(baseFilter, NO_MATCH_FILTER);
+  if (!spatialFilter) {
+    return baseFilter;
+  }
+
+  return combineLayerFilters(baseFilter, spatialFilter);
 }
 
-export function hasDetailFocusGeometry(detailContext: MapDetailContext) {
-  return Boolean(detailContext.focusGeometry && detailContext.focusGeometry.length >= 3);
+export function hasFocusedDetailContext(detailContext: MapDetailContext) {
+  return detailContext.focusGeometry !== null;
+}
+
+function createSpatialDetailProfileFilter(
+  detailContext: MapDetailContext,
+  profile: DetailProfile,
+  spatialMatch: DetailProfileSpatialMatch,
+) {
+  const focusGeometry = detailContext.focusGeometry;
+
+  if (!focusGeometry) {
+    return undefined;
+  }
+
+  const partitionFilter =
+    spatialMatch === "intersects"
+      ? (["<=", ["distance", focusGeometry], 0] as const)
+      : (["within", focusGeometry] as const);
+
+  // MapLibre classifies whole vector-tile features here. Crossing lines, line
+  // labels, and polygon fills at the focus edge cannot be clipped client-side,
+  // so each profile uses feature-level classification.
+  return profile === "focused" ? partitionFilter : ["!", partitionFilter];
 }
 
 export function resolveDetailProfileValue(
-  detailContext: MapDetailContext,
   profile: DetailProfile,
   focusedValue: number,
-  _ambientValue: number,
+  ambientValue: number,
 ) {
-  void detailContext;
-  void profile;
-  void _ambientValue;
-
-  // The perceived focus fade is driven by the outside mask. Keeping ambient
-  // and focused detail paints identical avoids the one-frame redraw that happens
-  // when filters repartition the map during focus changes.
-  return focusedValue;
+  return profile === "focused" ? focusedValue : ambientValue;
 }
 
 function combineLayerFilters(...filters: Array<MapLayerDefinition["filter"] | undefined>) {

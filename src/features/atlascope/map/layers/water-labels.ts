@@ -11,9 +11,9 @@ import {
 } from "../style/style-config";
 import {
   DETAIL_CONTEXT_PAINT_TRANSITION,
+  buildSpatialProfileLayers,
   createDetailLayerId,
   createDetailProfileFilter,
-  detailProfiles,
   getDetailProfileVisibility,
   resolveDetailProfileValue,
 } from "./detail-context";
@@ -73,12 +73,11 @@ export function createWaterLabelLayerDefinitions(
 ): MapLayerDefinition[] {
   const { colors, zoom } = getMapTheme(theme);
 
-  return detailProfiles.flatMap((profile) =>
+  return buildSpatialProfileLayers((profile) =>
     waterLabelConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].waterLabels;
       const originalMinZoom = profileZoom[config.minZoomKey];
       const labelOpacityMultiplier = resolveDetailProfileValue(
-        detailContext,
         profile,
         colors.detailContext.focused.labelOpacityMultiplier,
         colors.detailContext.ambient.labelOpacityMultiplier,

@@ -11,9 +11,9 @@ import {
 } from "../style/style-config";
 import {
   DETAIL_CONTEXT_PAINT_TRANSITION,
+  buildSpatialProfileLayers,
   createDetailLayerId,
   createDetailProfileFilter,
-  detailProfiles,
   getDetailProfileVisibility,
   resolveDetailProfileValue,
 } from "./detail-context";
@@ -40,6 +40,7 @@ type RoadLabelConfig = {
   symbolSpacing: number;
   minZoomKey: "majorRoadMinZoom" | "localRoadMinZoom";
   opacityKey: "majorRoadOpacity" | "localRoadOpacity";
+  opacityContrastMultiplier: number;
 };
 
 const roadLabelConfigs: RoadLabelConfig[] = [
@@ -56,6 +57,7 @@ const roadLabelConfigs: RoadLabelConfig[] = [
     symbolSpacing: 360,
     minZoomKey: "majorRoadMinZoom",
     opacityKey: "majorRoadOpacity",
+    opacityContrastMultiplier: 0.98,
   },
   {
     baseId: "atlascope-road-labels-local",
@@ -70,6 +72,7 @@ const roadLabelConfigs: RoadLabelConfig[] = [
     symbolSpacing: 300,
     minZoomKey: "localRoadMinZoom",
     opacityKey: "localRoadOpacity",
+    opacityContrastMultiplier: 1.2,
   },
 ];
 
@@ -89,17 +92,16 @@ export function createRoadLabelLayerDefinitions(
 ): MapLayerDefinition[] {
   const { colors, zoom } = getMapTheme(theme);
 
-  return detailProfiles.flatMap((profile) =>
+  return buildSpatialProfileLayers((profile) =>
     roadLabelConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].roadLabels;
       const baseFilter = createRoadLabelFilter(config.classes);
       const originalMinZoom = profileZoom[config.minZoomKey];
       const labelOpacityMultiplier = resolveDetailProfileValue(
-        detailContext,
         profile,
         colors.detailContext.focused.labelOpacityMultiplier,
         colors.detailContext.ambient.labelOpacityMultiplier,
-      );
+      ) * config.opacityContrastMultiplier;
 
       return {
         id: createDetailLayerId(config.baseId, profile),

@@ -52,6 +52,26 @@ export function createMapLibreProvider(map: MapLibreMapInstance): VectorMapProvi
         return;
       }
 
+      const currentVisibility = map.getLayoutProperty(layerId, "visibility");
+      const nextVisibility = style.layout?.visibility;
+
+      // Focus-profile layers toggle between `none` and `visible` while their
+      // filters also repartition features. Apply the narrower filter before
+      // showing a layer, and hide before broadening it back out.
+      if (currentVisibility === "none" && nextVisibility === "visible") {
+        applyLayerDefinitionUpdate(map, layerId, style);
+        applyLayoutUpdate(map, layerId, style);
+        applyPaintUpdate(map, layerId, style);
+        return;
+      }
+
+      if (currentVisibility !== "none" && nextVisibility === "none") {
+        applyLayoutUpdate(map, layerId, style);
+        applyPaintUpdate(map, layerId, style);
+        applyLayerDefinitionUpdate(map, layerId, style);
+        return;
+      }
+
       applyLayoutUpdate(map, layerId, style);
       applyPaintUpdate(map, layerId, style);
       applyLayerDefinitionUpdate(map, layerId, style);

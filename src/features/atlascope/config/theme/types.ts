@@ -68,6 +68,7 @@ export type MapColorTokens = {
       labelOpacityMultiplier: number;
       fillOpacityMultiplier: number;
       boundaryOpacityMultiplier: number;
+      boundaryWidthMultiplier: number;
     };
     focused: {
       lineOpacityMultiplier: number;

@@ -128,6 +128,9 @@ function restyleBaseLayer(layer: MapLayerDefinition, theme: ThemeMode): MapLayer
       };
     default:
       const isStateLabel = layer.id === "label_state";
+      const labelOpacityStops = isStateLabel
+        ? scaleAndCapZoomStops(zoom.labels.stateOpacity, theme === "dark" ? 1.2 : 1.12)
+        : scaleAndCapZoomStops(zoom.labels.regionOpacity, theme === "dark" ? 1.16 : 1.1);
 
       return {
         ...layer,
@@ -145,7 +148,7 @@ function restyleBaseLayer(layer: MapLayerDefinition, theme: ThemeMode): MapLayer
             : getZoomInterpolatedNumber(zoom.labels.regionHaloWidth),
           "text-opacity": getZoomInterpolatedNumber(
             createFadedOpacityStops(
-              isStateLabel ? zoom.labels.stateOpacity : zoom.labels.regionOpacity,
+              labelOpacityStops,
               {
                 minZoom: layer.minzoom as number | undefined,
                 maxZoom: layer.maxzoom as number | undefined,
@@ -206,4 +209,15 @@ function createCoastlineOutlineLayers(
       },
     },
   ];
+}
+
+function scaleAndCapZoomStops(
+  stops: readonly [number, number][],
+  multiplier: number,
+  maxValue = 1,
+) {
+  return stops.map(([zoom, value]) => [
+    zoom,
+    Math.min(maxValue, value * multiplier),
+  ]) as typeof stops;
 }

@@ -12,10 +12,13 @@ import type {
   MapDetailContext,
   MapMarkerData,
 } from "@/features/atlascope/map/core/types";
-import { closePolygonRing, createPolygonGeometry } from "@/features/atlascope/map/lib/geojson";
+import {
+  closePolygonRing,
+  getFocusGeometryOuterRings,
+} from "@/features/atlascope/map/lib/geojson";
 import {
   DETAIL_CONTEXT_PAINT_TRANSITION,
-  hasDetailFocusGeometry,
+  hasFocusedDetailContext,
 } from "@/features/atlascope/map/layers/detail-context";
 
 type HazardFeatureProperties = {
@@ -112,17 +115,23 @@ export function createGeofenceSourceData(
 }
 
 export function createDetailContextMaskSourceData(
-  coordinates: MapGeofenceData["coordinates"] | null,
+  focusGeometry: MapDetailContext["focusGeometry"],
 ): FeatureCollection<Polygon> {
-  if (!coordinates || coordinates.length < 3) {
+  if (!focusGeometry) {
     return {
       type: "FeatureCollection",
       features: [],
     };
   }
 
-  const focusGeometry = createPolygonGeometry(coordinates);
-  const focusRing = focusGeometry.coordinates[0];
+  const focusRings = getFocusGeometryOuterRings(focusGeometry);
+
+  if (!focusRings.length) {
+    return {
+      type: "FeatureCollection",
+      features: [],
+    };
+  }
 
   return {
     type: "FeatureCollection",
@@ -139,7 +148,10 @@ export function createDetailContextMaskSourceData(
               [-179.9, 85],
               [-179.9, -85],
             ],
-            [...focusRing].reverse(),
+            // The mask is a visual aid layered on top of the real profile
+            // partitioning. AtlasScope geofences currently emit simple polygons,
+            // so reversing outer rings is sufficient here.
+            ...focusRings.map((ring) => [...ring].reverse()),
           ],
         },
         properties: {},
@@ -201,7 +213,7 @@ export function createDetailContextMaskLayer(
   const {
     colors: { detailContext: detailContextTheme },
   } = getMapTheme(theme);
-  const outsideOpacity = hasDetailFocusGeometry(detailContext)
+  const outsideOpacity = hasFocusedDetailContext(detailContext)
     ? detailContext.mode === "geofence-focus"
       ? detailContextTheme.mask.outsideOpacity
       : 0

@@ -9,9 +9,9 @@ import {
   resolveLayerZoomRange,
 } from "../style/style-config";
 import {
+  buildSpatialProfileLayers,
   createDetailLayerId,
   createDetailProfileFilter,
-  detailProfiles,
   getDetailProfileVisibility,
   resolveDetailProfileValue,
 } from "./detail-context";
@@ -99,12 +99,11 @@ export function createLanduseLayerDefinitions(
 ): MapLayerDefinition[] {
   const { colors, zoom } = getMapTheme(theme);
 
-  return detailProfiles.flatMap((profile) =>
+  return buildSpatialProfileLayers((profile) =>
     landuseLayerConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].landuse;
       const originalMinZoom = profileZoom[config.minZoomKey];
       const fillOpacityMultiplier = resolveDetailProfileValue(
-        detailContext,
         profile,
         colors.detailContext.focused.fillOpacityMultiplier,
         colors.detailContext.ambient.fillOpacityMultiplier,
@@ -117,7 +116,14 @@ export function createLanduseLayerDefinitions(
         source: vectorSourceId,
         "source-layer": config.sourceLayer,
         ...zoomRange,
-        filter: createDetailProfileFilter(config.filter, detailContext, profile),
+        // MapLibre's `within` expression does not classify polygon features in
+        // v5.20.x, so landuse uses polygon intersection via `distance == 0`.
+        filter: createDetailProfileFilter(
+          config.filter,
+          detailContext,
+          profile,
+          "intersects",
+        ),
         layout: {
           visibility: getDetailProfileVisibility(detailContext, profile),
         },

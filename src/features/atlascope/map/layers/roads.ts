@@ -10,9 +10,9 @@ import {
   resolveLayerZoomRange,
 } from "../style/style-config";
 import {
+  buildSpatialProfileLayers,
   createDetailLayerId,
   createDetailProfileFilter,
-  detailProfiles,
   getDetailProfileVisibility,
   resolveDetailProfileValue,
 } from "./detail-context";
@@ -30,6 +30,8 @@ type RoadLayerConfig = {
   classKey: keyof typeof roadClassFilters;
   colorKey: "major" | "secondary" | "minor";
   zoomKey: "major" | "secondary" | "minor";
+  opacityContrastMultiplier: number;
+  widthContrastMultiplier: number;
 };
 
 const roadLayerConfigs: RoadLayerConfig[] = [
@@ -38,18 +40,24 @@ const roadLayerConfigs: RoadLayerConfig[] = [
     classKey: "major",
     colorKey: "major",
     zoomKey: "major",
+    opacityContrastMultiplier: 0.97,
+    widthContrastMultiplier: 0.98,
   },
   {
     baseId: "atlascope-road-secondary",
     classKey: "secondary",
     colorKey: "secondary",
     zoomKey: "secondary",
+    opacityContrastMultiplier: 1.2,
+    widthContrastMultiplier: 1.12,
   },
   {
     baseId: "atlascope-road-tertiary",
     classKey: "tertiary",
     colorKey: "minor",
     zoomKey: "minor",
+    opacityContrastMultiplier: 1.28,
+    widthContrastMultiplier: 1.16,
   },
 ];
 
@@ -69,7 +77,7 @@ export function createRoadLayerDefinitions(
 ): MapLayerDefinition[] {
   const { colors, zoom } = getMapTheme(theme);
 
-  return detailProfiles.flatMap((profile) =>
+  return buildSpatialProfileLayers((profile) =>
     roadLayerConfigs.map((config) => {
       const profileZoom = zoom.detailProfiles[profile].roads;
       const baseFilter = createRoadFilter(roadClassFilters[config.classKey]);
@@ -78,17 +86,15 @@ export function createRoadLayerDefinitions(
       const widthKey = `${config.zoomKey}Width` as const;
       const originalMinZoom = profileZoom[minzoomKey];
       const lineOpacityMultiplier = resolveDetailProfileValue(
-        detailContext,
         profile,
         colors.detailContext.focused.lineOpacityMultiplier,
         colors.detailContext.ambient.lineOpacityMultiplier,
-      );
+      ) * config.opacityContrastMultiplier;
       const lineWidthMultiplier = resolveDetailProfileValue(
-        detailContext,
         profile,
         colors.detailContext.focused.lineWidthMultiplier,
         colors.detailContext.ambient.lineWidthMultiplier,
-      );
+      ) * config.widthContrastMultiplier;
       const zoomRange = resolveLayerZoomRange(originalMinZoom);
 
       return {
