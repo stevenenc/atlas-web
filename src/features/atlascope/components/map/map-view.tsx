@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getMapTheme, type ThemeMode } from "@/features/atlascope/config/theme";
 import { isIncidentActiveAtTime } from "@/features/atlascope/lib/incident-timeline";
 import { resolveMapAdapter } from "@/features/atlascope/map/core/adapter";
-import { atlascopeMapConfig } from "@/features/atlascope/map/core/config";
 import type {
   MapDetailContext,
   MapGeofenceData,
@@ -27,7 +26,6 @@ type MapViewProps = {
   editingGeofenceId: number | null;
   isInteractionLocked: boolean;
   activeLayers: Record<IncidentType, boolean>;
-  selectedIncidentId: string | null;
   selectedTimeMs: number;
   onSelectIncident: (incident: Incident) => void;
   onMapClick: (coordinates: MapGeofenceData["coordinates"][number]) => void;
@@ -69,7 +67,6 @@ export function MapView({
   editingGeofenceId,
   isInteractionLocked,
   activeLayers,
-  selectedIncidentId,
   selectedTimeMs,
   onSelectIncident,
   onMapClick,
@@ -84,7 +81,6 @@ export function MapView({
   theme,
 }: MapViewProps) {
   const mapTheme = getMapTheme(theme);
-  const [viewport, setViewport] = useState(() => atlascopeMapConfig.defaultViewport);
   const markers: MapMarkerData[] = useMemo(
     () =>
       incidents.map((incident) => ({
@@ -209,10 +205,7 @@ export function MapView({
           isEditingGeofence={editingGeofenceId !== null}
           isInteractionLocked={isInteractionLocked}
           activeLayers={activeLayers}
-          selectedMarkerId={selectedIncidentId}
-          viewport={viewport}
           theme={theme}
-          onViewportChange={setViewport}
           onMapClick={onMapClick}
           onDrawingComplete={onDrawingComplete}
           onDrawingCoordinateAddAt={onDrawingCoordinateAddAt}

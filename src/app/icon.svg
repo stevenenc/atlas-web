@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="atlascope-bg" x1="10" x2="54" y1="10" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ece4d8" />
+      <stop offset="1" stop-color="#ddd2c3" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#atlascope-bg)" />
+  <text
+    x="50%"
+    y="54%"
+    fill="#222d33"
+    font-family="Fraunces, Georgia, 'Times New Roman', serif"
+    font-size="54"
+    font-weight="700"
+    letter-spacing="-3"
+    text-anchor="middle"
+    dominant-baseline="middle"
+  >
+    A
+  </text>
+</svg>

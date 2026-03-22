@@ -81,6 +81,9 @@
   --shadow-atlas-trash: var(--atlas-shadow-trash);
   --shadow-atlas-trash-active: var(--atlas-shadow-trash-active);
   --shadow-atlas-page-card: var(--atlas-shadow-page-card);
+  --font-atlas-brand: var(--font-fraunces);
+  --font-atlas-ui: var(--font-inter);
+  --font-atlas-data: var(--font-ibm-plex-mono);
 }
 
 html {

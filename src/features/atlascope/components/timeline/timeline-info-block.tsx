@@ -16,15 +16,13 @@ export function TimelineInfoBlock({
       <div className="flex flex-col">
         <div className="inline-flex items-start gap-[3px]">
           <p
-            className="text-[2.65rem] leading-[0.9] font-semibold tracking-[-0.055em] text-atlas-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.18)]"
-            style={{ fontFamily: '"Fraunces", var(--font-sans)' }}
+            className="font-atlas-brand text-[2.65rem] leading-[0.9] font-semibold tracking-[-0.055em] text-atlas-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.18)]"
           >
             AtlaScope
           </p>
 
           <span
-            className="mt-[0.42rem] text-[13px] leading-none font-semibold text-atlas-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.18)]"
-            style={{ fontFamily: '"Fraunces", var(--font-sans)' }}
+            className="font-atlas-brand mt-[0.42rem] text-[13px] leading-none font-semibold text-atlas-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.18)]"
             aria-label="copyright"
           >
             ©
@@ -32,15 +30,13 @@ export function TimelineInfoBlock({
         </div>
 
         <p
-          className="mt-5 text-[1.18rem] leading-[1.1] font-medium tracking-[-0.02em] text-atlas-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.14)]"
-          style={{ fontFamily: '"Inter", var(--font-sans)' }}
+          className="font-atlas-ui mt-5 text-[1.18rem] leading-[1.1] font-medium tracking-[-0.02em] text-atlas-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.14)]"
         >
           {currentDateLabel}
         </p>
 
         <div
-          className="mt-4 flex flex-col gap-[5px] text-[12px] leading-none uppercase tracking-[0.16em] text-atlas-ink/80 [text-shadow:0_1px_8px_rgba(255,255,255,0.1)]"
-          style={{ fontFamily: '"IBM Plex Mono", var(--font-mono)' }}
+          className="font-atlas-data mt-4 flex flex-col gap-[5px] text-[12px] leading-none uppercase tracking-[0.16em] text-atlas-ink/80 [text-shadow:0_1px_8px_rgba(255,255,255,0.1)]"
         >
           <p>{trackedIncidentCount} Tracked</p>
           <p>{activeIncidentCount} Active</p>

@@ -9,7 +9,6 @@ import Map, {
   type MapLayerTouchEvent,
   type MapRef,
   Source,
-  type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -30,7 +29,6 @@ import type {
 } from "@/features/atlascope/map/core/provider";
 import type {
   MapContainerProps,
-  MapViewportState,
 } from "@/features/atlascope/map/core/types";
 import { createDetailLayerStyleUpdates } from "@/features/atlascope/map/layers/street-layers";
 import { getFocusGeometryBounds } from "@/features/atlascope/map/lib/geojson";
@@ -102,16 +100,6 @@ type EdgePanCompassDirection =
   | "south-east"
   | "south-west";
 
-function toViewportState(event: ViewStateChangeEvent): MapViewportState {
-  return {
-    longitude: event.viewState.longitude,
-    latitude: event.viewState.latitude,
-    zoom: event.viewState.zoom,
-    bearing: event.viewState.bearing,
-    pitch: event.viewState.pitch,
-  };
-}
-
 const NORWAY_TO_AUSTRALIA_BOUNDS = {
   northLatitude: 71.2,
   southLatitude: -43.7,
@@ -171,9 +159,7 @@ export const MapLibreMap = memo(function MapLibreMap({
   isEditingGeofence,
   isInteractionLocked = false,
   activeLayers,
-  viewport,
   theme,
-  onViewportChange,
   onMarkerClick,
   onMapClick,
   onDrawingComplete,
@@ -625,7 +611,7 @@ export const MapLibreMap = memo(function MapLibreMap({
         coordinates: MapContainerProps["drawingCoordinates"][number];
         point: ScreenPoint;
       } | null,
-    ) => {
+    ): DraftProjectedSegment | null => {
       if (
         !isDrawingGeofence ||
         !drawingCoordinates.length ||
@@ -1506,14 +1492,15 @@ export const MapLibreMap = memo(function MapLibreMap({
       const firstPoint = drawingCoordinates[0];
       const mapInstance = mapRef.current?.getMap();
       const clickedNearFirstPoint =
-        Boolean(firstPoint && mapInstance) &&
-        getDistanceToPoint(
-          {
-            x: event.point.x,
-            y: event.point.y,
-          },
-          mapInstance.project([firstPoint!.longitude, firstPoint!.latitude]),
-        ) <= DRAWING_CLOSE_THRESHOLD_PX;
+        firstPoint && mapInstance
+          ? getDistanceToPoint(
+              {
+                x: event.point.x,
+                y: event.point.y,
+              },
+              mapInstance.project([firstPoint.longitude, firstPoint.latitude]),
+            ) <= DRAWING_CLOSE_THRESHOLD_PX
+          : false;
 
       if ((clickedPointIndex === 0 || clickedNearFirstPoint) && canCloseDrawingPolygon) {
         onDrawingComplete();
@@ -1594,7 +1581,7 @@ export const MapLibreMap = memo(function MapLibreMap({
     >
       <Map
         ref={mapRef}
-        {...viewport}
+        initialViewState={atlascopeMapConfig.defaultViewport}
         reuseMaps
         mapLib={maplibregl}
         mapStyle={initialMapStyle}
@@ -1615,7 +1602,6 @@ export const MapLibreMap = memo(function MapLibreMap({
         touchZoomRotate={isZoomGestureEnabled}
         renderWorldCopies
         attributionControl={false}
-        onMove={(event) => onViewportChange(toViewportState(event))}
         onDragStart={() => {
           if (!hasActiveGeofenceEdit) {
             setMapCursorMode("grabbing");

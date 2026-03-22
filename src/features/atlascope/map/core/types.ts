@@ -68,10 +68,7 @@ export type MapContainerProps = {
   isEditingGeofence: boolean;
   isInteractionLocked?: boolean;
   activeLayers: HazardLayerVisibility;
-  selectedMarkerId: string | null;
-  viewport: MapViewportState;
   theme: ThemeMode;
-  onViewportChange: (viewport: MapViewportState) => void;
   onMarkerClick: (marker: MapMarkerData) => void;
   onMapClick: (coordinates: MapCoordinates) => void;
   onDrawingComplete: () => void;

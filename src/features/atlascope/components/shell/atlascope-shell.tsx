@@ -83,7 +83,6 @@ export function AtlascopeShell() {
     isPanelLoading,
     isTimelineInteracting,
     isTimelinePlaying,
-    selectedIncidentId,
     selectedTimeMs,
     setIsTimelineInteracting,
     shouldOffsetTimeline,
@@ -133,7 +132,6 @@ export function AtlascopeShell() {
         editingGeofenceId={editingGeofenceId}
         isInteractionLocked={isTimelineInteracting}
         activeLayers={activeLayers}
-        selectedIncidentId={selectedIncidentId}
         selectedTimeMs={selectedTimeMs}
         onSelectIncident={handleSelectIncident}
         onMapClick={handleAddGeofencePoint}
