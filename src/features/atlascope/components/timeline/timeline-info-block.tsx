@@ -12,18 +12,39 @@ export function TimelineInfoBlock({
   activeIncidentCount,
 }: TimelineInfoBlockProps) {
   return (
-    <div className="pointer-events-none absolute left-6 top-6 z-30 max-w-[200px]">
-      <div className="inline-flex flex-col gap-1 rounded-[14px] border border-atlas-card-border bg-atlas-panel/50 px-3 py-2 backdrop-blur-md">
-        <p className="text-[11px] font-medium tracking-[0.18em] text-atlas-ink/84 uppercase">
-          AtlasScope (c)
+    <div className="pointer-events-none absolute left-8 top-8 z-30 max-w-[260px]">
+      <div className="flex flex-col">
+        <div className="inline-flex items-start gap-[3px]">
+          <p
+            className="text-[2.65rem] leading-[0.9] font-semibold tracking-[-0.055em] text-atlas-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.18)]"
+            style={{ fontFamily: '"Fraunces", var(--font-sans)' }}
+          >
+            AtlaScope
+          </p>
+
+          <span
+            className="mt-[0.42rem] text-[13px] leading-none font-semibold text-atlas-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.18)]"
+            style={{ fontFamily: '"Fraunces", var(--font-sans)' }}
+            aria-label="copyright"
+          >
+            ©
+          </span>
+        </div>
+
+        <p
+          className="mt-5 text-[1.18rem] leading-[1.1] font-medium tracking-[-0.02em] text-atlas-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.14)]"
+          style={{ fontFamily: '"Inter", var(--font-sans)' }}
+        >
+          {currentDateLabel}
         </p>
-        <p className="text-sm text-atlas-ink">{currentDateLabel}</p>
-        <p className="text-[11px] tracking-[0.16em] text-atlas-muted uppercase">
-          {trackedIncidentCount} Tracked
-        </p>
-        <p className="text-[11px] tracking-[0.16em] text-atlas-muted uppercase">
-          {activeIncidentCount} Active
-        </p>
+
+        <div
+          className="mt-4 flex flex-col gap-[5px] text-[12px] leading-none uppercase tracking-[0.16em] text-atlas-ink/80 [text-shadow:0_1px_8px_rgba(255,255,255,0.1)]"
+          style={{ fontFamily: '"IBM Plex Mono", var(--font-mono)' }}
+        >
+          <p>{trackedIncidentCount} Tracked</p>
+          <p>{activeIncidentCount} Active</p>
+        </div>
       </div>
     </div>
   );

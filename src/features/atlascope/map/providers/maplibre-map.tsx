@@ -63,6 +63,8 @@ const DRAFT_POINT_POINTER_RADIUS = {
 const DRAFT_LINE_DISTANCE_EPSILON = 0.01;
 const DRAWING_CLOSE_THRESHOLD_PX = 18;
 const DRAWING_POINT_PROXIMITY_THRESHOLD_PX = 14;
+const EDGE_PAN_THRESHOLD_PX = 56;
+const EDGE_PAN_MAX_SPEED_PX = 18;
 
 type ScreenPoint = {
   x: number;
@@ -83,6 +85,23 @@ type EditingPreviewState = {
 
 type MapCursorMode = "idle" | "grab" | "grabbing";
 
+type EdgePanDirection = {
+  x: -1 | 0 | 1;
+  y: -1 | 0 | 1;
+  speedX: number;
+  speedY: number;
+};
+
+type EdgePanCompassDirection =
+  | "north"
+  | "south"
+  | "east"
+  | "west"
+  | "north-east"
+  | "north-west"
+  | "south-east"
+  | "south-west";
+
 function toViewportState(event: ViewStateChangeEvent): MapViewportState {
   return {
     longitude: event.viewState.longitude,
@@ -100,6 +119,20 @@ const NORWAY_TO_AUSTRALIA_BOUNDS = {
 
 const DRAWING_CURSOR =
   'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 28 28\' fill=\'none\'%3E%3Cpath d=\'M18.69 4.2a2.4 2.4 0 0 1 3.4 0l1.7 1.7a2.4 2.4 0 0 1 0 3.4l-11.2 11.2-4.94.72.72-4.94L18.69 4.2Z\' fill=\'%23111A1F\'/%3E%3Cpath d=\'M19.61 5.11a1.1 1.1 0 0 1 1.55 0l1.73 1.73a1.1 1.1 0 0 1 0 1.55L11.92 19.36l-2.86.42.42-2.86L19.61 5.11Z\' fill=\'%235BD3F5\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\'/%3E%3Cpath d=\'M18.65 7.61l2.74 2.74\' stroke=\'%23E7FBFF\' stroke-width=\'1.1\' stroke-linecap=\'round\'/%3E%3C/svg%3E") 4 24, crosshair';
+const EDGE_PAN_CURSOR_ROTATIONS: Record<EdgePanCompassDirection, number> = {
+  north: 90,
+  south: -90,
+  east: 180,
+  west: 0,
+  "north-east": 135,
+  "north-west": 45,
+  "south-east": -135,
+  "south-west": -45,
+};
+const EDGE_PAN_CURSOR_COLORS: Record<ThemeMode, string> = {
+  light: "#2F3B43",
+  dark: "#DCEBF0",
+};
 
 type DraftPointEvent = MapLayerMouseEvent | MapLayerTouchEvent;
 
@@ -162,6 +195,8 @@ export const MapLibreMap = memo(function MapLibreMap({
   const dragPointerIdRef = useRef<number | null>(null);
   const middlePanPointerIdRef = useRef<number | null>(null);
   const middlePanLastPointRef = useRef<ScreenPoint | null>(null);
+  const lastMouseClientPointRef = useRef<ScreenPoint | null>(null);
+  const lastMousePointerTypeRef = useRef<string>("mouse");
   const suppressMapClickRef = useRef(false);
   const [baseMapStyle, setBaseMapStyle] = useState<MapStyleDefinition | null>(null);
   const [hasMapStyleError, setHasMapStyleError] = useState(false);
@@ -180,6 +215,7 @@ export const MapLibreMap = memo(function MapLibreMap({
   const [editingPreviewState, setEditingPreviewState] = useState<EditingPreviewState | null>(
     null,
   );
+  const [edgePanDirection, setEdgePanDirection] = useState<EdgePanDirection | null>(null);
   const styleUrl = getMapStyle(theme);
   const hasAppliedOperationalStyleRef = useRef(false);
   const lastAppliedThemeRef = useRef<ThemeMode | null>(null);
@@ -357,9 +393,92 @@ export const MapLibreMap = memo(function MapLibreMap({
   const isPanGestureEnabled = !hasActiveGeofenceEdit && !isInteractionLocked;
   const isZoomGestureEnabled = !isInteractionLocked;
   const resolvedMapCursor = resolveMapCursor({
+    edgePanDirection,
     hasActiveGeofenceEdit,
+    isInteractionLocked,
     mode: mapCursorMode,
+    theme,
   });
+  const clearDraftHoverPreview = useCallback(() => {
+    setDrawingHoverState(null);
+    setDrawingProjectedSegment(null);
+    setEditingPreviewState(null);
+  }, []);
+  const syncEdgePanDirectionFromClientPoint = useCallback(
+    (clientX: number, clientY: number, pointerType: string, buttons: number) => {
+      const container = containerRef.current;
+
+      if (
+        !container ||
+        middlePanPointerIdRef.current !== null ||
+        dragPointerIdRef.current !== null ||
+        isInteractionLocked ||
+        pointerType !== "mouse" ||
+        buttons !== 0
+      ) {
+        setEdgePanDirection(null);
+        return;
+      }
+
+      const rect = container.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+        setEdgePanDirection(null);
+        return;
+      }
+
+      const leftDistance = x;
+      const rightDistance = rect.width - x;
+      const topDistance = y;
+      const bottomDistance = rect.height - y;
+      const horizontalDirection =
+        leftDistance <= EDGE_PAN_THRESHOLD_PX
+          ? -1
+          : rightDistance <= EDGE_PAN_THRESHOLD_PX
+            ? 1
+            : 0;
+      const verticalDirection =
+        topDistance <= EDGE_PAN_THRESHOLD_PX
+          ? -1
+          : bottomDistance <= EDGE_PAN_THRESHOLD_PX
+            ? 1
+            : 0;
+
+      if (horizontalDirection === 0 && verticalDirection === 0) {
+        setEdgePanDirection(null);
+        return;
+      }
+
+      const horizontalDistance =
+        horizontalDirection === -1
+          ? leftDistance
+          : horizontalDirection === 1
+            ? rightDistance
+            : EDGE_PAN_THRESHOLD_PX;
+      const verticalDistance =
+        verticalDirection === -1
+          ? topDistance
+          : verticalDirection === 1
+            ? bottomDistance
+            : EDGE_PAN_THRESHOLD_PX;
+
+      setEdgePanDirection({
+        x: horizontalDirection,
+        y: verticalDirection,
+        speedX:
+          horizontalDirection === 0
+            ? 0
+            : getEdgePanSpeed(horizontalDistance, EDGE_PAN_THRESHOLD_PX),
+        speedY:
+          verticalDirection === 0
+            ? 0
+            : getEdgePanSpeed(verticalDistance, EDGE_PAN_THRESHOLD_PX),
+      });
+    },
+    [isInteractionLocked],
+  );
 
   useEffect(() => {
     applyMapThemeStyle();
@@ -494,13 +613,11 @@ export const MapLibreMap = memo(function MapLibreMap({
       middlePanPointerIdRef.current = null;
       middlePanLastPointRef.current = null;
       suppressMapClickRef.current = false;
-      setDrawingHoverState(null);
-      setDrawingProjectedSegment(null);
-      setEditingPreviewState(null);
+      clearDraftHoverPreview();
       mapRef.current?.getMap().dragPan.enable();
       mapRef.current?.getCanvas().style.removeProperty("cursor");
     }
-  }, [hasActiveGeofenceEdit]);
+  }, [clearDraftHoverPreview, hasActiveGeofenceEdit]);
 
   const resolveDrawingProjectedSegment = useCallback(
     (
@@ -631,6 +748,92 @@ export const MapLibreMap = memo(function MapLibreMap({
     },
     [activeEditingCoordinates, shouldCloseDraftPath],
   );
+  const getDraftPointIndexAtScreenPoint = useCallback(
+    (clientX: number, clientY: number, pointerType: string) => {
+      const mapInstance = mapRef.current?.getMap();
+      const canvas = mapRef.current?.getCanvas();
+
+      if (!mapInstance || !canvas) {
+        return null;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+        return null;
+      }
+
+      const hitRadius =
+        pointerType === "touch"
+          ? DRAFT_POINT_POINTER_RADIUS.touch
+          : pointerType === "pen"
+            ? DRAFT_POINT_POINTER_RADIUS.pen
+            : DRAFT_POINT_POINTER_RADIUS.mouse;
+      const activeLayerIds = DRAFT_POINT_LAYER_IDS.filter((layerId) =>
+        mapInstance.getLayer(layerId),
+      );
+
+      if (!activeLayerIds.length) {
+        return null;
+      }
+
+      let features;
+
+      try {
+        features = mapInstance.queryRenderedFeatures(
+          [
+            [x - hitRadius, y - hitRadius],
+            [x + hitRadius, y + hitRadius],
+          ],
+          {
+            layers: activeLayerIds,
+          },
+        );
+      } catch {
+        return null;
+      }
+
+      const matchingFeature = features.find((feature) => {
+        const layerId = feature.layer.id;
+
+        return layerId === "draft-geofence-points" || layerId === "draft-geofence-points-hit-area";
+      });
+      const rawIndex = matchingFeature?.properties?.index;
+
+      if (typeof rawIndex === "number") {
+        return rawIndex;
+      }
+
+      if (typeof rawIndex === "string") {
+        const parsedIndex = Number.parseInt(rawIndex, 10);
+
+        return Number.isNaN(parsedIndex) ? null : parsedIndex;
+      }
+
+      return null;
+    },
+    [],
+  );
+  const getCoordinatesFromClientPoint = useCallback((clientX: number, clientY: number) => {
+    const mapInstance = mapRef.current?.getMap();
+    const canvas = mapRef.current?.getCanvas();
+
+    if (!mapInstance || !canvas) {
+      return null;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const lngLat = mapInstance.unproject([x, y]);
+
+    return {
+      longitude: lngLat.lng,
+      latitude: lngLat.lat,
+    };
+  }, []);
 
   const resolveEditingPreviewState = useCallback(
     (
@@ -749,6 +952,63 @@ export const MapLibreMap = memo(function MapLibreMap({
       resolveEditingPreviewState,
     ],
   );
+  const syncDraftHoverPreviewFromClientPoint = useCallback(
+    (clientX: number, clientY: number, pointerType: string) => {
+      if (!hasActiveGeofenceEdit || draggedPointIndexRef.current !== null) {
+        return;
+      }
+
+      const coordinates = getCoordinatesFromClientPoint(clientX, clientY);
+      const canvas = mapRef.current?.getCanvas();
+
+      if (!coordinates || !canvas) {
+        clearDraftHoverPreview();
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+
+      updateHoverPreview(
+        {
+          coordinates,
+          point: {
+            x: clientX - rect.left,
+            y: clientY - rect.top,
+          },
+        },
+        getDraftPointIndexAtScreenPoint(clientX, clientY, pointerType),
+      );
+    },
+    [
+      clearDraftHoverPreview,
+      getCoordinatesFromClientPoint,
+      getDraftPointIndexAtScreenPoint,
+      hasActiveGeofenceEdit,
+      updateHoverPreview,
+    ],
+  );
+  const restorePointerDrivenPreviewState = useCallback(() => {
+    const container = containerRef.current;
+    const lastMouseClientPoint = lastMouseClientPointRef.current;
+
+    if (!container || !lastMouseClientPoint || !container.matches(":hover")) {
+      return;
+    }
+
+    const pointerType = lastMousePointerTypeRef.current;
+
+    syncEdgePanDirectionFromClientPoint(
+      lastMouseClientPoint.x,
+      lastMouseClientPoint.y,
+      pointerType,
+      0,
+    );
+    syncDraftHoverPreviewFromClientPoint(
+      lastMouseClientPoint.x,
+      lastMouseClientPoint.y,
+      pointerType,
+    );
+  }, [syncDraftHoverPreviewFromClientPoint, syncEdgePanDirectionFromClientPoint]);
 
   useEffect(() => {
     const mapInstance = mapRef.current?.getMap();
@@ -772,7 +1032,7 @@ export const MapLibreMap = memo(function MapLibreMap({
       return;
     }
 
-    const nextCursor = hasActiveGeofenceEdit ? resolvedMapCursor : "default";
+    const nextCursor = resolvedMapCursor;
 
     if (nextCursor === "default") {
       canvas.style.removeProperty("cursor");
@@ -780,7 +1040,174 @@ export const MapLibreMap = memo(function MapLibreMap({
     }
 
     canvas.style.setProperty("cursor", nextCursor);
-  }, [hasActiveGeofenceEdit, resolvedMapCursor]);
+  }, [resolvedMapCursor]);
+
+  useEffect(() => {
+    if (
+      !edgePanDirection ||
+      isInteractionLocked ||
+      middlePanPointerIdRef.current !== null ||
+      draggedPointIndexRef.current !== null
+    ) {
+      return;
+    }
+
+    let frameId = 0;
+
+    const tick = () => {
+      const mapInstance = mapRef.current?.getMap();
+
+      if (!mapInstance) {
+        return;
+      }
+
+      mapInstance.panBy(
+        [
+          edgePanDirection.x * edgePanDirection.speedX,
+          edgePanDirection.y * edgePanDirection.speedY,
+        ],
+        { animate: false },
+      );
+      frameId = window.requestAnimationFrame(tick);
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [edgePanDirection, isInteractionLocked]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const handlePointerEnter = (event: PointerEvent) => {
+      lastMouseClientPointRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+      lastMousePointerTypeRef.current = event.pointerType;
+      syncEdgePanDirectionFromClientPoint(
+        event.clientX,
+        event.clientY,
+        event.pointerType,
+        event.buttons,
+      );
+      syncDraftHoverPreviewFromClientPoint(
+        event.clientX,
+        event.clientY,
+        event.pointerType,
+      );
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      lastMouseClientPointRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+      lastMousePointerTypeRef.current = event.pointerType;
+      syncEdgePanDirectionFromClientPoint(
+        event.clientX,
+        event.clientY,
+        event.pointerType,
+        event.buttons,
+      );
+    };
+
+    const clearEdgePanDirection = () => {
+      setEdgePanDirection(null);
+    };
+
+    container.addEventListener("pointerenter", handlePointerEnter);
+    container.addEventListener("pointermove", handlePointerMove);
+    container.addEventListener("pointerleave", clearEdgePanDirection);
+
+    return () => {
+      container.removeEventListener("pointerenter", handlePointerEnter);
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("pointerleave", clearEdgePanDirection);
+    };
+  }, [syncDraftHoverPreviewFromClientPoint, syncEdgePanDirectionFromClientPoint]);
+
+  useEffect(() => {
+    const canvas = mapRef.current?.getCanvas();
+
+    if (!canvas) {
+      return;
+    }
+
+    const handleMiddlePanDown = (event: PointerEvent) => {
+      if (event.button !== 1 || isInteractionLocked) {
+        return;
+      }
+
+      event.preventDefault();
+      middlePanPointerIdRef.current = event.pointerId;
+      middlePanLastPointRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+      setEdgePanDirection(null);
+      setMapCursorMode("grabbing");
+      canvas.setPointerCapture(event.pointerId);
+    };
+
+    const handleMiddlePanMove = (event: PointerEvent) => {
+      if (middlePanPointerIdRef.current !== event.pointerId) {
+        return;
+      }
+
+      const lastPoint = middlePanLastPointRef.current;
+      const mapInstance = mapRef.current?.getMap();
+
+      if (!lastPoint || !mapInstance) {
+        return;
+      }
+
+      event.preventDefault();
+      middlePanLastPointRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+      setMapCursorMode("grabbing");
+      mapInstance.panBy(
+        [lastPoint.x - event.clientX, lastPoint.y - event.clientY],
+        { animate: false },
+      );
+    };
+
+    const handleMiddlePanFinish = (event: PointerEvent) => {
+      if (middlePanPointerIdRef.current !== event.pointerId) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+
+      middlePanPointerIdRef.current = null;
+      middlePanLastPointRef.current = null;
+      setMapCursorMode("idle");
+    };
+
+    canvas.addEventListener("pointerdown", handleMiddlePanDown);
+    canvas.addEventListener("pointermove", handleMiddlePanMove);
+    canvas.addEventListener("pointerup", handleMiddlePanFinish);
+    canvas.addEventListener("pointercancel", handleMiddlePanFinish);
+
+    return () => {
+      canvas.removeEventListener("pointerdown", handleMiddlePanDown);
+      canvas.removeEventListener("pointermove", handleMiddlePanMove);
+      canvas.removeEventListener("pointerup", handleMiddlePanFinish);
+      canvas.removeEventListener("pointercancel", handleMiddlePanFinish);
+    };
+  }, [isInteractionLocked]);
 
   function getDraftPointIndex(event: DraftPointEvent) {
     const matchingFeature = event.features?.find(
@@ -801,95 +1228,6 @@ export const MapLibreMap = memo(function MapLibreMap({
 
     const pointer = mapInstance.project([event.lngLat.lng, event.lngLat.lat]);
     return getNearestDraftLineSegmentIndexFromScreenPoint(pointer);
-  }
-
-  function getDraftPointIndexAtScreenPoint(
-    clientX: number,
-    clientY: number,
-    pointerType: string,
-  ) {
-    const mapInstance = mapRef.current?.getMap();
-    const canvas = mapRef.current?.getCanvas();
-
-    if (!mapInstance || !canvas) {
-      return null;
-    }
-
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-
-    if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
-      return null;
-    }
-
-    const hitRadius =
-      pointerType === "touch"
-        ? DRAFT_POINT_POINTER_RADIUS.touch
-        : pointerType === "pen"
-          ? DRAFT_POINT_POINTER_RADIUS.pen
-          : DRAFT_POINT_POINTER_RADIUS.mouse;
-    const activeLayerIds = DRAFT_POINT_LAYER_IDS.filter((layerId) =>
-      mapInstance.getLayer(layerId),
-    );
-
-    if (!activeLayerIds.length) {
-      return null;
-    }
-
-    let features;
-
-    try {
-      features = mapInstance.queryRenderedFeatures(
-        [
-          [x - hitRadius, y - hitRadius],
-          [x + hitRadius, y + hitRadius],
-        ],
-        {
-          layers: activeLayerIds,
-        },
-      );
-    } catch {
-      return null;
-    }
-
-    const matchingFeature = features.find((feature) => {
-      const layerId = feature.layer.id;
-
-      return layerId === "draft-geofence-points" || layerId === "draft-geofence-points-hit-area";
-    });
-    const rawIndex = matchingFeature?.properties?.index;
-
-    if (typeof rawIndex === "number") {
-      return rawIndex;
-    }
-
-    if (typeof rawIndex === "string") {
-      const parsedIndex = Number.parseInt(rawIndex, 10);
-
-      return Number.isNaN(parsedIndex) ? null : parsedIndex;
-    }
-
-    return null;
-  }
-
-  function getCoordinatesFromClientPoint(clientX: number, clientY: number) {
-    const mapInstance = mapRef.current?.getMap();
-    const canvas = mapRef.current?.getCanvas();
-
-    if (!mapInstance || !canvas) {
-      return null;
-    }
-
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    const lngLat = mapInstance.unproject([x, y]);
-
-    return {
-      longitude: lngLat.lng,
-      latitude: lngLat.lat,
-    };
   }
 
   function isClientPointOverTrashTarget(clientX: number, clientY: number) {
@@ -939,6 +1277,55 @@ export const MapLibreMap = memo(function MapLibreMap({
   ]);
 
   useEffect(() => {
+    const handleWindowBlur = () => {
+      const canvas = mapRef.current?.getCanvas();
+      const dragPointerId = dragPointerIdRef.current;
+      const middlePanPointerId = middlePanPointerIdRef.current;
+
+      if (canvas && dragPointerId !== null && canvas.hasPointerCapture(dragPointerId)) {
+        canvas.releasePointerCapture(dragPointerId);
+      }
+
+      if (
+        canvas &&
+        middlePanPointerId !== null &&
+        canvas.hasPointerCapture(middlePanPointerId)
+      ) {
+        canvas.releasePointerCapture(middlePanPointerId);
+      }
+
+      dragPointerIdRef.current = null;
+      middlePanPointerIdRef.current = null;
+      middlePanLastPointRef.current = null;
+      suppressMapClickRef.current = false;
+      setEdgePanDirection(null);
+      clearDraftHoverPreview();
+
+      if (draggedPointIndexRef.current !== null) {
+        finishPointDrag(false);
+      } else {
+        setIsDraggingPoint(false);
+        setIsTrashTargetActive(false);
+        setMapCursorMode("idle");
+      }
+    };
+
+    const handleWindowFocus = () => {
+      window.requestAnimationFrame(() => {
+        restorePointerDrivenPreviewState();
+      });
+    };
+
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, [clearDraftHoverPreview, finishPointDrag, restorePointerDrivenPreviewState]);
+
+  useEffect(() => {
     if (!isDragSessionActive) {
       return;
     }
@@ -969,15 +1356,7 @@ export const MapLibreMap = memo(function MapLibreMap({
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (event.button === 1 && !isInteractionLocked) {
-        event.preventDefault();
-        middlePanPointerIdRef.current = event.pointerId;
-        middlePanLastPointRef.current = {
-          x: event.clientX,
-          y: event.clientY,
-        };
-        setMapCursorMode("grabbing");
-        canvas.setPointerCapture(event.pointerId);
+      if (event.button === 1) {
         return;
       }
 
@@ -1001,33 +1380,13 @@ export const MapLibreMap = memo(function MapLibreMap({
       draggedPointIndexRef.current = pointIndex;
       suppressMapClickRef.current = false;
       setIsDraggingPoint(true);
+      setEdgePanDirection(null);
       setMapCursorMode("grabbing");
       canvas.setPointerCapture(event.pointerId);
       mapRef.current?.getMap().dragPan.disable();
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      if (middlePanPointerIdRef.current === event.pointerId) {
-        const lastPoint = middlePanLastPointRef.current;
-        const mapInstance = mapRef.current?.getMap();
-
-        if (!lastPoint || !mapInstance) {
-          return;
-        }
-
-        event.preventDefault();
-        middlePanLastPointRef.current = {
-          x: event.clientX,
-          y: event.clientY,
-        };
-        setMapCursorMode("grabbing");
-        mapInstance.panBy(
-          [lastPoint.x - event.clientX, lastPoint.y - event.clientY],
-          { animate: false },
-        );
-        return;
-      }
-
       if (dragPointerIdRef.current !== event.pointerId) {
         return;
       }
@@ -1064,47 +1423,19 @@ export const MapLibreMap = memo(function MapLibreMap({
         return;
       }
 
-      const coordinates = getCoordinatesFromClientPoint(event.clientX, event.clientY);
-
-      if (!coordinates) {
-        return;
-      }
-
-      const rect = canvas.getBoundingClientRect();
-
-      updateHoverPreview(
-        {
-          coordinates,
-          point: {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top,
-          },
-        },
-        getDraftPointIndexAtScreenPoint(event.clientX, event.clientY, event.pointerType),
+      syncDraftHoverPreviewFromClientPoint(
+        event.clientX,
+        event.clientY,
+        event.pointerType,
       );
     };
 
     const handlePointerLeave = () => {
-      setDrawingHoverState(null);
-      setDrawingProjectedSegment(null);
-      setEditingPreviewState(null);
+      clearDraftHoverPreview();
       setMapCursorMode("idle");
     };
 
     const handlePointerFinish = (event: PointerEvent) => {
-      if (middlePanPointerIdRef.current === event.pointerId) {
-        event.preventDefault();
-
-        if (canvas.hasPointerCapture(event.pointerId)) {
-          canvas.releasePointerCapture(event.pointerId);
-        }
-
-        middlePanPointerIdRef.current = null;
-        middlePanLastPointRef.current = null;
-        setMapCursorMode("idle");
-        return;
-      }
-
       if (dragPointerIdRef.current !== event.pointerId) {
         return;
       }
@@ -1141,11 +1472,13 @@ export const MapLibreMap = memo(function MapLibreMap({
     canCloseDrawingPolygon,
     finishPointDrag,
     hasActiveGeofenceEdit,
-    isInteractionLocked,
     isDrawingGeofence,
     onDrawingCoordinateUpdate,
     onEditingCoordinateUpdate,
-    updateHoverPreview,
+    clearDraftHoverPreview,
+    getCoordinatesFromClientPoint,
+    getDraftPointIndexAtScreenPoint,
+    syncDraftHoverPreviewFromClientPoint,
   ]);
 
   function handleMapClick(event: MapLayerMouseEvent) {
@@ -1283,11 +1616,20 @@ export const MapLibreMap = memo(function MapLibreMap({
         renderWorldCopies
         attributionControl={false}
         onMove={(event) => onViewportChange(toViewportState(event))}
+        onDragStart={() => {
+          if (!hasActiveGeofenceEdit) {
+            setMapCursorMode("grabbing");
+          }
+        }}
+        onDragEnd={() => {
+          if (!hasActiveGeofenceEdit) {
+            setMapCursorMode("idle");
+          }
+        }}
         onClick={handleMapClick}
         onMouseMove={handleMapPointerMove}
         onMouseLeave={() => {
-          setDrawingHoverState(null);
-          setDrawingProjectedSegment(null);
+          clearDraftHoverPreview();
           setMapCursorMode("idle");
         }}
         onLoad={() => {
@@ -1439,18 +1781,35 @@ function isPointAtCoordinates(
 }
 
 function resolveMapCursor({
+  edgePanDirection,
   hasActiveGeofenceEdit,
+  isInteractionLocked,
   mode,
+  theme,
 }: {
+  edgePanDirection: EdgePanDirection | null;
   hasActiveGeofenceEdit: boolean;
+  isInteractionLocked: boolean;
   mode: MapCursorMode;
+  theme: ThemeMode;
 }) {
-  if (!hasActiveGeofenceEdit) {
-    return "default";
+  if (mode === "grabbing") {
+    return mode;
   }
 
-  if (mode === "grab" || mode === "grabbing") {
+  if (edgePanDirection) {
+    return createEdgePanCursor(
+      getEdgePanDirectionName(edgePanDirection),
+      EDGE_PAN_CURSOR_COLORS[theme],
+    );
+  }
+
+  if (mode === "grab") {
     return mode;
+  }
+
+  if (!hasActiveGeofenceEdit) {
+    return isInteractionLocked ? "default" : "grab";
   }
 
   return DRAWING_CURSOR;
@@ -1515,4 +1874,60 @@ function getDistanceToSegment(point: ScreenPoint, start: ScreenPoint, end: Scree
   };
 
   return getDistanceToPoint(point, closestPoint);
+}
+
+function getEdgePanSpeed(distanceToEdge: number, threshold: number) {
+  const normalizedDistance = Math.max(0, Math.min(1, 1 - distanceToEdge / threshold));
+
+  return Math.max(4, EDGE_PAN_MAX_SPEED_PX * normalizedDistance);
+}
+
+function getEdgePanDirectionName(
+  direction: EdgePanDirection,
+): EdgePanCompassDirection {
+  if (direction.x === 0 && direction.y === -1) {
+    return "north";
+  }
+
+  if (direction.x === 0 && direction.y === 1) {
+    return "south";
+  }
+
+  if (direction.x === 1 && direction.y === 0) {
+    return "east";
+  }
+
+  if (direction.x === -1 && direction.y === 0) {
+    return "west";
+  }
+
+  if (direction.x === 1 && direction.y === -1) {
+    return "north-east";
+  }
+
+  if (direction.x === -1 && direction.y === -1) {
+    return "north-west";
+  }
+
+  if (direction.x === 1 && direction.y === 1) {
+    return "south-east";
+  }
+
+  return "south-west";
+}
+
+function createEdgePanCursor(direction: EdgePanCompassDirection, color: string) {
+  const rotation = EDGE_PAN_CURSOR_ROTATIONS[direction];
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
+      <g transform="rotate(${rotation} 12 12)">
+        <path
+          d="M4.5 12 13.5 3.5V8H19.5V16H13.5v4.5L4.5 12Z"
+          fill="${color}"
+        />
+      </g>
+    </svg>
+  `.replace(/\s+/g, " ").trim();
+
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, default`;
 }
