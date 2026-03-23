@@ -65,6 +65,16 @@ export const atlasUi = {
     pagePrimary:
       "inline-flex items-center justify-center gap-2 rounded-atlas-card bg-atlas-primary-strong px-4 py-3 text-sm font-semibold text-atlas-primary-strong-ink atlas-transition-surface hover:bg-atlas-primary-strong-hover",
   },
+  controls: {
+    segmentedTrack:
+      "grid auto-cols-fr grid-flow-col gap-1 rounded-atlas-card border border-atlas-card-border bg-atlas-secondary p-1",
+    segmentedOption:
+      "flex min-h-10 min-w-0 items-center justify-center rounded-atlas-field border border-transparent px-3 py-2 text-center text-sm font-medium leading-4 text-atlas-soft atlas-transition-surface hover:bg-atlas-card hover:text-atlas-ink focus-visible:border-atlas-card-border focus-visible:bg-atlas-card focus-visible:text-atlas-ink active:scale-[0.99]",
+    segmentedOptionSelected:
+      "border-atlas-card-border bg-atlas-panel text-atlas-ink shadow-atlas-bubble",
+    segmentedOptionDisabled:
+      "cursor-not-allowed text-atlas-muted opacity-70 hover:bg-transparent hover:text-atlas-muted",
+  },
   chips: {
     avatar:
       "flex size-12 items-center justify-center rounded-atlas-card bg-atlas-avatar text-sm font-semibold text-atlas-avatar-ink",
