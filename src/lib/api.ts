@@ -1,40 +1,59 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5199";
+import type { GeoFenceDto } from "@/lib/geofences";
 
-export type GeoFenceDto = {
-  id: string;
-  userId: string;
-  name: string;
-  geometryJson: string;
-  updatedAtUtc: string;
+type ApiErrorPayload = {
+  error?: string;
 };
 
-export async function getGeoFences(userId?: string): Promise<GeoFenceDto[]> {
-  const url = new URL(`${API_BASE_URL}/api/geofences`);
+async function parseApiError(response: Response) {
+  try {
+    const payload = (await response.json()) as ApiErrorPayload;
+
+    if (payload.error) {
+      return response.status === 404 ? `404: ${payload.error}` : payload.error;
+    }
+  } catch {}
+
+  return `Request failed with status ${response.status}.`;
+}
+
+export async function getGeoFences(
+  userId?: string,
+  signal?: AbortSignal,
+): Promise<GeoFenceDto[]> {
+  const url = new URL("/api/geofences", window.location.origin);
 
   if (userId) {
     url.searchParams.set("userId", userId);
   }
 
   const response = await fetch(url.toString(), {
-    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+    },
+    signal,
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch geofences: ${response.status}`);
+    throw new Error(await parseApiError(response));
   }
 
-  return response.json();
+  return (await response.json()) as GeoFenceDto[];
 }
 
-export async function getGeoFenceById(id: string): Promise<GeoFenceDto> {
-  const response = await fetch(`${API_BASE_URL}/api/geofences/${id}`, {
-    cache: "no-store",
+export async function getGeoFenceById(
+  id: string,
+  signal?: AbortSignal,
+): Promise<GeoFenceDto> {
+  const response = await fetch(`/api/geofences/${encodeURIComponent(id)}`, {
+    headers: {
+      Accept: "application/json",
+    },
+    signal,
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch geofence ${id}: ${response.status}`);
+    throw new Error(await parseApiError(response));
   }
 
-  return response.json();
+  return (await response.json()) as GeoFenceDto;
 }

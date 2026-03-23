@@ -1,6 +1,6 @@
 import { GeoFenceCard } from "@/shared/components/geofence-card";
 import { atlasUi } from "@/features/atlascope/config/theme";
-import type { GeoFenceDto } from "@/lib/api";
+import type { GeoFenceDto } from "@/lib/geofences";
 
 type GeoFenceListProps = {
   geofences: GeoFenceDto[];

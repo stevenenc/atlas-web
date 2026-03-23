@@ -16,7 +16,10 @@ import { SearchPanel } from "@/features/atlascope/components/panels/search/searc
 import { SettingsPanel } from "@/features/atlascope/components/panels/settings/settings-panel";
 import { UserPanel } from "@/features/atlascope/components/panels/user/user-panel";
 import { type ThemeMode } from "@/features/atlascope/config/theme";
-import type { IncidentType } from "@/features/atlascope/types/atlascope";
+import type {
+  AtlascopeNotification,
+  IncidentType,
+} from "@/features/atlascope/types/atlascope";
 
 export type OverlayPanelId =
   | "search"
@@ -30,6 +33,7 @@ type AtlascopeShellOverlaysProps = {
   activeLayers: Record<IncidentType, boolean>;
   geofencePanelProps: Omit<ComponentProps<typeof GeofencePanel>, "isOpen">;
   isPanelOpen: (panel: OverlayPanelId) => boolean;
+  notifications: AtlascopeNotification[];
   onToggleLayer: (layer: IncidentType) => void;
   onToggleTheme: () => void;
   panelRootRef: RefObject<HTMLDivElement | null>;
@@ -41,6 +45,7 @@ export function AtlascopeShellOverlays({
   activeLayers,
   geofencePanelProps,
   isPanelOpen,
+  notifications,
   onToggleLayer,
   onToggleTheme,
   panelRootRef,
@@ -63,7 +68,10 @@ export function AtlascopeShellOverlays({
 
           <GeofencePanel isOpen={isPanelOpen("geofences")} {...geofencePanelProps} />
 
-          <NotificationPanel isOpen={isPanelOpen("notifications")} />
+          <NotificationPanel
+            isOpen={isPanelOpen("notifications")}
+            notifications={notifications}
+          />
 
           <SettingsPanel
             isOpen={isPanelOpen("settings")}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { BasePanel, PanelHeader } from "@/features/atlascope/components/overlay/panel/panel-system";
-import { cx } from "@/features/atlascope/config/theme";
+import { atlasUi, cx } from "@/features/atlascope/config/theme";
 import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 
 import { GeofenceDrawingCallout } from "./geofence-drawing-callout";
@@ -13,14 +13,16 @@ export type Geofence = AtlascopeGeofence;
 type GeofencePanelProps = {
   isOpen: boolean;
   geofences: Geofence[];
-  selectedGeofenceId: number | null;
+  selectedGeofenceId: string | null;
   isDrawingGeofence: boolean;
   drawingPointCount: number;
-  editingGeofenceId: number | null;
-  renamingGeofenceId: number | null;
+  editingGeofenceId: string | null;
+  renamingGeofenceId: string | null;
   draftName: string;
-  enteringGeofenceId: number | null;
+  enteringGeofenceId: string | null;
   showRowActions: boolean;
+  isBackendLoading: boolean;
+  backendErrorMessage: string | null;
   onAddGeofence: () => void;
   onCancelDrawing: () => void;
   onDraftNameChange: (value: string) => void;
@@ -30,9 +32,9 @@ type GeofencePanelProps = {
   onSaveEditing: (geofence: Geofence) => void;
   onCancelEditing: (geofence: Geofence) => void;
   onToggleRowActions: () => void;
-  onToggleVisibility: (id: number) => void;
-  onRenameGeofence: (id: number, name: string) => void;
-  onDeleteGeofence: (id: number) => void;
+  onToggleVisibility: (id: string) => void;
+  onRenameGeofence: (id: string, name: string) => void;
+  onDeleteGeofence: (id: string) => void;
 };
 
 export function GeofencePanel({
@@ -46,6 +48,8 @@ export function GeofencePanel({
   draftName,
   enteringGeofenceId,
   showRowActions,
+  isBackendLoading,
+  backendErrorMessage,
   onAddGeofence,
   onCancelDrawing,
   onDraftNameChange,
@@ -59,10 +63,10 @@ export function GeofencePanel({
   onRenameGeofence,
   onDeleteGeofence,
 }: GeofencePanelProps) {
-  const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
-  const [exitingId, setExitingId] = useState<number | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [exitingId, setExitingId] = useState<string | null>(null);
   const deleteTimerRef = useRef<number | null>(null);
-  const pendingDeleteIdRef = useRef<number | null>(null);
+  const pendingDeleteIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -97,7 +101,7 @@ export function GeofencePanel({
     onSaveEditing(geofence);
   }
 
-  function handleDeleteGeofence(id: number) {
+  function handleDeleteGeofence(id: string) {
     if (pendingDeleteIdRef.current === id) {
       return;
     }
@@ -142,6 +146,20 @@ export function GeofencePanel({
           ) : null
         }
       />
+
+      {backendErrorMessage ? (
+        <div
+          role="status"
+          className={cx("mt-4 p-3", atlasUi.surfaces.card)}
+        >
+          <p className={atlasUi.text.label}>Backend geofence sync is unavailable</p>
+          <p className={cx("mt-2", atlasUi.text.body)}>{backendErrorMessage}</p>
+        </div>
+      ) : null}
+
+      {isBackendLoading ? (
+        <p className={cx("mt-4", atlasUi.text.meta)}>Loading geofences from the backend...</p>
+      ) : null}
 
       {geofences.length ? (
         <>

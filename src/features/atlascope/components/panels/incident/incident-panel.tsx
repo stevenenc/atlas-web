@@ -33,7 +33,7 @@ export function IncidentPanel({
           <div>
             <p className={atlasUi.text.label}>Pulling incident context</p>
             <p className={cx("mt-1", atlasUi.text.subtle)}>
-              Rebuilding the mock event picture for review
+              Refreshing the latest incident context for review
             </p>
           </div>
         </div>

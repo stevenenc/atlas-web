@@ -9,43 +9,58 @@ import {
 import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 
 type FocusedGeofenceRequest = {
-  geofenceId: number;
+  geofenceId: string;
   nonce: number;
 };
 
 type UseAtlascopeGeofencesOptions = {
-  initialGeofences: AtlascopeGeofence[];
+  sourceGeofences: AtlascopeGeofence[];
   openGeofencePanel: () => void;
 };
 
 export function useAtlascopeGeofences({
-  initialGeofences,
+  sourceGeofences,
   openGeofencePanel,
 }: UseAtlascopeGeofencesOptions) {
-  const [geofences, setGeofences] = useState<AtlascopeGeofence[]>(initialGeofences);
+  const [geofences, setGeofences] = useState<AtlascopeGeofence[]>(sourceGeofences);
   const [drawingGeofenceCoordinates, setDrawingGeofenceCoordinates] = useState<MapCoordinates[]>(
     [],
   );
   const [isDrawingGeofence, setIsDrawingGeofence] = useState(false);
-  const [editingGeofenceId, setEditingGeofenceId] = useState<number | null>(null);
+  const [editingGeofenceId, setEditingGeofenceId] = useState<string | null>(null);
   const [editingGeofenceCoordinates, setEditingGeofenceCoordinates] = useState<
     MapCoordinates[]
   >([]);
-  const [renamingGeofenceId, setRenamingGeofenceId] = useState<number | null>(null);
+  const [renamingGeofenceId, setRenamingGeofenceId] = useState<string | null>(null);
   const [geofenceDraftName, setGeofenceDraftName] = useState("");
-  const [enteringGeofenceId, setEnteringGeofenceId] = useState<number | null>(null);
+  const [enteringGeofenceId, setEnteringGeofenceId] = useState<string | null>(null);
   const [showGeofenceRowActions, setShowGeofenceRowActions] = useState(false);
-  const [selectedGeofenceId, setSelectedGeofenceId] = useState<number | null>(null);
+  const [selectedGeofenceId, setSelectedGeofenceId] = useState<string | null>(null);
   const [focusedGeofenceRequest, setFocusedGeofenceRequest] =
     useState<FocusedGeofenceRequest | null>(null);
-  const pendingCreatedGeofenceIdRef = useRef<number | null>(null);
+  const pendingCreatedGeofenceIdRef = useRef<string | null>(null);
   const geofenceEnterTimerRef = useRef<number | null>(null);
   const selectedGeofencePreviewRef = useRef<{
-    geofenceId: number;
+    geofenceId: string;
     previousVisibility: boolean;
   } | null>(null);
+  const hasLocalGeofenceChangesRef = useRef(false);
   const isGeofencePanelPersistent = isDrawingGeofence || editingGeofenceId !== null;
   const canFinishDrawingGeofence = canCloseFromPoint(drawingGeofenceCoordinates);
+
+  useEffect(() => {
+    if (hasLocalGeofenceChangesRef.current) {
+      return;
+    }
+
+    const syncTimer = window.setTimeout(() => {
+      setGeofences(sourceGeofences);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(syncTimer);
+    };
+  }, [sourceGeofences]);
 
   const restoreSelectedGeofencePreview = useCallback(() => {
     const preview = selectedGeofencePreviewRef.current;
@@ -111,7 +126,8 @@ export function useAtlascopeGeofences({
       return;
     }
 
-    const id = Date.now();
+    const id = `local-${Date.now()}`;
+    hasLocalGeofenceChangesRef.current = true;
 
     setGeofences((current) => [
       ...current,
@@ -197,7 +213,11 @@ export function useAtlascopeGeofences({
         return;
       }
 
-      if (target.closest(`[data-geofence-item-id="${selectedGeofenceId}"]`)) {
+      const selectedItem = target.closest("[data-geofence-item-id]");
+
+      if (
+        selectedItem?.getAttribute("data-geofence-item-id") === selectedGeofenceId
+      ) {
         return;
       }
 
@@ -326,6 +346,7 @@ export function useAtlascopeGeofences({
       return;
     }
 
+    hasLocalGeofenceChangesRef.current = true;
     setDrawingGeofenceCoordinates((current) =>
       isValidNextPoint(current, coordinates) ? [...current, coordinates] : current,
     );
@@ -336,6 +357,7 @@ export function useAtlascopeGeofences({
       return;
     }
 
+    hasLocalGeofenceChangesRef.current = true;
     setDrawingGeofenceCoordinates((current) => {
       const nextCoordinates = insertCoordinatesAt(current, index, coordinates);
 
@@ -348,6 +370,7 @@ export function useAtlascopeGeofences({
       return;
     }
 
+    hasLocalGeofenceChangesRef.current = true;
     setDrawingGeofenceCoordinates((current) => {
       const nextCoordinates = current.map((point, pointIndex) =>
         pointIndex === index ? coordinates : point,
@@ -362,6 +385,7 @@ export function useAtlascopeGeofences({
       return;
     }
 
+    hasLocalGeofenceChangesRef.current = true;
     setDrawingGeofenceCoordinates((current) =>
       current.filter((_, pointIndex) => pointIndex !== index),
     );
@@ -372,6 +396,7 @@ export function useAtlascopeGeofences({
       return;
     }
 
+    hasLocalGeofenceChangesRef.current = true;
     setEditingGeofenceCoordinates((current) => [...current, coordinates]);
   }
 
@@ -380,6 +405,7 @@ export function useAtlascopeGeofences({
       return;
     }
 
+    hasLocalGeofenceChangesRef.current = true;
     setEditingGeofenceCoordinates((current) =>
       insertCoordinatesAt(current, index, coordinates),
     );
@@ -390,6 +416,7 @@ export function useAtlascopeGeofences({
       return;
     }
 
+    hasLocalGeofenceChangesRef.current = true;
     setEditingGeofenceCoordinates((current) =>
       current.map((point, pointIndex) => (pointIndex === index ? coordinates : point)),
     );
@@ -400,18 +427,21 @@ export function useAtlascopeGeofences({
       return;
     }
 
+    hasLocalGeofenceChangesRef.current = true;
     setEditingGeofenceCoordinates((current) =>
       current.filter((_, pointIndex) => pointIndex !== index),
     );
   }
 
-  function handleRenameGeofence(id: number, name: string) {
+  function handleRenameGeofence(id: string, name: string) {
+    hasLocalGeofenceChangesRef.current = true;
     setGeofences((current) =>
       current.map((geofence) => (geofence.id === id ? { ...geofence, name } : geofence)),
     );
   }
 
-  function handleToggleGeofenceVisibility(id: number) {
+  function handleToggleGeofenceVisibility(id: string) {
+    hasLocalGeofenceChangesRef.current = true;
     setGeofences((current) =>
       current.map((geofence) =>
         geofence.id === id ? { ...geofence, isEnabled: !geofence.isEnabled } : geofence,
@@ -465,7 +495,8 @@ export function useAtlascopeGeofences({
     openGeofencePanel();
   }
 
-  function handleDeleteGeofence(id: number) {
+  function handleDeleteGeofence(id: string) {
+    hasLocalGeofenceChangesRef.current = true;
     if (pendingCreatedGeofenceIdRef.current === id) {
       pendingCreatedGeofenceIdRef.current = null;
     }

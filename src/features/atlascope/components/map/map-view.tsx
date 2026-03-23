@@ -18,12 +18,12 @@ import type { Incident, IncidentType } from "@/features/atlascope/types/atlascop
 type MapViewProps = {
   incidents: Incident[];
   geofences: AtlascopeGeofence[];
-  focusedGeofenceId: number | null;
+  focusedGeofenceId: string | null;
   focusedGeofenceNonce: number;
   drawingCoordinates: MapGeofenceData["coordinates"];
   editingCoordinates: MapGeofenceData["coordinates"];
   isDrawingGeofence: boolean;
-  editingGeofenceId: number | null;
+  editingGeofenceId: string | null;
   isInteractionLocked: boolean;
   activeLayers: Record<IncidentType, boolean>;
   selectedTimeMs: number;

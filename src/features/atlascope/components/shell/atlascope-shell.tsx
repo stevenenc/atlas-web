@@ -8,12 +8,16 @@ import { IncidentPanel } from "@/features/atlascope/components/panels/incident/i
 import { TimelineControlBar } from "@/features/atlascope/components/timeline/timeline-control-bar";
 import { TimelineInfoBlock } from "@/features/atlascope/components/timeline/timeline-info-block";
 import { atlasUi, type ThemeMode } from "@/features/atlascope/config/theme";
-import { mockGeofences } from "@/features/atlascope/data/mock-geofences";
-import { incidents } from "@/features/atlascope/data/mock-incidents";
 import { useAtlascopeGeofences } from "@/features/atlascope/hooks/use-atlascope-geofences";
 import { useAtlascopeTimeline } from "@/features/atlascope/hooks/use-atlascope-timeline";
 import { formatTimelineLongDate } from "@/features/atlascope/lib/incident-timeline";
-import type { IncidentType } from "@/features/atlascope/types/atlascope";
+import type {
+  AtlascopeNotification,
+  Incident,
+  IncidentType,
+} from "@/features/atlascope/types/atlascope";
+import { useGeoFencesQuery } from "@/features/geofences/use-geofence-data";
+import { mapGeoFenceDtosToAtlascopeGeofences } from "@/lib/geofences";
 
 import {
   AtlascopeShellOverlays,
@@ -26,10 +30,46 @@ const initialLayers: Record<IncidentType, boolean> = {
   air_quality: true,
 };
 
-export function AtlascopeShell() {
+type AtlascopeShellProps = {
+  incidents: Incident[];
+  notifications: AtlascopeNotification[];
+};
+
+export function AtlascopeShell({
+  incidents,
+  notifications,
+}: AtlascopeShellProps) {
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [activeOverlayPanel, setActiveOverlayPanel] = useState<OverlayPanelId | null>(null);
   const overlayControlsRef = useRef<HTMLDivElement | null>(null);
+  const {
+    data: remoteGeofenceDtos,
+    errorMessage: geofenceFeedErrorMessage,
+    isLoading: isGeofenceFeedLoading,
+  } = useGeoFencesQuery();
+  const geofenceFeed = useMemo(() => {
+    if (!remoteGeofenceDtos?.length) {
+      return {
+        geofences: [],
+        errorMessage: null,
+      };
+    }
+
+    try {
+      return {
+        geofences: mapGeoFenceDtosToAtlascopeGeofences(remoteGeofenceDtos),
+        errorMessage: null,
+      };
+    } catch (error) {
+      return {
+        geofences: [],
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : "The backend returned geofences in an unexpected format.",
+      };
+    }
+  }, [remoteGeofenceDtos]);
   const openGeofencePanel = useCallback(() => {
     setActiveOverlayPanel("geofences");
   }, []);
@@ -69,7 +109,7 @@ export function AtlascopeShell() {
     setGeofenceDraftName,
     showGeofenceRowActions,
   } = useAtlascopeGeofences({
-    initialGeofences: mockGeofences,
+    sourceGeofences: geofenceFeed.geofences,
     openGeofencePanel,
   });
   const {
@@ -158,7 +198,10 @@ export function AtlascopeShell() {
         <AtlascopeShellOverlays
           activeLayers={activeLayers}
           geofencePanelProps={{
+            backendErrorMessage:
+              geofenceFeed.errorMessage ?? geofenceFeedErrorMessage,
             geofences,
+            isBackendLoading: isGeofenceFeedLoading,
             selectedGeofenceId,
             isDrawingGeofence,
             drawingPointCount: drawingGeofenceCoordinates.length,
@@ -181,6 +224,7 @@ export function AtlascopeShell() {
             onDeleteGeofence: handleDeleteGeofence,
           }}
           isPanelOpen={isPanelOpen}
+          notifications={notifications}
           onToggleLayer={handleToggleLayer}
           onToggleTheme={() =>
             setTheme((current) => (current === "dark" ? "light" : "dark"))

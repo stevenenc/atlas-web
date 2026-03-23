@@ -18,3 +18,10 @@ export type Incident = {
   coordinates: MapCoordinates;
   whyThisAlert: string;
 };
+
+export type AtlascopeNotification = {
+  id: string;
+  title: string;
+  detail: string;
+  summary: string;
+};

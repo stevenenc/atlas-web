@@ -2,7 +2,7 @@ import type { AtlascopeGeofence } from "@/features/atlascope/types/geofence";
 
 export const mockGeofences: AtlascopeGeofence[] = [
   {
-    id: 1,
+    id: "demo-manila",
     name: "Metro Manila",
     isEnabled: true,
     coordinates: [
@@ -13,7 +13,7 @@ export const mockGeofences: AtlascopeGeofence[] = [
     ],
   },
   {
-    id: 2,
+    id: "demo-tokyo-bay",
     name: "Tokyo Bay",
     isEnabled: false,
     coordinates: [
@@ -24,7 +24,7 @@ export const mockGeofences: AtlascopeGeofence[] = [
     ],
   },
   {
-    id: 3,
+    id: "demo-san-andreas",
     name: "San Andreas Zone",
     isEnabled: false,
     coordinates: [

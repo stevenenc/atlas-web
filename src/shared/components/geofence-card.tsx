@@ -17,7 +17,7 @@ export function GeoFenceCard({
 }: GeoFenceCardProps) {
   return (
     <Link
-      href={`/geofences/${id}`}
+      href={`/geofences/${encodeURIComponent(id)}`}
       className={atlasUi.page.linkCard}
     >
       <div className="space-y-1">

@@ -33,7 +33,9 @@ function createFallbackStyle(backgroundColor: string): MapStyleDefinition {
 const darkFallbackStyle = createFallbackStyle(darkTheme.land.zoomedOut);
 const lightFallbackStyle = createFallbackStyle(lightTheme.land.zoomedOut);
 
-export const OPEN_FREEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+export const DEFAULT_BASEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+export const ATLASCOPE_BASEMAP_STYLE_URL =
+  process.env.NEXT_PUBLIC_ATLAS_BASEMAP_STYLE_URL ?? DEFAULT_BASEMAP_STYLE_URL;
 
 export const atlascopeMapConfig = {
   provider: MAP_PROVIDER as MapProviderId,
@@ -47,13 +49,13 @@ export const atlascopeMapConfig = {
   minZoom: 5.1,
   maxZoom: 14.5,
   basemap: {
-    styleUrl: OPEN_FREEMAP_STYLE_URL,
+    styleUrl: ATLASCOPE_BASEMAP_STYLE_URL,
     vectorSourceId: "openmaptiles",
     terrainRasterSourceId: "ne2_shaded",
   },
   styleByTheme: {
-    dark: OPEN_FREEMAP_STYLE_URL,
-    light: OPEN_FREEMAP_STYLE_URL,
+    dark: ATLASCOPE_BASEMAP_STYLE_URL,
+    light: ATLASCOPE_BASEMAP_STYLE_URL,
   } satisfies Record<ThemeMode, MapStyleConfig>,
   fallbackStyleByTheme: {
     dark: darkFallbackStyle,
