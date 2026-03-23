@@ -1717,25 +1717,25 @@ function TrashTargetIcon() {
       <path
         d="M4.5 7h15"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.8"
         strokeLinecap="round"
       />
       <path
         d="M9 4.5h6l1 2.5H8l1-2.5Z"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.8"
         strokeLinejoin="round"
       />
       <path
         d="M7 7h10v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7Z"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.8"
         strokeLinejoin="round"
       />
       <path
         d="M10 10v6M12 10v6M14 10v6"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.8"
         strokeLinecap="round"
       />
     </svg>

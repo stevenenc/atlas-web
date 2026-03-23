@@ -1,5 +1,11 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Documentation
+
+Project documentation now lives in [`docs/`](./docs/README.md).
+
+- Architecture audit: [`docs/architecture/frontend-hld-audit.md`](./docs/architecture/frontend-hld-audit.md)
+
 ## Getting Started
 
 First, run the development server:

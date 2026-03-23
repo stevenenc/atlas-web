@@ -97,6 +97,8 @@ export function AtlascopeShell() {
     () => ({
       search: { dismissible: true },
       user: { dismissible: true },
+      notifications: { dismissible: true },
+      settings: { dismissible: true },
       layers: { dismissible: true },
       geofences: { dismissible: !isGeofencePanelPersistent },
     }),

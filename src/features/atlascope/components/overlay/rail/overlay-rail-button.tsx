@@ -25,10 +25,10 @@ export function OverlayRailButton({
       aria-label={ariaLabel}
       aria-pressed={isPressed}
       className={cx(
-        "flex size-12 items-center justify-center outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
+        "flex size-12 items-center justify-center outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 hover:border-atlas-rail-active-border hover:bg-atlas-rail-hover hover:text-atlas-ink",
         atlasUi.surfaces.rail,
         isPressed &&
-          "border-atlas-rail-active-border bg-atlas-rail-active text-atlas-ink shadow-atlas-rail-active",
+          "border-atlas-rail-active-border bg-atlas-rail-hover text-atlas-ink shadow-atlas-rail-active",
         className,
       )}
       {...props}
